@@ -180,6 +180,7 @@ toque datos responderá error 500.
 | API viva | Abrir http://localhost:3001/api/health | `{"ok":true}` |
 | App viva | Abrir http://localhost:5174 | Pantalla de inicio de sesión de ENINTI |
 | Conexión app → API | Abrir http://localhost:5174/api/health | `{"ok":true}` |
+| Documentación de la API | Abrir http://localhost:5174/api/docs | Swagger UI con los 46 endpoints |
 | Base de datos | Iniciar sesión (sección 9) | Entra al panel sin error |
 
 > Abrir `http://localhost:3001/api` a secas responde `{"error":"Ruta no
@@ -198,6 +199,20 @@ Todas son datos ficticios. Entra en http://localhost:5174:
 
 Cada perfil aterriza en su propio panel. Tras 5 contraseñas incorrectas seguidas
 con el mismo correo, el acceso se bloquea 15 minutos.
+
+### Probar la API en Swagger
+
+Con los servidores arriba, abre http://localhost:5174/api/docs:
+
+1. En **Autenticación → `POST /auth/login`** pulsa **Try it out** y **Execute**
+   (el cuerpo de ejemplo ya trae las credenciales del administrador).
+2. Copia el valor de `token` de la respuesta.
+3. Pulsa **Authorize** (candado, arriba a la derecha), pega el token y confirma.
+4. Ejecuta cualquier endpoint del rol de ese usuario. Para probar otro rol, vuelve a
+   iniciar sesión con sus credenciales y reemplaza el token en **Authorize**.
+
+Un token de un rol recibe **403** en los endpoints de otro rol: es el comportamiento
+esperado.
 
 ## 10. Detener los servidores
 

@@ -75,6 +75,16 @@ por ENINTI (HU-07).
 
 ## Referencia de la API
 
+> **Documentación interactiva (Swagger UI):** http://localhost:5174/api/docs
+> (también en http://localhost:3001/api/docs). Muestra los 46 endpoints con sus
+> parámetros, esquemas y respuestas, y permite ejecutarlos con **Try it out**.
+> Para los endpoints protegidos: ejecuta `POST /auth/login`, copia el `token` y
+> pégalo en el botón **Authorize**. La especificación OpenAPI en JSON está en
+> `/api/docs.json`; se mantiene en `backend/src/docs/openapi.js` y debe
+> actualizarse junto con cada endpoint nuevo.
+>
+> Las tablas siguientes son un resumen rápido.
+
 Base: `/api`. Salvo las rutas públicas y de autenticación, todas requieren el
 encabezado `Authorization: Bearer <token>` obtenido en el login.
 
