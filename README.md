@@ -22,6 +22,9 @@ una sola base de datos.
 
 ## Puesta en marcha (primera vez)
 
+> Guía completa, con inicio manual de cada servidor y solución de problemas:
+> [docs/GUIA_INICIO.md](docs/GUIA_INICIO.md).
+
 ### 1. Crear la base de datos
 
 El proyecto usa su **propia base de datos** llamada `eninti`. **No** usa ni modifica
@@ -117,6 +120,7 @@ ENINTI/
 
 ## Documentación
 
+- [docs/GUIA_INICIO.md](docs/GUIA_INICIO.md) — instalación paso a paso, inicio manual de los servidores y solución de problemas.
 - [docs/MANUAL.md](docs/MANUAL.md) — manual de uso por perfil y detalle de la API.
 
 ## Equipos
