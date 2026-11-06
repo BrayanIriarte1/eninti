@@ -121,6 +121,7 @@ ENINTI/
 ## Documentación
 
 - [docs/GUIA_INICIO.md](docs/GUIA_INICIO.md) — instalación paso a paso, inicio manual de los servidores y solución de problemas.
+- [docs/GUIA_OTRO_PC_Y_GITHUB.md](docs/GUIA_OTRO_PC_Y_GITHUB.md) — abrir el proyecto en otro PC y flujo de Git/GitHub (clonar, ramas, commit, push, Pull Request).
 - [docs/MANUAL.md](docs/MANUAL.md) — manual de uso por perfil y resumen de la API.
 - **Documentación interactiva de la API (Swagger UI):** con los servidores arriba, abre
   http://localhost:5174/api/docs (o http://localhost:3001/api/docs). Documenta los 46 endpoints, con
