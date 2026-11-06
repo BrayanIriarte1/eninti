@@ -259,7 +259,10 @@ período** y **Procesar cargos recurrentes** para ver el cobro automático.
 
 | Síntoma | Causa probable | Solución |
 |---|---|---|
-| `'node' no se reconoce` | Terminal abierta antes de instalar Node | Cerrar y abrir una terminal nueva; si persiste, agregar la carpeta de Node al PATH |
+| `'node' no se reconoce` | Terminal abierta antes de instalar Node | Cerrar y abrir una terminal nueva (en VS Code, cerrar **todas** las ventanas y volver a abrirlo); si persiste, agregar la carpeta de Node al PATH. En Git Bash, solución inmediata sin reiniciar: `export PATH="/c/Users/TU_USUARIO/tools/node:$PATH"` (ajusta a donde esté `node.exe`) |
+| `cd C:\Users\...` falla con "No such file or directory" (Git Bash) | En Git Bash la barra invertida `\` es un carácter de escape y borra las barras | Usar barras normales `cd C:/Users/chunc/ENINTI-main`, o comillas `cd "C:\Users\chunc\ENINTI-main"`. En PowerShell o CMD la ruta con `\` sí funciona |
+| `npm error ENOENT ... package.json` | El comando se ejecutó fuera de la carpeta del proyecto | Hacer `cd` a la carpeta que contiene `package.json` (la raíz del proyecto) y repetir |
+| `npm run dev` "no hace nada" | No abre el navegador y tarda 10 a 15 segundos en arrancar | Esperar a ver `API ENINTI escuchando...` y `VITE ... ready`, y abrir a mano http://localhost:5174. La terminal queda ocupada mientras corre: es lo normal; no la cierres |
 | `concurrently no se reconoce` | Falta instalar la raíz | `npm install` en la raíz o `npm run install:all` |
 | `password authentication failed for user "postgres"` | Clave incorrecta en `DATABASE_URL` | Corregir la clave en `backend/.env`; revisar caracteres especiales (sección 5) |
 | `database "eninti" does not exist` | No se creó la base | Repetir la sección 4 |
