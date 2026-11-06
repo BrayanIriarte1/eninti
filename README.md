@@ -120,6 +120,7 @@ ENINTI/
 
 ## Documentación
 
+- [docs/GUIA_DEL_CODIGO.md](docs/GUIA_DEL_CODIGO.md) — guía completa para entender el código: arquitectura, base de datos, backend, frontend, flujos, seguridad y trazabilidad de cada historia de usuario.
 - [docs/GUIA_INICIO.md](docs/GUIA_INICIO.md) — instalación paso a paso, inicio manual de los servidores y solución de problemas.
 - [docs/GUIA_OTRO_PC_Y_GITHUB.md](docs/GUIA_OTRO_PC_Y_GITHUB.md) — abrir el proyecto en otro PC y flujo de Git/GitHub (clonar, ramas, commit, push, Pull Request).
 - [docs/MANUAL.md](docs/MANUAL.md) — manual de uso por perfil y resumen de la API.
