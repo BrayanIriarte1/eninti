@@ -15,7 +15,7 @@ export default function PlantaClientePage() {
   }, [id]);
 
   if (error) return <Mensaje error={error} />;
-  if (!planta) return <p>Cargando…</p>;
+  if (!planta) return <p className="cargando">Cargando…</p>;
 
   const ficha = [
     ['Dirección', planta.direccion],

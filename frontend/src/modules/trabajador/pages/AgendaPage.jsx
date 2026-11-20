@@ -3,10 +3,14 @@ import { Link } from 'react-router-dom';
 import { miAgenda } from '../services/trabajadorService.js';
 import { enlaceMapa, EtiquetaOrden } from '../components/ordenUtils.jsx';
 import Mensaje from '../../../shared/components/Mensaje.jsx';
+import ArcoSolar, { saludo } from '../../../shared/components/ArcoSolar.jsx';
+import Icono from '../../../shared/components/Icono.jsx';
+import { useAuth } from '../../../shared/context/AuthContext.jsx';
 import { formatoFecha } from '../../../shared/utils/formato.js';
 
 // Agenda de visitas del trabajador con enlace al mapa (HU-14)
 export default function AgendaPage() {
+  const { usuario } = useAuth();
   const [ordenes, setOrdenes] = useState([]);
   const [historicas, setHistoricas] = useState(false);
   const [error, setError] = useState(null);
@@ -19,8 +23,15 @@ export default function AgendaPage() {
 
   return (
     <section>
+      <ArcoSolar titulo={`${saludo()}, ${usuario?.nombre?.split(' ')[0] ?? ''}`}>
+        <p>
+          {cargando || historicas ? 'Tu agenda de visitas a plantas solares.'
+            : ordenes.length === 0 ? 'No tienes visitas pendientes.'
+              : `Tienes ${ordenes.length} ${ordenes.length === 1 ? 'visita pendiente' : 'visitas pendientes'}. Revisa la planta y abre el mapa antes de salir.`}
+        </p>
+      </ArcoSolar>
       <div className="encabezado">
-        <h1>Mi agenda</h1>
+        <h2 style={{ margin: 0 }}>Mi agenda</h2>
         <div className="segmentado" role="group" aria-label="Filtrar órdenes">
           <button type="button" className={!historicas ? 'activo' : ''} onClick={() => setHistoricas(false)}>Pendientes</button>
           <button type="button" className={historicas ? 'activo' : ''} onClick={() => setHistoricas(true)}>Historial</button>
@@ -28,8 +39,10 @@ export default function AgendaPage() {
       </div>
 
       <Mensaje error={error} />
-      {cargando && <p>Cargando…</p>}
-      {!cargando && ordenes.length === 0 && <p>No tienes órdenes {historicas ? 'en el historial' : 'pendientes'}.</p>}
+      {cargando && <p className="cargando">Cargando…</p>}
+      {!cargando && ordenes.length === 0 && (
+        <div className="tarjeta vacio"><Icono nombre={historicas ? 'agenda' : 'ok'} tamano={30} /><p>No tienes órdenes {historicas ? 'en el historial' : 'pendientes'}.</p></div>
+      )}
 
       <div className="columnas">
         {ordenes.map((o) => (

@@ -3,12 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import { miCuenta, cancelarSuscripcion, iniciarInscripcion } from '../services/clienteService.js';
 import EstadoSuscripcion from '../../administrador/components/EstadoSuscripcion.jsx';
 import Mensaje from '../../../shared/components/Mensaje.jsx';
+import ArcoSolar, { saludo } from '../../../shared/components/ArcoSolar.jsx';
+import Icono from '../../../shared/components/Icono.jsx';
+import { useAuth } from '../../../shared/context/AuthContext.jsx';
 import { formatoPesos, formatoFecha } from '../../../shared/utils/formato.js';
 
 // Mi Cuenta: pagos, deuda e historial en pocas acciones (HU-08, RNF-01).
 // Incluye inscribir medio de pago (HU-13) y cancelar suscripción (HU-12).
 export default function CuentaPage() {
   const navigate = useNavigate();
+  const { usuario } = useAuth();
   const [datos, setDatos] = useState(null);
   const [error, setError] = useState(null);
   const [accion, setAccion] = useState(null); // id de suscripción en proceso
@@ -48,24 +52,33 @@ export default function CuentaPage() {
   }
 
   if (error && !datos) return <Mensaje error={error} />;
-  if (!datos) return <p>Cargando…</p>;
+  if (!datos) return <p className="cargando">Cargando…</p>;
 
   const { suscripciones, deuda_total, cuotas_pendientes, pagos, medio_pago } = datos;
 
   return (
     <section>
-      <h1>Mi cuenta</h1>
+      <ArcoSolar titulo={`${saludo()}, ${usuario?.nombre?.split(' ')[0] ?? ''}`}>
+        <p>
+          {deuda_total > 0
+            ? `Tienes ${formatoPesos(deuda_total)} por pagar. Revisa el detalle en "Cuotas por pagar".`
+            : 'Tu cuenta está al día. Gracias por mantener tu planta con ENINTI.'}
+        </p>
+      </ArcoSolar>
 
       <div className="resumen-tiras">
         <div className={`tira ${deuda_total > 0 ? 'tira-alerta' : 'tira-ok'}`}>
+          <span className="tira-icono"><Icono nombre={deuda_total > 0 ? 'impagos' : 'ok'} /></span>
           <span className="tira-valor">{deuda_total > 0 ? formatoPesos(deuda_total) : 'Sin deuda'}</span>
           <span className="tira-texto">Deuda vigente</span>
         </div>
         <div className="tira">
+          <span className="tira-icono"><Icono nombre="planta" /></span>
           <span className="tira-valor">{suscripciones.filter((s) => s.estado !== 'cancelada').length}</span>
           <span className="tira-texto">Suscripciones activas</span>
         </div>
-        <div className="tira">
+        <div className={`tira ${medio_pago ? 'tira-ok' : ''}`}>
+          <span className="tira-icono"><Icono nombre="pagos" /></span>
           <span className="tira-valor">
             {medio_pago ? `•••• ${medio_pago.ultimos_4}` : 'Sin inscribir'}
           </span>
@@ -132,7 +145,7 @@ export default function CuentaPage() {
 
       <h2>Historial de pagos</h2>
       {pagos.length === 0 ? (
-        <p>Aún no hay pagos registrados.</p>
+        <div className="tarjeta vacio"><Icono nombre="pagos" tamano={30} /><p>Aún no hay pagos registrados. Aparecerán aquí cuando pagues tu primera cuota.</p></div>
       ) : (
         <table className="tabla">
           <thead>
