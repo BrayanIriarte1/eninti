@@ -1,5 +1,6 @@
-import { query } from '../../config/db.js';
+import { pool, query } from '../../config/db.js';
 import { HttpError } from '../../shared/utils/httpError.js';
+import { hashPassword } from '../../shared/utils/password.js';
 
 // Listados básicos para selectores y administración de clientes (HU-03)
 export async function listar() {
@@ -40,8 +41,8 @@ function validar({ rut, nombre, telefono, direccion, id_comuna }, { parcial }) {
   if (errores.length) throw new HttpError(400, 'Datos del cliente inválidos', errores);
 }
 
-// Alta de la ficha administrativa del cliente (HU-03); la cuenta web la crea
-// el propio cliente después con su RUT (HU-07).
+// Alta de la ficha administrativa del cliente (HU-03). La cuenta web la crea el
+// administrador (HU-07): al aprobar una solicitud de cuenta o con crearCuenta().
 export async function crear(datos) {
   validar(datos, { parcial: false });
   const { rows } = await query(
@@ -72,4 +73,47 @@ export async function actualizar(id, datos) {
   );
   if (!rows.length) throw new HttpError(404, 'Cliente no encontrado');
   return rows[0];
+}
+
+// Crea la cuenta web (rol cliente) de una ficha y la enlaza. Se ejecuta dentro de la
+// transacción de quien llama; la contraseña inicial la define el administrador.
+export async function crearCuentaCliente(conexion, cliente, { email, password, telefono }) {
+  const errores = [];
+  const correo = typeof email === 'string' ? email.trim().toLowerCase() : '';
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) errores.push('email no es válido');
+  if (typeof password !== 'string' || password.length < 8) errores.push('password debe tener al menos 8 caracteres');
+  if (errores.length) throw new HttpError(400, 'Datos de la cuenta inválidos', errores);
+  if (cliente.id_usuario) throw new HttpError(409, 'Este cliente ya tiene una cuenta web');
+
+  try {
+    const { rows } = await conexion.query(
+      `INSERT INTO usuario (nombre, email, password_hash, rol, telefono)
+       VALUES ($1, $2, $3, 'cliente', $4)
+       RETURNING id_usuario, nombre, email, rol`,
+      [cliente.nombre, correo, await hashPassword(password), telefono ?? cliente.telefono ?? null],
+    );
+    await conexion.query('UPDATE cliente SET id_usuario = $1 WHERE id_cliente = $2', [rows[0].id_usuario, cliente.id_cliente]);
+    return rows[0];
+  } catch (err) {
+    if (err.code === '23505') throw new HttpError(409, 'El correo ya está en uso por otra cuenta');
+    throw err;
+  }
+}
+
+// Cuenta web para un cliente ya registrado que aún no la tiene (HU-07)
+export async function crearCuenta(idCliente, datos) {
+  const conexion = await pool.connect();
+  try {
+    await conexion.query('BEGIN');
+    const { rows } = await conexion.query('SELECT * FROM cliente WHERE id_cliente = $1 FOR UPDATE', [idCliente]);
+    if (!rows.length) throw new HttpError(404, 'Cliente no encontrado');
+    const usuario = await crearCuentaCliente(conexion, rows[0], datos ?? {});
+    await conexion.query('COMMIT');
+    return usuario;
+  } catch (err) {
+    await conexion.query('ROLLBACK');
+    throw err;
+  } finally {
+    conexion.release();
+  }
 }

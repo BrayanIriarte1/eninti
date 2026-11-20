@@ -122,7 +122,7 @@ eninti/
 │       │   ├── middlewares/    auth.js (sesión y roles), errorHandler.js
 │       │   └── utils/          httpError, password, estadosOrden
 │       └── modules/
-│           ├── auth/           Login, registro, perfil
+│           ├── auth/           Login y perfil
 │           ├── cliente/        Todo lo que ve el cliente
 │           ├── trabajador/     Agenda y órdenes
 │           ├── administrador/  Clientes, plantas, finanzas, calendario...
@@ -153,7 +153,7 @@ y el SQL). En el frontend, cada módulo se divide en **pages** (pantallas),
 
 ## 3. Base de datos
 
-### 3.1 Las 13 tablas
+### 3.1 Las 14 tablas
 
 | Tabla | Qué guarda | Notas importantes |
 |---|---|---|
@@ -228,7 +228,8 @@ validarlo en la API (`mantenciones.service.js`, `validarTrabajadorActivo`).
 | Tema | Detalle |
 |---|---|
 | Usuarios | 1 administrador, 1 trabajador, 2 clientes con cuenta (ver credenciales en el README) |
-| Clientes | María, Luis y **Carmen, que no tiene cuenta web** (sirve para probar el registro) |
+| Clientes | María, Luis y **Carmen, que no tiene cuenta web** (sirve para probar **Crear cuenta** en Clientes) |
+| Solicitudes de cuenta | Una pendiente de Jorge Castillo (sirve para probar **Nuevas cuentas**) |
 | Plantas | 5, repartidas en distintas comunas; algunas con baterías |
 | Suscripciones | 4. La planta de Quillagua queda **sin suscripción** para probar el alta |
 | Cuotas | Agosto a octubre de 2026. Luis debe septiembre y octubre (aparece en impagos) |
@@ -487,7 +488,7 @@ try {
 
 ### 4.6 Documentación de la API
 
-`docs/openapi.js` describe los 46 endpoints en formato OpenAPI 3 y `app.js` la sirve
+`docs/openapi.js` describe los 51 endpoints en formato OpenAPI 3 y `app.js` la sirve
 con Swagger UI en `/api/docs`. **Se mantiene a mano**: si agregas o cambias un
 endpoint, actualiza su entrada. Para comprobar que sigue siendo válida, descarga
 `/api/docs.json` a un archivo y ejecuta `npx @apidevtools/swagger-cli validate archivo.json`.
@@ -524,13 +525,13 @@ main.jsx
 aplicación mediante el hook `useAuth()`:
 
 ```js
-const { usuario, cargando, login, registro, cerrarSesion } = useAuth();
+const { usuario, cargando, login, cerrarSesion } = useAuth();
 ```
 
 - Al cargar la aplicación, si hay un token guardado, llama a `GET /auth/me` para
   recuperar el perfil. Si el token venció, lo borra. Mientras tanto `cargando` es
   `true`, para no mostrar el login por un instante a quien ya tenía sesión.
-- `login` y `registro` guardan el token y el usuario.
+- `login` guarda el token y el usuario.
 - `inicioPorRol(rol)` devuelve la pantalla de inicio de cada perfil.
 
 El token se guarda en `localStorage` con la clave `eninti_token`
@@ -558,7 +559,7 @@ al inicio de su propio rol; correcto → deja pasar (`<Outlet />`).
 
 | Zona | Rutas |
 |---|---|
-| Públicas | `/login`, `/registro`, `/cotizador`, `/pasarela-simulada` |
+| Públicas | `/login`, `/solicitar-cuenta`, `/cotizador`, `/pasarela-simulada` |
 | Administrador (`/admin/...`) | inicio, `plantas`, `plantas/nueva`, `plantas/:id`, `plantas/:id/editar`, `clientes`, `trabajadores`, `calendario`, `solicitudes`, `impagos`, `pagos`, `catalogo` |
 | Trabajador (`/trabajador/...`) | `agenda`, `ordenes/:id` |
 | Cliente (`/cliente/...`) | `cuenta`, `plantas`, `plantas/:id`, `mantenciones`, `solicitudes` |
@@ -622,7 +623,7 @@ Piezas que se repiten:
 
 | Módulo | Pantalla | Qué hace |
 |---|---|---|
-| **auth** | `LoginPage`, `RegistroPage` | Entrar y crear cuenta de cliente |
+| **auth** | `LoginPage` | Entrar; enlaza a *Contacta al administrador* |
 | **cliente** | `CuentaPage` | Deuda, suscripciones, cuotas por pagar, historial; inscribir medio de pago; cancelar |
 | | `MisPlantasPage`, `PlantaClientePage` | Listado y ficha técnica |
 | | `MantencionesClientePage` | Última y próxima mantención por planta |
@@ -751,14 +752,23 @@ ADMINISTRADOR (después)
 el paso del tiempo**. Ocurre cuando el administrador ejecuta *Generar cuotas*. No hay
 tareas programadas (ver sección 10).
 
-### 6.5 Registro de un cliente
+### 6.5 Alta de un cliente (la cuenta la crea el administrador)
 
-1. ENINTI crea la ficha en **Administrador → Clientes** (con su RUT). Esa ficha no
-   tiene `id_usuario`.
-2. El cliente entra a `/registro` y envía RUT, correo y contraseña.
-3. El backend comprueba que el RUT exista y no tenga cuenta, y en **una transacción**
-   crea el `usuario` y enlaza `cliente.id_usuario`.
-4. Desde ese momento el cliente solo ve datos filtrados por su `id_usuario`.
+No existe autorregistro: conocer el RUT de un cliente ya no permite apropiarse de su cuenta.
+
+1. El cliente sin cuenta pulsa **Contacta al administrador** en el login y envía sus datos
+   y los de su planta (`POST /publico/solicitudes-cuenta`). Queda una fila `pendiente` en
+   `solicitud_cuenta` (una sola pendiente por RUT, índice `uq_solicitud_cuenta_pendiente`).
+2. El administrador la ve en **Nuevas cuentas** (`SolicitudesCuentaPage`) y pulsa
+   **Crear cuenta**, indicando el correo y una contraseña inicial.
+3. `solicitudesCuenta.service.aprobar` abre **una transacción**: bloquea la solicitud,
+   crea la ficha `cliente` (o reutiliza la del mismo RUT), crea el `usuario` con
+   `clientes.service.crearCuentaCliente`, enlaza `cliente.id_usuario` y marca la
+   solicitud `aprobada` con quién y cuándo.
+4. La pantalla ofrece **Registrar ahora su planta**, que abre `PlantaFormPage` con el
+   cliente, la comuna, la dirección y la potencia ya cargados.
+5. Para un cliente que ya tenía ficha pero no cuenta, el botón **Crear cuenta** de
+   **Clientes** llama a `POST /admin/clientes/:id/cuenta`.
 
 ---
 
@@ -792,7 +802,7 @@ tareas programadas (ver sección 10).
 | HU-04 | Calendario por comuna | `mantenciones.service.js` (`listar`) | `CalendarioPage` |
 | HU-05 | Registro de mantención ejecutada | `trabajador.service.js` (`cambiarEstado`) | `OrdenPage` |
 | HU-06 | Listado mensual de pagos | `finanzas.service.js` (`pagosDelMes`), `finanzas.controller.js` (CSV) | `PagosMesPage` |
-| HU-07 | Registro y acceso del cliente | `auth.service.js` | `LoginPage`, `RegistroPage`, `AuthContext` |
+| HU-07 | Acceso del cliente (cuenta creada por el administrador) | `auth.service.js`, `solicitudesCuenta.service.js`, `clientes.service.js` (`crearCuentaCliente`) | `LoginPage`, `SolicitarCuentaPage`, `SolicitudesCuentaPage`, `ClientesPage` |
 | HU-08 | Mi Cuenta: pagos y deuda | `cliente.service.js` (`cuenta`) | `CuentaPage` |
 | HU-09 | Última y próxima mantención | `cliente.service.js` (`mantenciones`) | `MantencionesClientePage` |
 | HU-10 | Ficha técnica para el cliente | `cliente.service.js` (`misPlantas`, `obtenerPlanta`) | `MisPlantasPage`, `PlantaClientePage` |
@@ -863,7 +873,7 @@ lo dé por hecho.
 
 | Tema | Situación | Impacto |
 |---|---|---|
-| **Identidad en el registro (HU-07)** | Bastan el RUT y un correo para crear la cuenta. Quien conozca el RUT de un cliente puede apropiarse de su cuenta. | **El más importante.** Falta un código de activación o verificación. |
+| **Entrega de la contraseña inicial (HU-07)** | La cuenta la crea el administrador, por lo que ya no hay autorregistro con RUT. La contraseña inicial se comunica al cliente por fuera del sistema. | Falta forzar el cambio de contraseña en el primer inicio de sesión. |
 | **Condiciones de servicio (HU-13, RF-19)** | `CuentaPage` envía `acepta_condiciones: true` al pulsar el botón, **sin mostrar las condiciones ni pedir una casilla**. | No es un consentimiento informado real. |
 | Bloqueo de intentos en memoria | El contador vive en un `Map`; se pierde al reiniciar y no se comparte entre procesos. | Sirve para un solo proceso. |
 | Token en `localStorage` | Es legible por cualquier script de la página. | Alternativa: cookie `HttpOnly`. Hay que documentar la decisión. |

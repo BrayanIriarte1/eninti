@@ -63,8 +63,10 @@ actividades. La ficha advierte si la planta tiene banco de baterías.
 | Mantenciones | Última mantención finalizada y próxima programada | HU-09 |
 | Solicitudes | Pedir una mantención y seguir su estado | HU-11 |
 
-También se registra y accede desde `/registro` con un RUT previamente registrado
-por ENINTI (HU-07).
+El cliente **no crea su propia cuenta** (HU-07). Si aún no tiene acceso, en el login
+pulsa **Contacta al administrador** (`/solicitar-cuenta`) y envía sus datos y los de su
+planta. El administrador revisa la solicitud en **Nuevas cuentas**, crea el cliente y su
+cuenta con una contraseña inicial, se la comunica y registra la planta.
 
 ## Público (sin sesión)
 
@@ -76,7 +78,7 @@ por ENINTI (HU-07).
 ## Referencia de la API
 
 > **Documentación interactiva (Swagger UI):** http://localhost:5174/api/docs
-> (también en http://localhost:3001/api/docs). Muestra los 46 endpoints con sus
+> (también en http://localhost:3001/api/docs). Muestra los 51 endpoints con sus
 > parámetros, esquemas y respuestas, y permite ejecutarlos con **Try it out**.
 > Para los endpoints protegidos: ejecuta `POST /auth/login`, copia el `token` y
 > pégalo en el botón **Authorize**. La especificación OpenAPI en JSON está en
@@ -92,7 +94,6 @@ encabezado `Authorization: Bearer <token>` obtenido en el login.
 | Método | Ruta | Descripción |
 |---|---|---|
 | POST | `/auth/login` | Inicia sesión. Devuelve `token` y `usuario` |
-| POST | `/auth/registro` | Registro del cliente (RUT ya registrado) |
 | GET | `/auth/me` | Perfil del usuario autenticado |
 
 ### Público

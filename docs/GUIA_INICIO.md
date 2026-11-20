@@ -180,7 +180,7 @@ toque datos responderá error 500.
 | API viva | Abrir http://localhost:3001/api/health | `{"ok":true}` |
 | App viva | Abrir http://localhost:5174 | Pantalla de inicio de sesión de ENINTI |
 | Conexión app → API | Abrir http://localhost:5174/api/health | `{"ok":true}` |
-| Documentación de la API | Abrir http://localhost:5174/api/docs | Swagger UI con los 46 endpoints |
+| Documentación de la API | Abrir http://localhost:5174/api/docs | Swagger UI con los 51 endpoints |
 | Base de datos | Iniciar sesión (sección 9) | Entra al panel sin error |
 
 > Abrir `http://localhost:3001/api` a secas responde `{"error":"Ruta no

@@ -7,6 +7,7 @@ import * as trabajadores from './trabajadores.controller.js';
 import * as mantenciones from './mantenciones.controller.js';
 import * as finanzas from './finanzas.controller.js';
 import * as catalogo from './catalogo.controller.js';
+import * as solicitudesCuenta from './solicitudesCuenta.controller.js';
 
 const router = Router();
 
@@ -16,7 +17,13 @@ router.use(autenticar, permitirRoles('administrador'));
 router.get('/clientes', clientes.listar);
 router.post('/clientes', clientes.crear);
 router.put('/clientes/:id', clientes.actualizar);
+router.post('/clientes/:id/cuenta', clientes.crearCuenta); // cuenta web creada por el administrador (HU-07)
 router.get('/comunas', clientes.listarComunas);
+
+// Solicitudes de cuenta enviadas desde el login (HU-07)
+router.get('/solicitudes-cuenta', solicitudesCuenta.listar);
+router.post('/solicitudes-cuenta/:id/aprobar', solicitudesCuenta.aprobar);
+router.post('/solicitudes-cuenta/:id/rechazar', solicitudesCuenta.rechazar);
 
 // Plantas y ficha técnica (HU-03)
 router.get('/plantas', plantas.listar);

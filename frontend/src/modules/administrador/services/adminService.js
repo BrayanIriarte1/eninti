@@ -5,6 +5,12 @@ export const listarClientes = () => api('/admin/clientes');
 export const crearCliente = (datos) => api('/admin/clientes', { method: 'POST', body: datos });
 export const actualizarCliente = (id, datos) => api(`/admin/clientes/${id}`, { method: 'PUT', body: datos });
 export const listarComunas = () => api('/admin/comunas');
+export const crearCuentaCliente = (id, datos) => api(`/admin/clientes/${id}/cuenta`, { method: 'POST', body: datos });
+
+// Solicitudes de cuenta enviadas desde el login (HU-07)
+export const listarSolicitudesCuenta = (estado) => api(`/admin/solicitudes-cuenta${estado ? `?estado=${estado}` : ''}`);
+export const aprobarSolicitudCuenta = (id, datos) => api(`/admin/solicitudes-cuenta/${id}/aprobar`, { method: 'POST', body: datos });
+export const rechazarSolicitudCuenta = (id) => api(`/admin/solicitudes-cuenta/${id}/rechazar`, { method: 'POST' });
 
 // Trabajadores (HU-15)
 export const listarTrabajadores = () => api('/admin/trabajadores');

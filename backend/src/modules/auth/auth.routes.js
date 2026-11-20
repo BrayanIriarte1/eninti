@@ -5,7 +5,7 @@ import * as auth from './auth.controller.js';
 const router = Router();
 
 router.post('/login', auth.login);
-router.post('/registro', auth.registro); // solo clientes con RUT previamente registrado (HU-07)
+// Ya no existe autorregistro: la cuenta del cliente la crea el administrador (HU-07)
 router.get('/me', autenticar, auth.me);
 
 export default router;

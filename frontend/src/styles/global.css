@@ -254,6 +254,7 @@ textarea:focus { outline: 3px solid #7fb8dc; outline-offset: 1px; }
   padding: 2rem 1.75rem;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
 }
+.acceso-tarjeta-ancha { max-width: 720px; }
 .acceso-marca { font-size: 1.8rem; margin: 0 0 0.25rem; color: var(--color-primario); }
 .acceso-sub { margin: 0 0 1.5rem; color: var(--color-texto-suave); }
 .acceso-pie { margin: 1rem 0 0; text-align: center; }

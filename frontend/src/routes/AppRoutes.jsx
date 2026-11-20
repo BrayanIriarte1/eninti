@@ -4,7 +4,7 @@ import RutaProtegida from '../shared/components/RutaProtegida.jsx';
 import Layout from '../shared/layouts/Layout.jsx';
 
 import LoginPage from '../modules/auth/pages/LoginPage.jsx';
-import RegistroPage from '../modules/auth/pages/RegistroPage.jsx';
+import SolicitarCuentaPage from '../modules/publico/pages/SolicitarCuentaPage.jsx';
 import CotizadorPage from '../modules/publico/pages/CotizadorPage.jsx';
 import PasarelaSimuladaPage from '../modules/publico/pages/PasarelaSimuladaPage.jsx';
 
@@ -20,6 +20,7 @@ import SolicitudesAdminPage from '../modules/administrador/pages/SolicitudesAdmi
 import ImpagosPage from '../modules/administrador/pages/ImpagosPage.jsx';
 import PagosMesPage from '../modules/administrador/pages/PagosMesPage.jsx';
 import CatalogoPage from '../modules/administrador/pages/CatalogoPage.jsx';
+import SolicitudesCuentaPage from '../modules/administrador/pages/SolicitudesCuentaPage.jsx';
 
 // Trabajador
 import AgendaPage from '../modules/trabajador/pages/AgendaPage.jsx';
@@ -43,7 +44,8 @@ export default function AppRoutes() {
     <Routes>
       <Route path="/" element={<Raiz />} />
       <Route path="/login" element={<LoginPage />} />
-      <Route path="/registro" element={<RegistroPage />} />
+      <Route path="/solicitar-cuenta" element={<SolicitarCuentaPage />} />
+      <Route path="/registro" element={<Navigate to="/solicitar-cuenta" replace />} />
       <Route path="/cotizador" element={<CotizadorPage />} />
       <Route path="/pasarela-simulada" element={<PasarelaSimuladaPage />} />
 
@@ -59,6 +61,7 @@ export default function AppRoutes() {
           <Route path="trabajadores" element={<TrabajadoresPage />} />
           <Route path="calendario" element={<CalendarioPage />} />
           <Route path="solicitudes" element={<SolicitudesAdminPage />} />
+          <Route path="solicitudes-cuenta" element={<SolicitudesCuentaPage />} />
           <Route path="impagos" element={<ImpagosPage />} />
           <Route path="pagos" element={<PagosMesPage />} />
           <Route path="catalogo" element={<CatalogoPage />} />

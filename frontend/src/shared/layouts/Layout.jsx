@@ -6,6 +6,7 @@ const MENU = {
   administrador: [
     ['/admin/plantas', 'Plantas'],
     ['/admin/clientes', 'Clientes'],
+    ['/admin/solicitudes-cuenta', 'Nuevas cuentas'],
     ['/admin/trabajadores', 'Trabajadores'],
     ['/admin/calendario', 'Calendario'],
     ['/admin/solicitudes', 'Solicitudes'],

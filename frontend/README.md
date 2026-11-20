@@ -15,7 +15,7 @@ frontend/
     ├── styles/global.css    # Estilos (variables, componentes, responsive)
     ├── shared/              # Sesión, rutas protegidas, layout, cliente HTTP, utilidades
     └── modules/             # Un módulo por perfil: pages/, components/, services/
-        ├── auth/            # Inicio de sesión y registro
+        ├── auth/            # Inicio de sesión
         ├── cliente/         # Mi cuenta, plantas, mantenciones, solicitudes
         ├── trabajador/      # Agenda y órdenes de trabajo
         ├── administrador/   # Plantas, clientes, calendario, finanzas, catálogo...

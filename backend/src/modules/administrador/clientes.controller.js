@@ -16,3 +16,7 @@ export async function crear(req, res) {
 export async function actualizar(req, res) {
   res.json(await clientes.actualizar(parseId(req.params.id), req.body ?? {}));
 }
+
+export async function crearCuenta(req, res) {
+  res.status(201).json(await clientes.crearCuenta(parseId(req.params.id), req.body ?? {}));
+}

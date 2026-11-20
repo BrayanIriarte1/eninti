@@ -2,4 +2,4 @@
 
 **Responsable:** Conjunto
 
-Inicio de sesión, registro y acceso por rol (cliente, trabajador y administrador).
+Inicio de sesión y acceso por rol (cliente, trabajador y administrador).

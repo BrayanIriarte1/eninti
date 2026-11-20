@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { listarClientes, crearCliente, actualizarCliente, listarComunas } from '../services/adminService.js';
+import { listarClientes, crearCliente, actualizarCliente, listarComunas, crearCuentaCliente } from '../services/adminService.js';
 import Mensaje from '../../../shared/components/Mensaje.jsx';
 
 const VACIO = { rut: '', nombre: '', telefono: '', direccion: '', id_comuna: '' };
@@ -12,6 +12,9 @@ export default function ClientesPage() {
   const [editando, setEditando] = useState(null);
   const [error, setError] = useState(null);
   const [enviando, setEnviando] = useState(false);
+  const [cuentaPara, setCuentaPara] = useState(null);
+  const [cuenta, setCuenta] = useState({ email: '', password: '' });
+  const [aviso, setAviso] = useState(null);
 
   const cargar = useCallback(
     () => Promise.all([listarClientes(), listarComunas()]).then(([c, co]) => {
@@ -58,9 +61,47 @@ export default function ClientesPage() {
     }
   }
 
+  // La cuenta web del cliente la crea el administrador (HU-07)
+  async function crearCuenta(e) {
+    e.preventDefault();
+    setEnviando(true);
+    setError(null);
+    try {
+      const u = await crearCuentaCliente(cuentaPara.id_cliente, cuenta);
+      setAviso(`Cuenta creada para ${cuentaPara.nombre} (${u.email}). Comunícale su contraseña inicial.`);
+      setCuentaPara(null);
+      await cargar();
+    } catch (err) {
+      setError(err);
+    } finally {
+      setEnviando(false);
+    }
+  }
+
   return (
     <section>
       <h1>Clientes</h1>
+      {aviso && <div className="mensaje-ok" role="status">{aviso}</div>}
+
+      {cuentaPara && (
+        <article className="tarjeta" style={{ marginBottom: '1.5rem' }}>
+          <h2>Crear cuenta web · {cuentaPara.nombre}</h2>
+          <form className="formulario" onSubmit={crearCuenta}>
+            <Mensaje error={error} />
+            <fieldset>
+              <legend>Datos de acceso</legend>
+              <label>Correo<input type="email" value={cuenta.email} onChange={(e) => setCuenta({ ...cuenta, email: e.target.value })} required /></label>
+              <label>Contraseña inicial <span className="opcional">(mín. 8)</span>
+                <input type="text" value={cuenta.password} onChange={(e) => setCuenta({ ...cuenta, password: e.target.value })} required minLength={8} autoComplete="off" />
+              </label>
+            </fieldset>
+            <div className="acciones">
+              <button type="button" className="boton secundario" onClick={() => setCuentaPara(null)}>Cancelar</button>
+              <button type="submit" className="boton" disabled={enviando}>{enviando ? 'Creando…' : 'Crear cuenta'}</button>
+            </div>
+          </form>
+        </article>
+      )}
 
       <article className="tarjeta" style={{ marginBottom: '1.5rem' }}>
         <h2>{editando ? 'Editar cliente' : 'Nuevo cliente'}</h2>
@@ -100,7 +141,16 @@ export default function ClientesPage() {
               <td data-label="Cuenta web">
                 <span className={`etiqueta ${c.tiene_cuenta ? 'ok' : 'neutro'}`}>{c.tiene_cuenta ? 'Sí' : 'No'}</span>
               </td>
-              <td data-label=""><button className="boton secundario" onClick={() => editar(c)}>Editar</button></td>
+              <td data-label="">
+                <div className="acciones">
+                  {!c.tiene_cuenta && (
+                    <button className="boton" onClick={() => { setCuentaPara(c); setCuenta({ email: '', password: '' }); setAviso(null); setError(null); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
+                      Crear cuenta
+                    </button>
+                  )}
+                  <button className="boton secundario" onClick={() => editar(c)}>Editar</button>
+                </div>
+              </td>
             </tr>
           ))}
         </tbody>

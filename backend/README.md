@@ -19,7 +19,7 @@ backend/
     ├── routes/index.js      # Monta cada módulo bajo su prefijo
     ├── shared/              # Middleware de sesión y roles, errores y utilidades
     └── modules/             # rutas → controlador → servicio, un módulo por carpeta
-        ├── auth/            # /api/auth        login, registro, perfil
+        ├── auth/            # /api/auth        login y perfil
         ├── cliente/         # /api/cliente     cuenta, plantas, solicitudes, pago
         ├── trabajador/      # /api/trabajador  agenda y órdenes de trabajo
         ├── administrador/   # /api/admin       clientes, plantas, finanzas, calendario...
@@ -44,7 +44,7 @@ Requiere `backend/.env` (copia `.env.example`). La API queda en http://localhost
 ## Documentación de la API
 
 Con el servidor arriba, abre **http://localhost:3001/api/docs** (Swagger UI) o descarga la
-especificación en `/api/docs.json`. Documenta los 46 endpoints con ejemplos ejecutables.
+especificación en `/api/docs.json`. Documenta los 51 endpoints con ejemplos ejecutables.
 Los endpoints protegidos piden el token de `POST /api/auth/login` en el botón **Authorize**.
 
 ## Variables de entorno

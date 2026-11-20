@@ -41,6 +41,7 @@ Ejecuta primero `schema/` y luego `seeds/`. Es seguro repetirlo: las tablas usan
 | `cuota` | Cuota mensual generada por período (`YYYY-MM`) | HU-01, HU-08 |
 | `pago` | Pago de una cuota, por pasarela o registrado a mano | HU-02, HU-06 |
 | `solicitud_mantencion` | Solicitud hecha por el cliente | HU-11 |
+| `solicitud_cuenta` | Pedido de cuenta y planta enviado desde el login; el administrador lo aprueba o rechaza | HU-07 |
 | `mantencion` | Mantención programada, asignada a un trabajador y su registro | HU-04, HU-05, HU-16, HU-17 |
 | `mantencion_historial` | Cada cambio de estado de una mantención, con responsable | HU-16 |
 | `catalogo_servicio` | Planes y servicios con precio, para el cotizador | RNF-07 |

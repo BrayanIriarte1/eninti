@@ -48,7 +48,7 @@ export default function LoginPage() {
         </form>
 
         <p className="acceso-pie">
-          ¿Eres cliente y aún no tienes cuenta? <Link to="/registro">Regístrate aquí</Link>
+          ¿Eres cliente y aún no tienes cuenta? <Link to="/solicitar-cuenta">Contacta al administrador</Link>
         </p>
         <p className="acceso-pie"><Link to="/cotizador">Ver planes y servicios</Link></p>
       </div>

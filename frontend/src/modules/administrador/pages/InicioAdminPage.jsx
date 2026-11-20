@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { listarImpagos, listarSolicitudes, listarMantenciones } from '../services/adminService.js';
+import { listarImpagos, listarSolicitudes, listarMantenciones, listarSolicitudesCuenta } from '../services/adminService.js';
 import { formatoPesos } from '../../../shared/utils/formato.js';
 
 // Panel de inicio del administrador con indicadores y alertas (HU-01, HU-11)
@@ -8,10 +8,12 @@ export default function InicioAdminPage() {
   const [impagos, setImpagos] = useState([]);
   const [solicitudes, setSolicitudes] = useState([]);
   const [sinAsignar, setSinAsignar] = useState(0);
+  const [cuentasPendientes, setCuentasPendientes] = useState(0);
 
   useEffect(() => {
     listarImpagos().then(setImpagos).catch(() => {});
     listarSolicitudes('pendiente').then(setSolicitudes).catch(() => {});
+    listarSolicitudesCuenta('pendiente').then((s) => setCuentasPendientes(s.length)).catch(() => {});
     listarMantenciones().then((m) => setSinAsignar(m.filter((x) => !x.id_trabajador && ['pendiente', 'en_curso'].includes(x.estado)).length)).catch(() => {});
   }, []);
 
@@ -21,6 +23,7 @@ export default function InicioAdminPage() {
     { valor: impagos.length, texto: 'Suscripciones morosas', sub: formatoPesos(deudaTotal), ruta: '/admin/impagos', alerta: impagos.length > 0 },
     { valor: solicitudes.length, texto: 'Solicitudes pendientes', ruta: '/admin/solicitudes', alerta: solicitudes.length > 0 },
     { valor: sinAsignar, texto: 'Mantenciones sin asignar', ruta: '/admin/calendario', alerta: sinAsignar > 0 },
+    { valor: cuentasPendientes, texto: 'Solicitudes de cuenta', ruta: '/admin/solicitudes-cuenta', alerta: cuentasPendientes > 0 },
   ];
 
   return (

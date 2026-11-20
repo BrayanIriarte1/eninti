@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
-import { pool, query } from '../../config/db.js';
+import { query } from '../../config/db.js';
 import { HttpError } from '../../shared/utils/httpError.js';
-import { hashPassword, verificarPassword } from '../../shared/utils/password.js';
+import { verificarPassword } from '../../shared/utils/password.js';
 
 const DURACION_SESION = '8h';
 const MAX_INTENTOS = 5;
@@ -56,53 +56,6 @@ export async function login(email, password) {
     token: firmarToken(usuario),
     usuario: { id: usuario.id_usuario, nombre: usuario.nombre, rol: usuario.rol, email: usuario.email },
   };
-}
-
-// Registro del cliente (HU-07): su RUT debe estar previamente registrado por ENINTI
-// y la ficha no debe tener ya una cuenta web asociada.
-export async function registrarCliente({ rut, email, password, telefono }) {
-  const errores = [];
-  if (typeof rut !== 'string' || !/^\d{7,8}-[\dkK]$/.test(rut?.trim())) {
-    errores.push('rut debe tener formato 12345678-9');
-  }
-  if (typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email?.trim())) {
-    errores.push('email no es válido');
-  }
-  if (typeof password !== 'string' || password.length < 8) {
-    errores.push('password debe tener al menos 8 caracteres');
-  }
-  if (errores.length) throw new HttpError(400, 'Datos de registro inválidos', errores);
-
-  const { rows } = await query('SELECT * FROM cliente WHERE rut = $1', [rut.trim()]);
-  const cliente = rows[0];
-  if (!cliente) throw new HttpError(404, 'El RUT no está registrado por ENINTI. Contáctanos para incorporarte');
-  if (cliente.id_usuario) throw new HttpError(409, 'Este cliente ya tiene una cuenta creada');
-
-  const conexion = await pool.connect();
-  try {
-    await conexion.query('BEGIN');
-    const { rows: creado } = await conexion.query(
-      `INSERT INTO usuario (nombre, email, password_hash, rol, telefono)
-       VALUES ($1, $2, $3, 'cliente', $4)
-       RETURNING *`,
-      [cliente.nombre, email.trim().toLowerCase(), await hashPassword(password), telefono ?? cliente.telefono],
-    );
-    await conexion.query('UPDATE cliente SET id_usuario = $1 WHERE id_cliente = $2', [
-      creado[0].id_usuario,
-      cliente.id_cliente,
-    ]);
-    await conexion.query('COMMIT');
-    return {
-      token: firmarToken(creado[0]),
-      usuario: { id: creado[0].id_usuario, nombre: creado[0].nombre, rol: 'cliente', email: creado[0].email },
-    };
-  } catch (err) {
-    await conexion.query('ROLLBACK');
-    if (err.code === '23505') throw new HttpError(409, 'El correo ya está en uso');
-    throw err;
-  } finally {
-    conexion.release();
-  }
 }
 
 export async function perfil(idUsuario) {
