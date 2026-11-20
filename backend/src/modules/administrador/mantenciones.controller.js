@@ -36,3 +36,11 @@ export async function listarSolicitudes(req, res) {
 export async function rechazarSolicitud(req, res) {
   res.json(await mantenciones.rechazarSolicitud(parseId(req.params.id)));
 }
+
+export async function fotos(req, res) {
+  res.json(await mantenciones.fotos(parseId(req.params.id)));
+}
+
+export async function cerrarSinCliente(req, res) {
+  res.json(await mantenciones.cerrarSinCliente(parseId(req.params.id), req.usuario.id, req.body?.comentario));
+}

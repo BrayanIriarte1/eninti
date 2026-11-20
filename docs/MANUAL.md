@@ -32,8 +32,10 @@ solicitudes pendientes y mantenciones sin asignar.
 | Plantas | Crear/editar la ficha técnica y gestionar la suscripción de cada planta | HU-03 |
 | Clientes | Alta y edición de la ficha administrativa del cliente | HU-03 |
 | Trabajadores | Crear, editar y desactivar cuentas de trabajador | HU-15 |
-| Calendario | Ver mantenciones agrupadas por comuna, filtrar y asignar trabajador | HU-04, HU-17 |
+| Calendario | Ver mantenciones por comuna, asignar trabajador, ver las fotos del trabajo y cerrar una orden sin el cliente | HU-04, HU-17 |
 | Solicitudes | Programar como mantención o rechazar las solicitudes del cliente | HU-11 |
+| Suscripciones | Aceptar (fijando cuota y día de cobro) o rechazar las solicitudes de suscripción, viendo la deuda del cliente | HU-12 |
+| Cambios de datos | Aprobar o rechazar los cambios de correo o teléfono que piden los clientes | HU-07 |
 | Impagos | Ver morosos por antigüedad, contactar y registrar pagos manuales | HU-01, HU-02 |
 | Pagos del mes | Listado mensual, exportar CSV, generar cuotas y procesar cargos | HU-06 |
 | Catálogo | Administrar planes y servicios del cotizador | RNF-07 |
@@ -43,25 +45,48 @@ período" para emitir las cuotas y marcar vencidas las atrasadas; "Procesar carg
 recurrentes" cobra en la pasarela a quienes tengan medio de pago activo. Los pagos
 por transferencia o efectivo se registran desde *Impagos → Ver cuotas*.
 
+**Reglas de deuda (automáticas).** El estado de la suscripción ya no se marca a mano:
+
+| Situación | Estado de la suscripción |
+|---|---|
+| Sin cuotas vencidas | **Al día** |
+| Alguna cuota vencida hace menos de un mes | **Activa con deuda**: sigue vigente y se puede pagar |
+| Se paga toda la deuda | Vuelve de inmediato a **Al día** |
+| La deuda más antigua supera un mes | **Cancelada por morosidad**; las cuotas futuras se anulan y la deuda queda por cobrar |
+
+Las reglas se aplican al iniciar la API, cada hora, al generar cuotas, al procesar
+cargos y al registrar un pago. **Solo el administrador otorga suscripciones:** si el
+cliente cancela o queda cancelado por deuda, debe enviar una solicitud desde *Mi cuenta*
+y el administrador la acepta (con la cuota acordada) o la rechaza explicando el motivo.
+
 ## Perfil Trabajador
 
 | Sección | Qué permite | HU |
 |---|---|---|
-| Mi agenda | Ver solo sus órdenes, ordenadas por fecha, con enlace al mapa | HU-14 |
-| Detalle de orden | Ver ficha técnica, iniciar y finalizar la visita con actividades | HU-05, HU-16 |
+| Mi agenda | Ver solo sus órdenes, ordenadas por fecha, con enlace a Google Maps | HU-14 |
+| Detalle de orden | Ver ficha técnica, iniciar la visita y enviarla al cliente con actividades y fotos | HU-05, HU-16 |
 
-El cambio de estado respeta la secuencia `pendiente → en curso → finalizada` y
-guarda historial con responsable y hora. No se puede finalizar sin registrar
-actividades. La ficha advierte si la planta tiene banco de baterías.
+El enlace del mapa busca en Google Maps **la dirección registrada de la planta**
+(dirección, comuna y región), así se abre exactamente el lugar escrito.
+
+**Cierre de la orden con el cliente:** `pendiente → en curso → esperando al cliente → finalizada`.
+Al terminar, el técnico registra las actividades y adjunta de 1 a 4 fotos (se pueden
+tomar con la cámara del celular; el navegador las reduce a unos 300 KB). La orden queda
+*esperando al cliente*. El cliente revisa las fotos y responde si se solucionó el
+problema y si quedó satisfecho: si se solucionó, la orden queda **finalizada**; si no,
+vuelve a **en curso** con su comentario para que el técnico regrese. Cada paso queda en
+el historial. Si el cliente no puede confirmar, el administrador puede cerrarla desde el
+*Calendario* indicando el motivo.
 
 ## Perfil Cliente
 
 | Sección | Qué permite | HU |
 |---|---|---|
-| Mi cuenta | Deuda, meses pagados, historial, inscribir medio de pago y cancelar | HU-08, HU-12, HU-13 |
+| Mi cuenta | Deuda, meses pagados, historial, inscribir medio de pago, cancelar y pedir una nueva suscripción | HU-08, HU-12, HU-13 |
 | Mis plantas | Consultar la ficha técnica de cada planta propia | HU-10 |
-| Mantenciones | Última mantención finalizada y próxima programada | HU-09 |
+| Mantenciones | Confirmar los trabajos terminados (con fotos), última y próxima mantención | HU-09 |
 | Solicitudes | Pedir una mantención y seguir su estado | HU-11 |
+| Mis datos | Ver sus datos y pedir cambiar correo o teléfono (con motivo); se aplica cuando el administrador aprueba | HU-07 |
 
 El cliente **no crea su propia cuenta** (HU-07). Si aún no tiene acceso, en el login
 pulsa **Contacta al administrador** (`/solicitar-cuenta`) y envía sus datos y los de su
@@ -72,13 +97,16 @@ cuenta con una contraseña inicial, se la comunica y registra la planta.
 
 - `/cotizador` — planes y servicios con precios (RNF-07).
 - `/pasarela-simulada` — formulario de inscripción de tarjeta para la demo (HU-13).
+  Últimos dígitos **0000**: la pasarela rechaza la tarjeta y *Mi cuenta* lo informa.
+  **0002**: la tarjeta se inscribe, pero los cobros mensuales se rechazan.
+  Cualquier otro número: se inscribe y se cobra bien.
 
 ---
 
 ## Referencia de la API
 
 > **Documentación interactiva (Swagger UI):** http://localhost:5174/api/docs
-> (también en http://localhost:3001/api/docs). Muestra los 51 endpoints con sus
+> (también en http://localhost:3001/api/docs). Muestra los endpoints con sus
 > parámetros, esquemas y respuestas, y permite ejecutarlos con **Try it out**.
 > Para los endpoints protegidos: ejecuta `POST /auth/login`, copia el `token` y
 > pégalo en el botón **Authorize**. La especificación OpenAPI en JSON está en
@@ -111,13 +139,17 @@ encabezado `Authorization: Bearer <token>` obtenido en el login.
 | GET/POST | `/cliente/solicitudes` | HU-11 |
 | POST | `/cliente/suscripciones/:id/cancelar` | HU-12 |
 | POST | `/cliente/suscripciones/:id/inscripcion` | HU-13 |
+| POST | `/cliente/solicitudes-suscripcion` | HU-12 |
+| GET | `/cliente/ordenes/por-confirmar` | HU-05 |
+| POST | `/cliente/ordenes/:id/confirmar` | HU-05, HU-16 |
+| GET | `/cliente/datos` · POST `/cliente/datos/solicitudes` | HU-07 |
 
 ### Trabajador (`rol = trabajador`)
 | Método | Ruta | HU |
 |---|---|---|
 | GET | `/trabajador/agenda` | HU-14 |
 | GET | `/trabajador/ordenes/:id` | HU-16 |
-| POST | `/trabajador/ordenes/:id/estado` | HU-05, HU-16 |
+| POST | `/trabajador/ordenes/:id/estado` (`en_curso`, o `por_confirmar` con `actividades` y `fotos`) | HU-05, HU-16 |
 
 ### Administrador (`rol = administrador`)
 | Método | Ruta | HU |
@@ -129,6 +161,10 @@ encabezado `Authorization: Bearer <token>` obtenido en el login.
 | GET/POST | `/admin/mantenciones` | HU-04 |
 | PATCH | `/admin/mantenciones/:id/asignar` | HU-17 |
 | POST | `/admin/mantenciones/:id/cancelar` | HU-16 |
+| GET | `/admin/mantenciones/:id/fotos` | HU-05 |
+| POST | `/admin/mantenciones/:id/cerrar` (sin confirmación del cliente) | HU-16 |
+| GET/POST | `/admin/solicitudes-suscripcion`, `/:id/aprobar`, `/:id/rechazar` | HU-12 |
+| GET/POST | `/admin/solicitudes-datos`, `/:id/aprobar`, `/:id/rechazar` | HU-07 |
 | GET/POST | `/admin/solicitudes`, `/admin/solicitudes/:id/rechazar` | HU-11 |
 | GET | `/admin/finanzas/impagos` | HU-01 |
 | POST | `/admin/cuotas/:id/pagos` | HU-02 |

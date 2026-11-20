@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { miCuenta, cancelarSuscripcion, iniciarInscripcion } from '../services/clienteService.js';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { miCuenta, cancelarSuscripcion, iniciarInscripcion, solicitarSuscripcion } from '../services/clienteService.js';
 import EstadoSuscripcion from '../../administrador/components/EstadoSuscripcion.jsx';
 import Mensaje from '../../../shared/components/Mensaje.jsx';
 import ArcoSolar, { saludo } from '../../../shared/components/ArcoSolar.jsx';
@@ -8,14 +8,61 @@ import Icono from '../../../shared/components/Icono.jsx';
 import { useAuth } from '../../../shared/context/AuthContext.jsx';
 import { formatoPesos, formatoFecha } from '../../../shared/utils/formato.js';
 
+const MOTIVO_CANCELACION = {
+  cliente: 'La cancelaste tú',
+  morosidad: 'Se canceló porque la deuda superó un mes',
+  administrador: 'La canceló la administración',
+};
+
+// Pedir una suscripción para una planta: solo el administrador la otorga
+function PedirSuscripcion({ planta, onEnviada }) {
+  const [abierto, setAbierto] = useState(false);
+  const [mensaje, setMensaje] = useState('');
+  const [enviando, setEnviando] = useState(false);
+  const [error, setError] = useState(null);
+
+  async function enviar(e) {
+    e.preventDefault();
+    setEnviando(true);
+    setError(null);
+    try {
+      await solicitarSuscripcion({ id_planta: planta.id_planta, mensaje: mensaje.trim() || undefined });
+      await onEnviada();
+    } catch (err) {
+      setError(err);
+      setEnviando(false);
+    }
+  }
+
+  if (!abierto) {
+    return <button className="boton" onClick={() => setAbierto(true)}>Solicitar suscripción</button>;
+  }
+  return (
+    <form className="formulario-simple" onSubmit={enviar}>
+      <Mensaje error={error} />
+      <label>
+        Mensaje para la administración <span className="opcional">(opcional)</span>
+        <textarea value={mensaje} onChange={(e) => setMensaje(e.target.value)} rows={2} maxLength={500}
+          placeholder="Ej.: quiero retomar el plan y pagar la deuda en dos cuotas" />
+      </label>
+      <div className="acciones" style={{ marginTop: 0 }}>
+        <button type="submit" className="boton" disabled={enviando}>{enviando ? 'Enviando…' : 'Enviar solicitud'}</button>
+        <button type="button" className="boton secundario" onClick={() => setAbierto(false)}>Cancelar</button>
+      </div>
+    </form>
+  );
+}
+
 // Mi Cuenta: pagos, deuda e historial en pocas acciones (HU-08, RNF-01).
-// Incluye inscribir medio de pago (HU-13) y cancelar suscripción (HU-12).
+// Incluye inscribir medio de pago (HU-13), cancelar suscripción (HU-12) y pedir una nueva.
 export default function CuentaPage() {
   const navigate = useNavigate();
+  const [params, setParams] = useSearchParams();
   const { usuario } = useAuth();
   const [datos, setDatos] = useState(null);
   const [error, setError] = useState(null);
   const [accion, setAccion] = useState(null); // id de suscripción en proceso
+  const resultadoInscripcion = params.get('inscripcion');
 
   const cargar = useCallback(() => miCuenta().then(setDatos).catch(setError), []);
   useEffect(() => { cargar(); }, [cargar]);
@@ -38,7 +85,7 @@ export default function CuentaPage() {
   }
 
   async function cancelar(idSuscripcion) {
-    if (!window.confirm('¿Cancelar esta suscripción? No se puede deshacer.')) return;
+    if (!window.confirm('¿Cancelar esta suscripción? Para volver a tenerla deberás enviar una nueva solicitud a la administración.')) return;
     setAccion(idSuscripcion);
     setError(null);
     try {
@@ -54,33 +101,51 @@ export default function CuentaPage() {
   if (error && !datos) return <Mensaje error={error} />;
   if (!datos) return <p className="cargando">Cargando…</p>;
 
-  const { suscripciones, deuda_total, cuotas_pendientes, pagos, medio_pago } = datos;
+  const { suscripciones, deuda_total, cuotas_pendientes, pagos, medio_pago, medios_pago,
+    plantas_sin_suscripcion: sinSuscripcion, solicitudes_suscripcion: solicitudes } = datos;
+  const vigentes = suscripciones.filter((s) => s.estado !== 'cancelada');
+  const conDeuda = vigentes.some((s) => s.estado === 'con_deuda');
+  const ultimoIntento = medios_pago[0];
+  const tarjetaRechazada = !medio_pago && ultimoIntento?.estado === 'rechazado';
+
+  // Para cada planta sin suscripción: su última suscripción cancelada y su solicitud más reciente
+  const ultimaCancelada = (idPlanta) => suscripciones.find((s) => s.id_planta === idPlanta && s.estado === 'cancelada');
+  const solicitudDe = (idPlanta) => solicitudes.find((s) => s.id_planta === idPlanta);
+
+  let resumen = 'Estás al día. Gracias por mantener tu planta con ENINTI.';
+  if (conDeuda) resumen = `Tu suscripción sigue activa, pero tienes ${formatoPesos(deuda_total)} pendiente. Si la deuda supera un mes, la suscripción se cancela.`;
+  else if (deuda_total > 0) resumen = `Tienes ${formatoPesos(deuda_total)} de deuda pendiente.`;
 
   return (
     <section>
       <ArcoSolar titulo={`${saludo()}, ${usuario?.nombre?.split(' ')[0] ?? ''}`}>
-        <p>
-          {deuda_total > 0
-            ? `Tienes ${formatoPesos(deuda_total)} por pagar. Revisa el detalle en "Cuotas por pagar".`
-            : 'Tu cuenta está al día. Gracias por mantener tu planta con ENINTI.'}
-        </p>
+        <p>{resumen}</p>
       </ArcoSolar>
+
+      {resultadoInscripcion && (
+        <div className={resultadoInscripcion === 'aprobada' ? 'mensaje-ok' : 'mensaje-error'} role="status">
+          {resultadoInscripcion === 'aprobada'
+            ? <>Tarjeta inscrita. Las próximas cuotas se cobrarán automáticamente.</>
+            : <><strong>La pasarela rechazó tu tarjeta.</strong> No se guardó ningún medio de pago; intenta con otra tarjeta.</>}
+          {' '}<button type="button" className="enlace-boton" onClick={() => setParams({}, { replace: true })}>Cerrar</button>
+        </div>
+      )}
 
       <div className="resumen-tiras">
         <div className={`tira ${deuda_total > 0 ? 'tira-alerta' : 'tira-ok'}`}>
           <span className="tira-icono"><Icono nombre={deuda_total > 0 ? 'impagos' : 'ok'} /></span>
-          <span className="tira-valor">{deuda_total > 0 ? formatoPesos(deuda_total) : 'Sin deuda'}</span>
-          <span className="tira-texto">Deuda vigente</span>
+          <span className="tira-valor">{deuda_total > 0 ? formatoPesos(deuda_total) : 'Al día'}</span>
+          <span className="tira-texto">{deuda_total > 0 ? 'Deuda pendiente' : 'Sin deuda'}</span>
         </div>
         <div className="tira">
           <span className="tira-icono"><Icono nombre="planta" /></span>
-          <span className="tira-valor">{suscripciones.filter((s) => s.estado !== 'cancelada').length}</span>
+          <span className="tira-valor">{vigentes.length}</span>
           <span className="tira-texto">Suscripciones activas</span>
         </div>
-        <div className={`tira ${medio_pago ? 'tira-ok' : ''}`}>
+        <div className={`tira ${medio_pago ? 'tira-ok' : tarjetaRechazada ? 'tira-alerta' : ''}`}>
           <span className="tira-icono"><Icono nombre="pagos" /></span>
           <span className="tira-valor">
-            {medio_pago ? `•••• ${medio_pago.ultimos_4}` : 'Sin inscribir'}
+            {medio_pago ? `•••• ${medio_pago.ultimos_4}` : tarjetaRechazada ? 'Rechazada' : 'Sin inscribir'}
           </span>
           <span className="tira-texto">Medio de pago</span>
         </div>
@@ -90,33 +155,70 @@ export default function CuentaPage() {
 
       <h2>Mis suscripciones</h2>
       <div className="columnas">
-        {suscripciones.map((s) => (
+        {vigentes.map((s) => (
           <article key={s.id_suscripcion} className="tarjeta">
             <div className="encabezado">
               <h3 style={{ margin: 0 }}>{s.direccion}</h3>
               <EstadoSuscripcion estado={s.estado} />
             </div>
+            {s.estado === 'con_deuda' && (
+              <p className="aviso-seguridad">Sigue activa con {formatoPesos(s.deuda)} pendiente. Al pagar vuelves a estar al día.</p>
+            )}
             <dl className="ficha">
               <div><dt>Comuna</dt><dd>{s.comuna}</dd></div>
               <div><dt>Cuota mensual</dt><dd>{formatoPesos(s.monto_mensual)}</dd></div>
               <div><dt>Meses pagados</dt><dd>{s.meses_pagados}</dd></div>
               <div><dt>Cuotas vencidas</dt><dd>{s.cuotas_vencidas}</dd></div>
-              {s.deuda > 0 && <div><dt>Deuda</dt><dd>{formatoPesos(s.deuda)}</dd></div>}
             </dl>
-            {s.estado !== 'cancelada' && (
-              <div className="acciones">
-                {!medio_pago && (
-                  <button className="boton" disabled={accion === s.id_suscripcion} onClick={() => inscribir(s.id_suscripcion)}>
-                    Inscribir medio de pago
-                  </button>
-                )}
-                <button className="boton peligro" disabled={accion === s.id_suscripcion} onClick={() => cancelar(s.id_suscripcion)}>
-                  Cancelar
+            <div className="acciones">
+              {!medio_pago && (
+                <button className="boton" disabled={accion === s.id_suscripcion} onClick={() => inscribir(s.id_suscripcion)}>
+                  {tarjetaRechazada ? 'Inscribir otra tarjeta' : 'Inscribir medio de pago'}
                 </button>
-              </div>
-            )}
+              )}
+              <button className="boton peligro" disabled={accion === s.id_suscripcion} onClick={() => cancelar(s.id_suscripcion)}>
+                Cancelar suscripción
+              </button>
+            </div>
           </article>
         ))}
+
+        {sinSuscripcion.map((p) => {
+          const anterior = ultimaCancelada(p.id_planta);
+          const solicitud = solicitudDe(p.id_planta);
+          const pendiente = solicitud?.estado === 'pendiente';
+          return (
+            <article key={`p${p.id_planta}`} className="tarjeta">
+              <div className="encabezado">
+                <h3 style={{ margin: 0 }}>{p.direccion}</h3>
+                <EstadoSuscripcion estado={anterior ? 'cancelada' : null} />
+              </div>
+              {anterior ? (
+                <p className="texto-suave">
+                  {MOTIVO_CANCELACION[anterior.motivo_cancelacion] ?? 'Cancelada'} el {formatoFecha(anterior.fecha_cancelacion)}.
+                  {anterior.deuda > 0 && <> Queda una deuda de <strong>{formatoPesos(anterior.deuda)}</strong>.</>}
+                </p>
+              ) : (
+                <p className="texto-suave">Esta planta aún no tiene un plan de mantención.</p>
+              )}
+
+              {pendiente && (
+                <p className="mensaje-ok" style={{ margin: 0 }}>
+                  Enviaste una solicitud el {formatoFecha(solicitud.fecha_solicitud.slice(0, 10))}. La administración te responderá.
+                </p>
+              )}
+              {solicitud?.estado === 'rechazada' && (
+                <p className="aviso-seguridad">Tu última solicitud no fue aceptada: {solicitud.respuesta}</p>
+              )}
+              {!pendiente && (
+                <>
+                  <p>Para volver a tener mantención, envía una solicitud. La administración revisará tu caso y te contactará.</p>
+                  <PedirSuscripcion planta={p} onEnviada={cargar} />
+                </>
+              )}
+            </article>
+          );
+        })}
       </div>
 
       {cuotas_pendientes.length > 0 && (

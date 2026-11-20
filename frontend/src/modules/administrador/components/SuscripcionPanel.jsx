@@ -85,16 +85,11 @@ export default function SuscripcionPanel({ plantaId, suscripciones, onCambio }) 
             <button type="submit" className="boton secundario" disabled={enviando || !monto}>Cambiar</button>
           </form>
 
+          <p className="texto-suave">
+            El estado se calcula solo: con una cuota vencida queda "activa con deuda", al pagar vuelve a "al día"
+            y si la deuda supera un mes se cancela por morosidad.
+          </p>
           <div className="acciones">
-            {vigente.estado === 'al_dia' ? (
-              <button className="boton secundario" disabled={enviando} onClick={() => cambiarEstado('morosa')}>
-                Marcar morosa
-              </button>
-            ) : (
-              <button className="boton secundario" disabled={enviando} onClick={() => cambiarEstado('al_dia')}>
-                Marcar al día
-              </button>
-            )}
             <button className="boton peligro" disabled={enviando} onClick={cancelar}>Cancelar suscripción</button>
           </div>
         </>
@@ -124,6 +119,7 @@ export default function SuscripcionPanel({ plantaId, suscripciones, onCambio }) 
             {historial.map((s) => (
               <li key={s.id_suscripcion}>
                 {formatoPesos(s.monto_mensual)}/mes · {formatoFecha(s.fecha_inicio)} al {formatoFecha(s.fecha_cancelacion)}
+                {s.motivo_cancelacion && ` · ${{ cliente: 'la canceló el cliente', morosidad: 'por morosidad', administrador: 'la canceló la administración' }[s.motivo_cancelacion]}`}
               </li>
             ))}
           </ul>

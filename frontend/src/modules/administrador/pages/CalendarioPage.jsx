@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
-  listarMantenciones, listarTrabajadores, asignarMantencion, cancelarMantencion,
+  listarMantenciones, listarTrabajadores, asignarMantencion, cancelarMantencion, cerrarSinCliente, fotosMantencion,
 } from '../services/adminService.js';
+import GaleriaFotos from '../../../shared/components/GaleriaFotos.jsx';
 import { EtiquetaOrden } from '../../trabajador/components/ordenUtils.jsx';
 import Mensaje from '../../../shared/components/Mensaje.jsx';
 import { formatoFecha } from '../../../shared/utils/formato.js';
@@ -12,6 +13,7 @@ export default function CalendarioPage() {
   const [trabajadores, setTrabajadores] = useState([]);
   const [filtros, setFiltros] = useState({ estado: '', desde: '', hasta: '' });
   const [error, setError] = useState(null);
+  const [fotos, setFotos] = useState(null); // { orden, urls }
 
   const cargar = useCallback(() => {
     Promise.all([listarMantenciones(filtros), listarTrabajadores()])
@@ -40,6 +42,24 @@ export default function CalendarioPage() {
     } catch (err) { setError(err); }
   }
 
+  async function verFotos(m) {
+    setError(null);
+    try {
+      const lista = await fotosMantencion(m.id_mantencion);
+      setFotos({ orden: m, urls: lista.map((f) => f.url) });
+    } catch (err) { setError(err); }
+  }
+
+  async function cerrar(m) {
+    const motivo = window.prompt('El cliente no ha confirmado. ¿Por qué cierras la orden? (por ejemplo: confirmó por teléfono)');
+    if (!motivo?.trim()) return;
+    setError(null);
+    try {
+      await cerrarSinCliente(m.id_mantencion, motivo.trim());
+      await cargar();
+    } catch (err) { setError(err); }
+  }
+
   // Agrupa por comuna (HU-04)
   const porComuna = mantenciones.reduce((acc, m) => {
     (acc[m.comuna] ??= []).push(m);
@@ -56,6 +76,7 @@ export default function CalendarioPage() {
             <option value="">Todos</option>
             <option value="pendiente">Pendiente</option>
             <option value="en_curso">En curso</option>
+            <option value="por_confirmar">Esperando al cliente</option>
             <option value="finalizada">Finalizada</option>
             <option value="cancelada">Cancelada</option>
           </select>
@@ -94,6 +115,15 @@ export default function CalendarioPage() {
                     {['pendiente', 'en_curso'].includes(m.estado) && (
                       <button className="boton peligro" onClick={() => cancelar(m.id_mantencion)}>Cancelar</button>
                     )}
+                    {m.fotos > 0 && (
+                      <button className="boton secundario" onClick={() => verFotos(m)}>Fotos ({m.fotos})</button>
+                    )}
+                    {m.estado === 'por_confirmar' && (
+                      <button className="boton secundario" onClick={() => cerrar(m)}>Cerrar sin cliente</button>
+                    )}
+                    {m.estado === 'finalizada' && m.satisfecho !== null && (
+                      <span className={`etiqueta ${m.satisfecho ? 'ok' : 'alerta'}`}>{m.satisfecho ? 'Cliente satisfecho' : 'Cliente no satisfecho'}</span>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -101,6 +131,16 @@ export default function CalendarioPage() {
           </table>
         </div>
       ))}
+      {fotos && (
+        <article className="tarjeta" style={{ marginTop: '1.5rem' }}>
+          <div className="encabezado">
+            <h2 style={{ margin: 0 }}>Fotos · {fotos.orden.direccion} · {formatoFecha(fotos.orden.fecha_programada)}</h2>
+            <button className="boton secundario" onClick={() => setFotos(null)}>Cerrar</button>
+          </div>
+          {fotos.orden.comentario_cliente && <p><strong>Comentario del cliente:</strong> {fotos.orden.comentario_cliente}</p>}
+          <GaleriaFotos fotos={fotos.urls} />
+        </article>
+      )}
     </section>
   );
 }

@@ -19,8 +19,9 @@ export default function PasarelaSimuladaPage() {
     setEnviando(true);
     setError(null);
     try {
-      await confirmarPasarela({ token, resultado, marca, ultimos_4: ultimos4 });
-      navigate('/cliente/cuenta', { replace: true });
+      const medio = await confirmarPasarela({ token, resultado, marca, ultimos_4: ultimos4 });
+      const final = medio?.estado === 'activo' ? 'aprobada' : 'rechazada';
+      navigate(`/cliente/cuenta?inscripcion=${final}`, { replace: true });
     } catch (err) {
       setError(err);
       setEnviando(false);
@@ -38,8 +39,12 @@ export default function PasarelaSimuladaPage() {
         <p className="acceso-sub">Ambiente de prueba (sandbox). No uses una tarjeta real.</p>
 
         <div className="banner-sandbox">
-          Esta es una pasarela <strong>simulada</strong> para la demostración. Usa los últimos
-          dígitos <strong>0000</strong> para probar un rechazo.
+          Esta es una pasarela <strong>simulada</strong> para la demostración.
+          <ul style={{ margin: '0.4rem 0 0', paddingLeft: '1.2rem' }}>
+            <li><strong>0000</strong>: la pasarela rechaza la tarjeta.</li>
+            <li><strong>0002</strong>: la tarjeta se inscribe, pero los cobros mensuales se rechazan.</li>
+            <li>Cualquier otro número: la tarjeta se inscribe y se cobra bien.</li>
+          </ul>
         </div>
 
         <form className="formulario-simple" onSubmit={(e) => { e.preventDefault(); confirmar('aprobada'); }}>

@@ -1,7 +1,9 @@
 import { query } from '../../config/db.js';
 import { HttpError } from '../../shared/utils/httpError.js';
+import { anularCuotasFuturas } from '../pagos/reglasDeuda.js';
 
-const ESTADOS = ['al_dia', 'morosa', 'cancelada'];
+// 'al_dia' y 'con_deuda' los calculan las reglas de deuda; el administrador solo puede cancelar
+const ESTADOS = ['cancelada'];
 const esMonto = (v) => Number.isInteger(v) && v > 0;
 const esDiaCobro = (v) => Number.isInteger(v) && v >= 1 && v <= 28;
 
@@ -45,7 +47,7 @@ export async function crear(idPlanta, { monto_mensual, fecha_inicio, dia_cobro }
   }
 }
 
-// Cambia la cuota, el día de cobro o el estado. Cancelar registra la fecha (HU-12) y es definitivo.
+// Cambia la cuota o el día de cobro, o cancela (HU-12). Cancelar registra fecha y motivo y es definitivo.
 export async function actualizar(id, { monto_mensual, dia_cobro, estado }) {
   if (monto_mensual === undefined && dia_cobro === undefined && estado === undefined) {
     throw new HttpError(400, 'Indica monto_mensual, dia_cobro o estado');
@@ -66,12 +68,16 @@ export async function actualizar(id, { monto_mensual, dia_cobro, estado }) {
      SET monto_mensual = COALESCE($2, monto_mensual),
          dia_cobro = COALESCE($3::smallint, dia_cobro),
          estado = COALESCE($4, estado),
-         fecha_cancelacion = CASE WHEN $4 = 'cancelada' THEN CURRENT_DATE ELSE fecha_cancelacion END
+         fecha_cancelacion = CASE WHEN $4 = 'cancelada' THEN CURRENT_DATE ELSE fecha_cancelacion END,
+         motivo_cancelacion = CASE WHEN $4 = 'cancelada' THEN 'administrador' ELSE motivo_cancelacion END
      WHERE id_suscripcion = $1 AND estado <> 'cancelada'
      RETURNING *`,
     [id, monto_mensual ?? null, dia_cobro ?? null, estado ?? null],
   );
-  if (rows.length) return rows[0];
+  if (rows.length) {
+    if (estado === 'cancelada') await anularCuotasFuturas({ query }, [id]);
+    return rows[0];
+  }
 
   const { rows: existe } = await query('SELECT 1 FROM suscripcion WHERE id_suscripcion = $1', [id]);
   if (!existe.length) throw new HttpError(404, 'Suscripción no encontrada');
