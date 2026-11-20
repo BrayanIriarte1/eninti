@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { leerToken } from '../utils/api.js';
-import { login as apiLogin, registro as apiRegistro, perfil, cerrarSesion as limpiar, iniciarSesionLocal } from '../../modules/auth/services/authService.js';
+import { login as apiLogin, perfil, cerrarSesion as limpiar, iniciarSesionLocal } from '../../modules/auth/services/authService.js';
 
 const AuthContext = createContext(null);
 
@@ -28,20 +28,13 @@ export function AuthProvider({ children }) {
     return usuario;
   }
 
-  async function registro(datos) {
-    const { token, usuario } = await apiRegistro(datos);
-    iniciarSesionLocal(token);
-    setUsuario(usuario);
-    return usuario;
-  }
-
   function cerrarSesion() {
     limpiar();
     setUsuario(null);
   }
 
   return (
-    <AuthContext.Provider value={{ usuario, cargando, login, registro, cerrarSesion }}>
+    <AuthContext.Provider value={{ usuario, cargando, login, cerrarSesion }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   actualizarPlanta, crearPlanta, listarClientes, listarComunas, obtenerPlanta,
 } from '../services/plantasService.js';
@@ -31,6 +31,7 @@ export default function PlantaFormPage() {
   const { id } = useParams();
   const editando = Boolean(id);
   const navigate = useNavigate();
+  const [params] = useSearchParams();
 
   const [form, setForm] = useState(VACIO);
   const [clientes, setClientes] = useState([]);
@@ -46,11 +47,20 @@ export default function PlantaFormPage() {
         setComunas(listaComunas);
         if (planta) {
           setForm(Object.fromEntries(Object.keys(VACIO).map((k) => [k, String(planta[k] ?? '')])));
+        } else {
+          // Planta pedida en una solicitud de cuenta: se precargan cliente, comuna y dirección
+          setForm({
+            ...VACIO,
+            id_cliente: params.get('cliente') ?? '',
+            id_comuna: params.get('comuna') ?? '',
+            direccion: params.get('direccion') ?? '',
+            potencia_kw: params.get('potencia') ?? '',
+          });
         }
       })
       .catch(setError)
       .finally(() => setCargando(false));
-  }, [id, editando]);
+  }, [id, editando, params]);
 
   const cambiar = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 

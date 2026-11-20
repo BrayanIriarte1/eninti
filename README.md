@@ -125,7 +125,7 @@ ENINTI/
 - [docs/GUIA_OTRO_PC_Y_GITHUB.md](docs/GUIA_OTRO_PC_Y_GITHUB.md) — abrir el proyecto en otro PC y flujo de Git/GitHub (clonar, ramas, commit, push, Pull Request).
 - [docs/MANUAL.md](docs/MANUAL.md) — manual de uso por perfil y resumen de la API.
 - **Documentación interactiva de la API (Swagger UI):** con los servidores arriba, abre
-  http://localhost:5174/api/docs (o http://localhost:3001/api/docs). Documenta los 46 endpoints, con
+  http://localhost:5174/api/docs (o http://localhost:3001/api/docs). Documenta los 51 endpoints, con
   ejemplos listos para ejecutar con **Try it out**. La especificación OpenAPI está en
   [`backend/src/docs/openapi.js`](backend/src/docs/openapi.js) y se descarga en `/api/docs.json`.
 

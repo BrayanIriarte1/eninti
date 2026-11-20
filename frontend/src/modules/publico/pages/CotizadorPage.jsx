@@ -33,7 +33,7 @@ export default function CotizadorPage() {
               <h3>{p.nombre}</h3>
               <p className="plan-precio">{formatoPesos(p.precio)}<span>/mes</span></p>
               <p>{p.descripcion}</p>
-              <Link className="boton" to="/registro">Suscribirme</Link>
+              <Link className="boton" to="/solicitar-cuenta">Suscribirme</Link>
             </article>
           ))}
         </div>

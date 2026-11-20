@@ -66,11 +66,12 @@ El token dura **8 horas**. Tras **5 contraseñas incorrectas** con el mismo corr
   servers: [{ url: '/api', description: 'Servidor actual' }],
   tags: [
     { name: 'Sistema', description: 'Estado del servicio' },
-    { name: 'Autenticación', description: 'Inicio de sesión y registro (HU-07)' },
-    { name: 'Público', description: 'Sin sesión: cotizador y retorno de la pasarela simulada' },
+    { name: 'Autenticación', description: 'Inicio de sesión (HU-07). No hay autorregistro: la cuenta del cliente la crea el administrador' },
+    { name: 'Público', description: 'Sin sesión: cotizador, solicitud de cuenta y retorno de la pasarela simulada' },
     { name: 'Cliente', description: 'Perfil **cliente**: cuenta, plantas, mantenciones y solicitudes (HU-08 a HU-13)' },
     { name: 'Trabajador', description: 'Perfil **trabajador**: agenda y órdenes de trabajo (HU-05, HU-14, HU-16)' },
     { name: 'Admin · Clientes', description: 'Ficha administrativa de clientes (HU-03)' },
+    { name: 'Admin · Solicitudes de cuenta', description: 'Solicitudes enviadas desde el login; al aprobar se crea el cliente y su cuenta (HU-07)' },
     { name: 'Admin · Plantas', description: 'Plantas, ficha técnica y suscripciones (HU-03)' },
     { name: 'Admin · Trabajadores', description: 'Cuentas de trabajadores (HU-15)' },
     { name: 'Admin · Mantenciones', description: 'Calendario por comuna, programación y asignación (HU-04, HU-17)' },
@@ -101,19 +102,6 @@ El token dura **8 horas**. Tras **5 contraseñas incorrectas** con el mismo corr
         },
       },
     },
-    '/auth/registro': {
-      post: {
-        tags: ['Autenticación'], summary: 'Registro del cliente (HU-07)', security: [],
-        description: 'Crea la cuenta web de un cliente cuyo **RUT ya fue registrado por ENINTI** y que aún no tiene cuenta. Devuelve la sesión iniciada.',
-        requestBody: cuerpo(ref('RegistroPeticion'), { rut: '33333333-3', email: 'carmen.soto@ejemplo.cl', password: 'ClaveSegura1', telefono: '+56933333333' }),
-        responses: {
-          201: ok('Cuenta creada', ref('LoginRespuesta')),
-          400: r400,
-          404: { description: 'El RUT no está registrado por ENINTI', content: json(ref('Error')) },
-          409: { description: 'El cliente ya tiene cuenta o el correo está en uso', content: json(ref('Error')) },
-        },
-      },
-    },
     '/auth/me': {
       get: {
         tags: ['Autenticación'], summary: 'Perfil del usuario autenticado', security: protegido,
@@ -126,6 +114,24 @@ El token dura **8 horas**. Tras **5 contraseñas incorrectas** con el mismo corr
       get: {
         tags: ['Público'], summary: 'Cotizador: planes y servicios activos', security: [],
         responses: { 200: ok('Catálogo público', lista('CatalogoPublico')) },
+      },
+    },
+    '/publico/comunas': {
+      get: {
+        tags: ['Público'], summary: 'Comunas donde opera ENINTI', security: [],
+        responses: { 200: ok('Comunas', lista('Comuna')) },
+      },
+    },
+    '/publico/solicitudes-cuenta': {
+      post: {
+        tags: ['Público'], summary: 'Contactar al administrador para obtener una cuenta (HU-07)', security: [],
+        description: 'El cliente sin cuenta envía sus datos y los de su planta. **No crea ninguna cuenta**: queda una solicitud `pendiente` que el administrador aprueba o rechaza. Solo se admite una solicitud pendiente por RUT.',
+        requestBody: cuerpo(ref('SolicitudCuentaPeticion'), { nombre: 'Ana Torres Díaz', rut: '55555555-5', email: 'ana.torres@ejemplo.cl', telefono: '+56955555555', direccion_planta: 'Calle Sol 100', id_comuna: 2, potencia_kw: 4.5, tiene_baterias: false, mensaje: 'Quiero contratar el plan de mantención.' }),
+        responses: {
+          201: ok('Solicitud registrada', { type: 'object', properties: { id_solicitud_cuenta: entero, estado: texto, fecha_solicitud: fechaHora } }),
+          400: r400,
+          409: { description: 'El RUT ya tiene cuenta o ya tiene una solicitud pendiente', content: json(ref('Error')) },
+        },
       },
     },
     '/pagos/simulada/confirmar': {
@@ -229,7 +235,7 @@ El token dura **8 horas**. Tras **5 contraseñas incorrectas** con el mismo corr
       },
       post: {
         tags: ['Admin · Clientes'], summary: 'Crear ficha de cliente (HU-03)', security: protegido,
-        description: 'Crea solo la ficha administrativa. El cliente crea su cuenta web después con su RUT (*POST /auth/registro*).',
+        description: 'Crea solo la ficha administrativa. La cuenta web la crea el administrador con *POST /admin/clientes/{id}/cuenta* o al aprobar una solicitud de cuenta.',
         requestBody: cuerpo(ref('ClientePeticion'), { rut: '44444444-4', nombre: 'Ana Torres Díaz', telefono: '+56944444444', direccion: 'Calle Sol 100', id_comuna: 2 }),
         responses: { 201: ok('Cliente creado', ref('Cliente')), 400: r400, ...comunes, 409: r409 },
       },
@@ -240,6 +246,38 @@ El token dura **8 horas**. Tras **5 contraseñas incorrectas** con el mismo corr
         parameters: [idPath('Id del cliente')],
         requestBody: cuerpo(ref('ClienteEdicion'), { telefono: '+56955555555' }),
         responses: { 200: ok('Cliente actualizado', ref('Cliente')), 400: r400, ...comunes, 404: r404, 409: r409 },
+      },
+    },
+    '/admin/clientes/{id}/cuenta': {
+      post: {
+        tags: ['Admin · Clientes'], summary: 'Crear la cuenta web de un cliente (HU-07)', security: protegido,
+        description: 'Crea el usuario con rol cliente y lo enlaza a la ficha. La contraseña inicial la define el administrador y se la comunica al cliente.',
+        parameters: [idPath('Id del cliente')],
+        requestBody: cuerpo(ref('CuentaClientePeticion'), { email: 'carmen.soto@ejemplo.cl', password: 'Inicial.2026' }),
+        responses: { 201: ok('Cuenta creada', ref('UsuarioCreado')), 400: r400, ...comunes, 404: r404, 409: { description: 'El cliente ya tiene cuenta o el correo está en uso', content: json(ref('Error')) } },
+      },
+    },
+    '/admin/solicitudes-cuenta': {
+      get: {
+        tags: ['Admin · Solicitudes de cuenta'], summary: 'Listar solicitudes de cuenta (HU-07)', security: protegido,
+        parameters: [query('estado', 'Filtra por estado', { type: 'string', enum: ['pendiente', 'aprobada', 'rechazada'] })],
+        responses: { 200: ok('Solicitudes, primero las pendientes', lista('SolicitudCuenta')), 400: r400, ...comunes },
+      },
+    },
+    '/admin/solicitudes-cuenta/{id}/aprobar': {
+      post: {
+        tags: ['Admin · Solicitudes de cuenta'], summary: 'Aprobar: crear cliente y cuenta web (HU-07)', security: protegido,
+        description: 'En una transacción crea la ficha del cliente (o reutiliza la existente con el mismo RUT), crea su cuenta web con la contraseña inicial indicada y marca la solicitud como aprobada. Después se registra la planta con *POST /admin/plantas*.',
+        parameters: [idPath('Id de la solicitud de cuenta')],
+        requestBody: cuerpo(ref('CuentaClientePeticion'), { email: 'jorge.castillo@ejemplo.cl', password: 'Inicial.2026' }),
+        responses: { 201: ok('Cliente y cuenta creados', { type: 'object', properties: { solicitud: ref('SolicitudCuenta'), cliente: ref('Cliente'), usuario: ref('UsuarioCreado') } }), 400: r400, ...comunes, 404: r404, 409: r409 },
+      },
+    },
+    '/admin/solicitudes-cuenta/{id}/rechazar': {
+      post: {
+        tags: ['Admin · Solicitudes de cuenta'], summary: 'Rechazar una solicitud de cuenta', security: protegido,
+        parameters: [idPath('Id de la solicitud de cuenta')],
+        responses: { 200: ok('Solicitud rechazada', ref('SolicitudCuenta')), ...comunes, 404: r404, 409: r409 },
       },
     },
     '/admin/comunas': {
@@ -468,7 +506,10 @@ El token dura **8 horas**. Tras **5 contraseñas incorrectas** con el mismo corr
 
       // Autenticación
       LoginPeticion: { type: 'object', required: ['email', 'password'], properties: { email: { type: 'string', format: 'email' }, password: { type: 'string', format: 'password' } } },
-      RegistroPeticion: { type: 'object', required: ['rut', 'email', 'password'], properties: { rut: { type: 'string', example: '12345678-9', description: 'Formato `12345678-9`; debe existir en `cliente`' }, email: { type: 'string', format: 'email' }, password: { type: 'string', minLength: 8 }, telefono: texto } },
+      SolicitudCuentaPeticion: { type: 'object', required: ['nombre', 'rut', 'email', 'telefono', 'direccion_planta', 'id_comuna'], properties: { nombre: texto, rut: { type: 'string', example: '12345678-9' }, email: { type: 'string', format: 'email' }, telefono: { type: 'string', example: '+56912345678' }, direccion_planta: texto, id_comuna: entero, potencia_kw: { type: 'number', nullable: true }, tiene_baterias: { type: 'boolean', nullable: true, description: 'null si el cliente no lo sabe' }, mensaje: { type: 'string', maxLength: 500 } } },
+      SolicitudCuenta: { type: 'object', properties: { id_solicitud_cuenta: entero, nombre: texto, rut: texto, email: texto, telefono: texto, direccion_planta: texto, id_comuna: entero, comuna: texto, potencia_kw: { type: 'number', nullable: true }, tiene_baterias: { type: 'boolean', nullable: true }, mensaje: { type: 'string', nullable: true }, estado: { type: 'string', enum: ['pendiente', 'aprobada', 'rechazada'] }, fecha_solicitud: fechaHora, fecha_resolucion: { ...fechaHora, nullable: true }, resuelta_por_nombre: { type: 'string', nullable: true }, id_cliente: { type: 'integer', nullable: true } } },
+      CuentaClientePeticion: { type: 'object', required: ['password'], properties: { email: { type: 'string', format: 'email', description: 'Si se omite al aprobar, se usa el de la solicitud' }, password: { type: 'string', minLength: 8, description: 'Contraseña inicial definida por el administrador' } } },
+      UsuarioCreado: { type: 'object', properties: { id_usuario: entero, nombre: texto, email: texto, rol: texto } },
       UsuarioSesion: { type: 'object', properties: { id: entero, nombre: texto, rol: { type: 'string', enum: ['cliente', 'trabajador', 'administrador'] }, email: texto } },
       LoginRespuesta: { type: 'object', properties: { token: { type: 'string', description: 'JWT válido por 8 horas' }, usuario: ref('UsuarioSesion') } },
       Perfil: { type: 'object', properties: { id_usuario: entero, nombre: texto, email: texto, rol: texto, telefono: { type: 'string', nullable: true }, ultimo_acceso: { ...fechaHora, nullable: true }, id_cliente: { type: 'integer', nullable: true, description: 'Solo para clientes' }, rut: { type: 'string', nullable: true } } },
