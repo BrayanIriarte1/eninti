@@ -53,7 +53,7 @@ export default function PlantasPage() {
       </div>
 
       <Mensaje error={error} />
-      {cargando && <p>Cargando…</p>}
+      {cargando && <p className="cargando">Cargando…</p>}
       {!cargando && !error && filtradas.length === 0 && <p>No hay plantas que coincidan.</p>}
 
       {filtradas.length > 0 && (

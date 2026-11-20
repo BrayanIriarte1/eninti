@@ -25,7 +25,7 @@ export default function PlantaDetallePage() {
   }, [cargar]);
 
   if (error && !planta) return <Mensaje error={error} />;
-  if (!planta) return <p>Cargando…</p>;
+  if (!planta) return <p className="cargando">Cargando…</p>;
 
   const ficha = [
     ['Cliente', `${planta.cliente.nombre} · ${planta.cliente.rut}`],

@@ -37,7 +37,7 @@ export default function OrdenPage() {
   }
 
   if (error && !orden) return <Mensaje error={error} />;
-  if (!orden) return <p>Cargando…</p>;
+  if (!orden) return <p className="cargando">Cargando…</p>;
 
   const { planta, cliente } = orden;
   const ficha = [

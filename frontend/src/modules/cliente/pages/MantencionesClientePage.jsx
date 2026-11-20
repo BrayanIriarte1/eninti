@@ -13,7 +13,7 @@ export default function MantencionesClientePage() {
     misMantenciones().then(setPlantas).catch(setError).finally(() => setCargando(false));
   }, []);
 
-  if (cargando) return <p>Cargando…</p>;
+  if (cargando) return <p className="cargando">Cargando…</p>;
   if (error) return <Mensaje error={error} />;
 
   return (

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import Marca from '../../../shared/components/Marca.jsx';
 import { catalogoPublico } from '../services/publicoService.js';
 import { formatoPesos } from '../../../shared/utils/formato.js';
 
@@ -17,11 +18,14 @@ export default function CotizadorPage() {
 
   return (
     <div className="layout">
-      <header className="topbar">
-        <span className="marca">ENINTI</span>
-        <nav><Link to="/login">Iniciar sesión</Link></nav>
+      <header className="publico-barra">
+        <Link to="/login" aria-label="ENINTI, ir al inicio de sesión"><Marca /></Link>
+        <nav className="publico-acciones">
+          <Link className="boton secundario" to="/solicitar-cuenta">Solicitar cuenta</Link>
+          <Link className="boton" to="/login">Iniciar sesión</Link>
+        </nav>
       </header>
-      <main className="contenido">
+      <main className="contenido contenido-publico">
         <h1>Planes y servicios</h1>
         <p className="texto-suave">Mantención preventiva de sistemas solares fotovoltaicos en la Región de Antofagasta.</p>
         {error && <p>No se pudo cargar el catálogo en este momento.</p>}

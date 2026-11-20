@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { listarTrabajadores, crearTrabajador, actualizarTrabajador } from '../services/adminService.js';
+import TelefonoInput from '../../../shared/components/TelefonoInput.jsx';
 import Mensaje from '../../../shared/components/Mensaje.jsx';
 
 const VACIO = { nombre: '', email: '', password: '', telefono: '' };
@@ -55,7 +56,7 @@ export default function TrabajadoresPage() {
             <label>Nombre<input name="nombre" value={form.nombre} onChange={cambiar} required maxLength={120} /></label>
             <label>Correo<input name="email" type="email" value={form.email} onChange={cambiar} required /></label>
             <label>Contraseña inicial <span className="opcional">(mín. 8)</span><input name="password" type="password" value={form.password} onChange={cambiar} required minLength={8} /></label>
-            <label>Teléfono <span className="opcional">(opcional)</span><input name="telefono" value={form.telefono} onChange={cambiar} /></label>
+            <label>Teléfono <span className="opcional">(opcional)</span><TelefonoInput value={form.telefono} onChange={cambiar} /></label>
           </fieldset>
           <div className="acciones">
             <button type="submit" className="boton" disabled={enviando}>{enviando ? 'Creando…' : 'Crear trabajador'}</button>

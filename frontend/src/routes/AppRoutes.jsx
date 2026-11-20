@@ -35,7 +35,7 @@ import SolicitudesClientePage from '../modules/cliente/pages/SolicitudesClienteP
 
 function Raiz() {
   const { usuario, cargando } = useAuth();
-  if (cargando) return <p className="contenido">Cargando…</p>;
+  if (cargando) return <p className="cargando contenido-publico">Cargando…</p>;
   return <Navigate to={usuario ? inicioPorRol(usuario.rol) : '/login'} replace />;
 }
 

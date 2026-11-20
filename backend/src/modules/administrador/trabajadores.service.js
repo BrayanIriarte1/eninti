@@ -1,6 +1,7 @@
 import { query } from '../../config/db.js';
 import { HttpError } from '../../shared/utils/httpError.js';
 import { hashPassword } from '../../shared/utils/password.js';
+import { telefonoValido } from '../../shared/utils/rut.js';
 
 const SELECT_TRABAJADOR = `
   SELECT id_usuario, nombre, email, telefono, activo, fecha_creacion, ultimo_acceso
@@ -23,8 +24,8 @@ function validar({ nombre, email, password, telefono }, { parcial }) {
       (parcial && password !== undefined && (typeof password !== 'string' || password.length < 8))) {
     errores.push('password debe tener al menos 8 caracteres');
   }
-  if (telefono !== undefined && telefono !== null && typeof telefono !== 'string') {
-    errores.push('telefono no es válido');
+  if (telefono !== undefined && telefono !== null && telefono !== '' && !telefonoValido(telefono)) {
+    errores.push('telefono debe incluir el código de país, por ejemplo +56912345678');
   }
   if (errores.length) throw new HttpError(400, 'Datos del trabajador inválidos', errores);
 }

@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { listarClientes, crearCliente, actualizarCliente, listarComunas, crearCuentaCliente } from '../services/adminService.js';
+import RutInput from '../../../shared/components/RutInput.jsx';
+import TelefonoInput from '../../../shared/components/TelefonoInput.jsx';
 import Mensaje from '../../../shared/components/Mensaje.jsx';
 
 const VACIO = { rut: '', nombre: '', telefono: '', direccion: '', id_comuna: '' };
@@ -109,9 +111,9 @@ export default function ClientesPage() {
           <Mensaje error={error} />
           <fieldset>
             <legend>Datos</legend>
-            <label>RUT<input name="rut" value={form.rut} onChange={cambiar} required placeholder="12345678-9" /></label>
+            <label>RUT<RutInput value={form.rut} onChange={cambiar} required /></label>
             <label>Nombre<input name="nombre" value={form.nombre} onChange={cambiar} required maxLength={120} /></label>
-            <label>Teléfono <span className="opcional">(opcional)</span><input name="telefono" value={form.telefono} onChange={cambiar} /></label>
+            <label>Teléfono <span className="opcional">(opcional)</span><TelefonoInput value={form.telefono} onChange={cambiar} /></label>
             <label>Comuna
               <select name="id_comuna" value={form.id_comuna} onChange={cambiar}>
                 <option value="">Sin comuna</option>

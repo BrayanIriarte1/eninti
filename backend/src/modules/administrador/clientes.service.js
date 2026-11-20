@@ -1,6 +1,7 @@
 import { pool, query } from '../../config/db.js';
 import { HttpError } from '../../shared/utils/httpError.js';
 import { hashPassword } from '../../shared/utils/password.js';
+import { normalizarRut, rutValido, telefonoValido } from '../../shared/utils/rut.js';
 
 // Listados básicos para selectores y administración de clientes (HU-03)
 export async function listar() {
@@ -26,14 +27,16 @@ export async function listarComunas() {
 function validar({ rut, nombre, telefono, direccion, id_comuna }, { parcial }) {
   const errores = [];
   if (!parcial || rut !== undefined) {
-    if (typeof rut !== 'string' || !/^\d{7,8}-[\dkK]$/.test(rut?.trim() ?? '')) {
-      errores.push('rut debe tener formato 12345678-9');
+    if (typeof rut !== 'string' || !rutValido(rut)) {
+      errores.push('rut no es válido: revisa el número y el dígito verificador');
     }
   }
   if (!parcial || nombre !== undefined) {
     if (typeof nombre !== 'string' || !nombre.trim()) errores.push('nombre es obligatorio');
   }
-  if (telefono !== undefined && telefono !== null && typeof telefono !== 'string') errores.push('telefono no es válido');
+  if (telefono !== undefined && telefono !== null && telefono !== '' && !telefonoValido(telefono)) {
+    errores.push('telefono debe incluir el código de país, por ejemplo +56912345678');
+  }
   if (direccion !== undefined && direccion !== null && typeof direccion !== 'string') errores.push('direccion no es válida');
   if (id_comuna !== undefined && id_comuna !== null && (!Number.isInteger(id_comuna) || id_comuna <= 0)) {
     errores.push('id_comuna no es válida');
@@ -49,7 +52,7 @@ export async function crear(datos) {
     `INSERT INTO cliente (rut, nombre, telefono, direccion, id_comuna)
      VALUES ($1, $2, $3, $4, $5)
      RETURNING *`,
-    [datos.rut.trim(), datos.nombre.trim(), datos.telefono ?? null, datos.direccion ?? null, datos.id_comuna ?? null],
+    [normalizarRut(datos.rut), datos.nombre.trim(), datos.telefono ?? null, datos.direccion ?? null, datos.id_comuna ?? null],
   );
   return rows[0];
 }
@@ -69,7 +72,7 @@ export async function actualizar(id, datos) {
          id_comuna = COALESCE($6, id_comuna)
      WHERE id_cliente = $1
      RETURNING *`,
-    [id, rut?.trim() ?? null, nombre?.trim() ?? null, telefono ?? null, direccion ?? null, id_comuna ?? null],
+    [id, rut === undefined ? null : normalizarRut(rut), nombre?.trim() ?? null, telefono ?? null, direccion ?? null, id_comuna ?? null],
   );
   if (!rows.length) throw new HttpError(404, 'Cliente no encontrado');
   return rows[0];

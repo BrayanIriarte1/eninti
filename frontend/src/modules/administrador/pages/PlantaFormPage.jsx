@@ -79,7 +79,7 @@ export default function PlantaFormPage() {
     }
   }
 
-  if (cargando) return <p>Cargando…</p>;
+  if (cargando) return <p className="cargando">Cargando…</p>;
 
   return (
     <section>
