@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { listarImpagos, listarSolicitudes, listarMantenciones, listarSolicitudesCuenta } from '../services/adminService.js';
+import {
+  listarImpagos, listarSolicitudes, listarMantenciones, listarSolicitudesCuenta,
+  listarSolicitudesSuscripcion, listarCambiosDatos,
+} from '../services/adminService.js';
 import { formatoPesos } from '../../../shared/utils/formato.js';
 import { useAuth } from '../../../shared/context/AuthContext.jsx';
 import ArcoSolar, { saludo } from '../../../shared/components/ArcoSolar.jsx';
@@ -20,6 +23,8 @@ export default function InicioAdminPage() {
   const [solicitudes, setSolicitudes] = useState([]);
   const [cuentas, setCuentas] = useState([]);
   const [sinAsignar, setSinAsignar] = useState(0);
+  const [suscripciones, setSuscripciones] = useState([]);
+  const [cambios, setCambios] = useState([]);
   const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
@@ -27,15 +32,17 @@ export default function InicioAdminPage() {
       listarImpagos().then(setImpagos),
       listarSolicitudes('pendiente').then(setSolicitudes),
       listarSolicitudesCuenta('pendiente').then(setCuentas),
+      listarSolicitudesSuscripcion('pendiente').then(setSuscripciones),
+      listarCambiosDatos('pendiente').then(setCambios),
       listarMantenciones().then((m) => setSinAsignar(m.filter((x) => !x.id_trabajador && ['pendiente', 'en_curso'].includes(x.estado)).length)),
     ]).finally(() => setCargando(false));
   }, []);
 
   const deudaTotal = impagos.reduce((t, i) => t + i.monto_total, 0);
-  const porAtender = cuentas.length + solicitudes.length + sinAsignar;
+  const porAtender = cuentas.length + solicitudes.length + sinAsignar + suscripciones.length + cambios.length;
 
   const tarjetas = [
-    { valor: impagos.length, texto: 'Suscripciones morosas', sub: deudaTotal > 0 ? `${formatoPesos(deudaTotal)} por cobrar` : null, ruta: '/admin/impagos', alerta: impagos.length > 0, icono: 'impagos' },
+    { valor: impagos.length, texto: 'Clientes con deuda', sub: deudaTotal > 0 ? `${formatoPesos(deudaTotal)} por cobrar` : null, ruta: '/admin/impagos', alerta: impagos.length > 0, icono: 'impagos' },
     { valor: cuentas.length, texto: 'Cuentas por crear', ruta: '/admin/solicitudes-cuenta', alerta: cuentas.length > 0, icono: 'nuevaCuenta' },
     { valor: solicitudes.length, texto: 'Solicitudes de mantención', ruta: '/admin/solicitudes', alerta: solicitudes.length > 0, icono: 'solicitudes' },
     { valor: sinAsignar, texto: 'Mantenciones sin técnico', ruta: '/admin/calendario', alerta: sinAsignar > 0, icono: 'calendario' },
@@ -45,6 +52,16 @@ export default function InicioAdminPage() {
     ...cuentas.map((c) => ({
       clave: `c${c.id_solicitud_cuenta}`, ruta: '/admin/solicitudes-cuenta', icono: 'nuevaCuenta', tono: 'aviso',
       titulo: `${c.nombre} pide una cuenta`, detalle: `${c.comuna} · ${hace(c.fecha_solicitud)}`,
+    })),
+    ...suscripciones.map((s) => ({
+      clave: `u${s.id_solicitud_suscripcion}`, ruta: '/admin/solicitudes-suscripcion', icono: 'suscripcion', tono: 'aviso',
+      titulo: `${s.cliente} pide una suscripción`,
+      detalle: `${s.direccion}${s.deuda_cliente > 0 ? ` · debe ${formatoPesos(s.deuda_cliente)}` : ''} · ${hace(s.fecha_solicitud)}`,
+    })),
+    ...cambios.map((c) => ({
+      clave: `d${c.id_solicitud_cambio}`, ruta: '/admin/cambios-datos', icono: 'datos', tono: '',
+      titulo: `${c.cliente} pide cambiar ${[c.email_nuevo && 'su correo', c.telefono_nuevo && 'su teléfono'].filter(Boolean).join(' y ')}`,
+      detalle: hace(c.fecha_solicitud),
     })),
     ...solicitudes.map((s) => ({
       clave: `s${s.id_solicitud}`, ruta: '/admin/solicitudes', icono: 'solicitudes', tono: '',
@@ -58,7 +75,7 @@ export default function InicioAdminPage() {
         <p>
           {cargando ? 'Revisando la operación…'
             : porAtender === 0 ? 'No hay nada pendiente por atender. Buen momento para revisar el calendario.'
-              : `Tienes ${porAtender} ${porAtender === 1 ? 'tarea pendiente' : 'tareas pendientes'} entre cuentas nuevas, solicitudes y mantenciones sin técnico.`}
+              : `Tienes ${porAtender} ${porAtender === 1 ? 'tarea pendiente' : 'tareas pendientes'}: revisa "Por atender".`}
         </p>
       </ArcoSolar>
 
@@ -79,7 +96,7 @@ export default function InicioAdminPage() {
             <h2>Por atender</h2>
           </div>
           {cargando ? <p className="cargando">Cargando…</p> : pendientes.length === 0 ? (
-            <div className="vacio"><Icono nombre="ok" tamano={32} /><p>Todo al día: no hay cuentas ni mantenciones esperando.</p></div>
+            <div className="vacio"><Icono nombre="ok" tamano={32} /><p>Todo al día: no hay solicitudes esperando.</p></div>
           ) : (
             <ul className="pendientes">
               {pendientes.slice(0, 6).map((p) => (

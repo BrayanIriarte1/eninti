@@ -38,3 +38,23 @@ export async function cancelarSuscripcion(req, res) {
 export async function iniciarInscripcion(req, res) {
   res.json(await cliente.iniciarInscripcion(req.usuario.id, parseId(req.params.id), req.body ?? {}, req.ip));
 }
+
+export async function ordenesPorConfirmar(req, res) {
+  res.json(await cliente.ordenesPorConfirmar(req.usuario.id));
+}
+
+export async function confirmarOrden(req, res) {
+  res.json(await cliente.confirmarOrden(req.usuario.id, parseId(req.params.id), req.body ?? {}));
+}
+
+export async function solicitarSuscripcion(req, res) {
+  res.status(201).json(await cliente.solicitarSuscripcion(req.usuario.id, req.body ?? {}));
+}
+
+export async function misDatos(req, res) {
+  res.json(await cliente.misDatos(req.usuario.id));
+}
+
+export async function solicitarCambioDatos(req, res) {
+  res.status(201).json(await cliente.solicitarCambioDatos(req.usuario.id, req.body ?? {}));
+}

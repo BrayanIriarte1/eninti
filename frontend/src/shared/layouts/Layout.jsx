@@ -13,6 +13,8 @@ const MENU = {
       ['/admin/plantas', 'Plantas', 'planta'],
       ['/admin/clientes', 'Clientes', 'clientes'],
       ['/admin/solicitudes-cuenta', 'Nuevas cuentas', 'nuevaCuenta'],
+      ['/admin/solicitudes-suscripcion', 'Suscripciones', 'suscripcion'],
+      ['/admin/cambios-datos', 'Cambios de datos', 'datos'],
     ] },
     { grupo: 'Mantención', items: [
       ['/admin/calendario', 'Calendario', 'calendario'],
@@ -34,6 +36,7 @@ const MENU = {
       ['/cliente/plantas', 'Mis plantas', 'planta'],
       ['/cliente/mantenciones', 'Mantenciones', 'mantenciones'],
       ['/cliente/solicitudes', 'Solicitudes', 'solicitudes'],
+      ['/cliente/datos', 'Mis datos', 'datos'],
     ] },
   ],
 };

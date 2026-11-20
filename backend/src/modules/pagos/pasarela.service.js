@@ -79,8 +79,8 @@ export function validarTokenInscripcion(token) {
 }
 
 // --- Cargo recurrente de una cuota ---
-// En modo simulado la tarjeta con últimos dígitos 0000 siempre rechaza,
-// lo que permite probar el caso de rechazo exigido por el objetivo específico 3.
+// En modo simulado la tarjeta terminada en 0002 se inscribe pero sus cobros se rechazan
+// (y la 0000 nunca llega a inscribirse), lo que permite probar el rechazo del objetivo específico 3.
 export async function cobrar({ medioPago, monto, descripcion }) {
   if (modo() === 'sandbox') {
     const cargo = await llamarFlow('/customer/charge', {
@@ -92,7 +92,7 @@ export async function cobrar({ medioPago, monto, descripcion }) {
     return { aprobado: cargo.status === 1 || cargo.status === 2, referencia: String(cargo.commerceOrder ?? cargo.token ?? '') };
   }
 
-  const aprobado = medioPago.ultimos_4 !== '0000';
+  const aprobado = !['0000', '0002'].includes(medioPago.ultimos_4);
   return {
     aprobado,
     referencia: `SIM-${randomUUID().slice(0, 8).toUpperCase()}`,

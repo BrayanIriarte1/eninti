@@ -6,7 +6,8 @@ import { errorHandler } from './shared/middlewares/errorHandler.js';
 
 const app = express();
 
-app.use(express.json());
+// Límite amplio para las fotos de la orden (llegan comprimidas en base64 desde el navegador)
+app.use(express.json({ limit: '12mb' }));
 
 // Documentación interactiva de la API (Swagger UI) y su especificación OpenAPI
 app.get('/api/docs.json', (_req, res) => res.json(openapi));

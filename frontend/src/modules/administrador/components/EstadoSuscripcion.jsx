@@ -1,6 +1,7 @@
+// Estados de la suscripción. 'al_dia' y 'con_deuda' los calculan las reglas de deuda del backend.
 const ESTADOS = {
   al_dia: { texto: 'Al día', clase: 'ok' },
-  morosa: { texto: 'Morosa', clase: 'alerta' },
+  con_deuda: { texto: 'Activa con deuda', clase: 'aviso' },
   cancelada: { texto: 'Cancelada', clase: 'neutro' },
 };
 

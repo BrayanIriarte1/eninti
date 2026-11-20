@@ -44,3 +44,19 @@ export const procesarCargos = () => api('/admin/finanzas/procesar-cargos', { met
 export const listarCatalogo = () => api('/admin/catalogo');
 export const crearServicio = (datos) => api('/admin/catalogo', { method: 'POST', body: datos });
 export const actualizarServicio = (id, datos) => api(`/admin/catalogo/${id}`, { method: 'PATCH', body: datos });
+
+// Cierre de órdenes: fotos y cierre sin confirmación del cliente
+export const fotosMantencion = (id) => api(`/admin/mantenciones/${id}/fotos`);
+export const cerrarSinCliente = (id, comentario) =>
+  api(`/admin/mantenciones/${id}/cerrar`, { method: 'POST', body: { comentario } });
+
+// Solicitudes de suscripción
+export const listarSolicitudesSuscripcion = (estado) => api(`/admin/solicitudes-suscripcion${estado ? `?estado=${estado}` : ''}`);
+export const aprobarSolicitudSuscripcion = (id, datos) => api(`/admin/solicitudes-suscripcion/${id}/aprobar`, { method: 'POST', body: datos });
+export const rechazarSolicitudSuscripcion = (id, respuesta) =>
+  api(`/admin/solicitudes-suscripcion/${id}/rechazar`, { method: 'POST', body: { respuesta } });
+
+// Solicitudes de cambio de datos del cliente
+export const listarCambiosDatos = (estado) => api(`/admin/solicitudes-datos${estado ? `?estado=${estado}` : ''}`);
+export const aprobarCambioDatos = (id, respuesta) => api(`/admin/solicitudes-datos/${id}/aprobar`, { method: 'POST', body: { respuesta } });
+export const rechazarCambioDatos = (id, respuesta) => api(`/admin/solicitudes-datos/${id}/rechazar`, { method: 'POST', body: { respuesta } });

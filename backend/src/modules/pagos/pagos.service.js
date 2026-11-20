@@ -20,7 +20,9 @@ export async function confirmarInscripcionSimulada(token, { resultado, marca, ul
   const { rows: previo } = await query('SELECT * FROM medio_pago WHERE token_pasarela = $1', [tokenPasarela]);
   if (previo.length) return previo[0];
 
-  const estado = resultado === 'aprobada' ? 'activo' : 'rechazado';
+  // Tarjeta de prueba 0000: la pasarela simulada la rechaza siempre (caso de rechazo, objetivo 3)
+  const rechazaTarjeta = resultado === 'aprobada' && ultimos_4 === '0000';
+  const estado = resultado === 'aprobada' && !rechazaTarjeta ? 'activo' : 'rechazado';
   const conexion = await pool.connect();
   try {
     await conexion.query('BEGIN');
@@ -35,7 +37,7 @@ export async function confirmarInscripcionSimulada(token, { resultado, marca, ul
       `INSERT INTO medio_pago (id_cliente, token_pasarela, marca, ultimos_4, estado)
        VALUES ($1, $2, $3, $4, $5)
        RETURNING *`,
-      [datos.idCliente, tokenPasarela, marca?.trim() || null, estado === 'activo' ? ultimos_4 : null, estado],
+      [datos.idCliente, tokenPasarela, marca?.trim() || null, /^[0-9]{4}$/.test(ultimos_4 ?? '') ? ultimos_4 : null, estado],
     );
     await conexion.query('COMMIT');
     return rows[0];
