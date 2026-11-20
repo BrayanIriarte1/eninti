@@ -1,8 +1,8 @@
 import { pool, query } from '../../config/db.js';
 import { HttpError } from '../../shared/utils/httpError.js';
 import { crearCuentaCliente } from './clientes.service.js';
+import { normalizarRut, rutValido, telefonoValido } from '../../shared/utils/rut.js';
 
-const RUT = /^\d{7,8}-[\dkK]$/;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const ESTADOS = ['pendiente', 'aprobada', 'rechazada'];
 
@@ -12,9 +12,9 @@ const texto = (v) => (typeof v === 'string' ? v.trim() : '');
 // Se guardan sus datos y los de su planta para que el administrador los revise.
 export async function crear(datos) {
   const nombre = texto(datos.nombre);
-  const rut = texto(datos.rut).toUpperCase();
+  const rut = normalizarRut(texto(datos.rut));
   const email = texto(datos.email).toLowerCase();
-  const telefono = texto(datos.telefono);
+  const telefono = texto(datos.telefono).replace(/\s/g, '');
   const direccion = texto(datos.direccion_planta);
   const mensaje = texto(datos.mensaje);
   const { id_comuna, potencia_kw, tiene_baterias } = datos;
@@ -22,9 +22,9 @@ export async function crear(datos) {
   const errores = [];
   if (!nombre) errores.push('nombre es obligatorio');
   if (nombre.length > 120) errores.push('nombre admite hasta 120 caracteres');
-  if (!RUT.test(rut)) errores.push('rut debe tener formato 12345678-9');
+  if (!rutValido(rut)) errores.push('rut no es válido: revisa el número y el dígito verificador');
   if (!EMAIL.test(email)) errores.push('email no es válido');
-  if (!/^\+?\d{8,15}$/.test(telefono.replace(/\s/g, ''))) errores.push('telefono no es válido');
+  if (!telefonoValido(telefono)) errores.push('telefono debe incluir el código de país, por ejemplo +56912345678');
   if (!direccion) errores.push('direccion_planta es obligatoria');
   if (direccion.length > 200) errores.push('direccion_planta admite hasta 200 caracteres');
   if (!Number.isInteger(id_comuna) || id_comuna <= 0) errores.push('id_comuna es obligatoria');

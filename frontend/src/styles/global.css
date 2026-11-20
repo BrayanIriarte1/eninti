@@ -132,6 +132,12 @@ input:focus, select:focus, .boton:focus-visible, a:focus-visible {
   outline-offset: 1px;
 }
 .opcional { font-weight: 400; color: var(--color-texto-suave); }
+.telefono { display: flex; gap: 0.4rem; }
+.telefono select { width: auto; max-width: 46%; flex-shrink: 0; }
+.telefono input { flex: 1; min-width: 0; }
+.campo-ok { font-weight: 400; font-size: 0.85rem; color: var(--color-ok-texto); }
+.campo-error { font-weight: 400; font-size: 0.85rem; color: var(--color-alerta-texto); }
+input[aria-invalid="true"] { border-color: var(--color-alerta-texto); }
 
 .formulario { display: flex; flex-direction: column; gap: 1.25rem; max-width: 760px; }
 .formulario fieldset {

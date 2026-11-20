@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { listarComunasPublicas, solicitarCuenta } from '../services/publicoService.js';
+import RutInput from '../../../shared/components/RutInput.jsx';
+import TelefonoInput from '../../../shared/components/TelefonoInput.jsx';
 import Mensaje from '../../../shared/components/Mensaje.jsx';
 
 const VACIO = {
@@ -70,9 +72,9 @@ export default function SolicitarCuentaPage() {
           <fieldset>
             <legend>Tus datos</legend>
             <label>Nombre completo<input name="nombre" value={form.nombre} onChange={cambiar} required maxLength={120} autoFocus /></label>
-            <label>RUT<input name="rut" value={form.rut} onChange={cambiar} required placeholder="12345678-9" /></label>
+            <label>RUT<RutInput value={form.rut} onChange={cambiar} required /></label>
             <label>Correo electrónico<input name="email" type="email" value={form.email} onChange={cambiar} required /></label>
-            <label>Teléfono<input name="telefono" value={form.telefono} onChange={cambiar} required placeholder="+56912345678" /></label>
+            <label>Teléfono<TelefonoInput value={form.telefono} onChange={cambiar} required /></label>
           </fieldset>
           <fieldset>
             <legend>Tu planta solar</legend>
