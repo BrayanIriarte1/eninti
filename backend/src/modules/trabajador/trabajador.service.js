@@ -1,10 +1,12 @@
 import { pool, query } from '../../config/db.js';
 import { HttpError } from '../../shared/utils/httpError.js';
 import { puedeTransitar } from '../../shared/utils/estadosOrden.js';
+import { decodificarFotos, guardarFotos, fotosDeOrden } from '../../shared/utils/fotos.js';
 
 const SELECT_ORDEN = `
   SELECT m.id_mantencion, m.tipo, m.estado, m.fecha_programada, m.fecha_ejecucion,
          m.actividades, m.observaciones,
+         m.satisfecho, m.problema_resuelto, m.comentario_cliente, m.fecha_confirmacion,
          json_build_object(
            'id_planta', p.id_planta, 'direccion', p.direccion, 'comuna', co.nombre,
            'potencia_kw', p.potencia_kw, 'inversor', p.inversor, 'paneles', p.paneles,
@@ -22,7 +24,7 @@ const SELECT_ORDEN = `
 // Agenda del trabajador: solo sus órdenes, ordenadas por fecha (HU-14)
 export async function agenda(idTrabajador, { historicas } = {}) {
   const filtroEstado = historicas
-    ? `m.estado IN ('finalizada', 'cancelada')`
+    ? `m.estado IN ('por_confirmar', 'finalizada', 'cancelada')`
     : `m.estado IN ('pendiente', 'en_curso')`;
   const { rows } = await query(
     `${SELECT_ORDEN}
@@ -50,20 +52,22 @@ export async function obtenerOrden(id, idTrabajador) {
      ORDER BY h.fecha_cambio, h.id_historial`,
     [id],
   );
-  return { ...rows[0], historial };
+  return { ...rows[0], historial, fotos: await fotosDeOrden({ query }, id) };
 }
 
 // Cambia el estado de una orden propia dejando historial (HU-05, HU-16).
-// Finalizar exige actividades y registra fecha de ejecución.
-export async function cambiarEstado(id, idTrabajador, { estado, actividades, observaciones, comentario }) {
-  if (!['en_curso', 'finalizada'].includes(estado)) {
-    throw new HttpError(400, 'estado debe ser en_curso o finalizada');
+// Terminar la visita exige actividades y fotos: la orden queda 'por_confirmar'
+// hasta que el cliente confirme que quedó conforme y que el problema se resolvió.
+export async function cambiarEstado(id, idTrabajador, { estado, actividades, observaciones, comentario, fotos }) {
+  if (!['en_curso', 'por_confirmar'].includes(estado)) {
+    throw new HttpError(400, 'estado debe ser en_curso o por_confirmar');
   }
-  const finaliza = estado === 'finalizada';
+  const termina = estado === 'por_confirmar';
   const textoActividades = typeof actividades === 'string' ? actividades.trim() : '';
-  if (finaliza && !textoActividades) {
-    throw new HttpError(400, 'No se puede finalizar sin registrar las actividades realizadas');
+  if (termina && !textoActividades) {
+    throw new HttpError(400, 'Registra las actividades realizadas antes de enviar la orden al cliente');
   }
+  const imagenes = termina ? decodificarFotos(fotos) : [];
 
   const conexion = await pool.connect();
   try {
@@ -82,16 +86,22 @@ export async function cambiarEstado(id, idTrabajador, { estado, actividades, obs
     await conexion.query(
       `UPDATE mantencion
        SET estado = $2::text,
-           fecha_ejecucion = CASE WHEN $2::text = 'finalizada' THEN CURRENT_DATE ELSE fecha_ejecucion END,
+           fecha_ejecucion = CASE WHEN $2::text = 'por_confirmar' THEN CURRENT_DATE ELSE fecha_ejecucion END,
            actividades    = COALESCE($3, actividades),
            observaciones  = COALESCE($4, observaciones)
        WHERE id_mantencion = $1`,
       [id, estado, textoActividades || null, observaciones?.trim() || null],
     );
+    if (termina) {
+      // Si la orden fue reabierta, las fotos nuevas reemplazan a las anteriores
+      await conexion.query('DELETE FROM mantencion_foto WHERE id_mantencion = $1', [id]);
+      await guardarFotos(conexion, id, imagenes);
+    }
     await conexion.query(
       `INSERT INTO mantencion_historial (id_mantencion, id_usuario, estado_anterior, estado_nuevo, comentario)
        VALUES ($1, $2, $3, $4, $5)`,
-      [id, idTrabajador, actual, estado, comentario?.trim() || null],
+      [id, idTrabajador, actual, estado,
+        comentario?.trim() || (termina ? `Trabajo terminado, ${imagenes.length} foto(s) enviadas al cliente` : null)],
     );
     await conexion.query('COMMIT');
   } catch (err) {

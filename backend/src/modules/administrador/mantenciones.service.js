@@ -1,10 +1,13 @@
 import { pool, query } from '../../config/db.js';
 import { HttpError } from '../../shared/utils/httpError.js';
 import { puedeTransitar } from '../../shared/utils/estadosOrden.js';
+import { fotosDeOrden } from '../../shared/utils/fotos.js';
 
 const SELECT_MANTENCION = `
   SELECT m.id_mantencion, m.tipo, m.estado, m.fecha_programada, m.fecha_ejecucion,
          m.actividades, m.observaciones, m.id_solicitud,
+         m.satisfecho, m.problema_resuelto, m.comentario_cliente, m.fecha_confirmacion,
+         (SELECT count(*)::int FROM mantencion_foto f WHERE f.id_mantencion = m.id_mantencion) AS fotos,
          p.id_planta, p.direccion, co.id_comuna, co.nombre AS comuna,
          c.id_cliente, c.nombre AS cliente, c.telefono AS telefono_cliente,
          u.id_usuario AS id_trabajador, u.nombre AS trabajador
@@ -185,4 +188,48 @@ export async function rechazarSolicitud(id) {
   );
   if (!rows.length) throw new HttpError(409, 'La solicitud no existe o ya fue atendida');
   return rows[0];
+}
+
+// Fotos del trabajo realizado que el técnico envió al cliente
+export async function fotos(id) {
+  await obtener(id);
+  return fotosDeOrden({ query }, id);
+}
+
+// Cierre por el administrador cuando el cliente no puede confirmar (por ejemplo, no tiene
+// cuenta web o confirmó por teléfono). Queda en el historial quién cerró y por qué.
+export async function cerrarSinCliente(id, idAdmin, comentario) {
+  const motivo = typeof comentario === 'string' ? comentario.trim() : '';
+  if (!motivo) throw new HttpError(400, 'Indica por qué se cierra la orden sin la confirmación del cliente');
+  const conexion = await pool.connect();
+  try {
+    await conexion.query('BEGIN');
+    const { rows } = await conexion.query(
+      'SELECT estado, id_solicitud FROM mantencion WHERE id_mantencion = $1 FOR UPDATE',
+      [id],
+    );
+    if (!rows.length) throw new HttpError(404, 'Mantención no encontrada');
+    if (rows[0].estado !== 'por_confirmar') {
+      throw new HttpError(409, 'Solo se cierra así una orden que espera la confirmación del cliente');
+    }
+    await conexion.query(
+      `UPDATE mantencion SET estado = 'finalizada', fecha_confirmacion = now() WHERE id_mantencion = $1`,
+      [id],
+    );
+    if (rows[0].id_solicitud) {
+      await conexion.query(`UPDATE solicitud_mantencion SET estado = 'cerrada' WHERE id_solicitud = $1`, [rows[0].id_solicitud]);
+    }
+    await conexion.query(
+      `INSERT INTO mantencion_historial (id_mantencion, id_usuario, estado_anterior, estado_nuevo, comentario)
+       VALUES ($1, $2, 'por_confirmar', 'finalizada', $3)`,
+      [id, idAdmin, `Cerrada por administración: ${motivo}`.slice(0, 255)],
+    );
+    await conexion.query('COMMIT');
+  } catch (err) {
+    await conexion.query('ROLLBACK');
+    throw err;
+  } finally {
+    conexion.release();
+  }
+  return obtener(id);
 }

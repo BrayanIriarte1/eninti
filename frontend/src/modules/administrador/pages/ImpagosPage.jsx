@@ -38,7 +38,7 @@ export default function ImpagosPage() {
       <h1>Impagos y morosidad</h1>
       <Mensaje error={error} />
 
-      {impagos.length === 0 && <p>No hay suscripciones con cuotas vencidas. 🎉</p>}
+      {impagos.length === 0 && <p>No hay cuotas vencidas: todos los clientes están al día.</p>}
 
       {impagos.length > 0 && (
         <table className="tabla">
@@ -48,7 +48,7 @@ export default function ImpagosPage() {
           <tbody>
             {impagos.map((i) => (
               <tr key={i.id_suscripcion}>
-                <td data-label="Cliente">{i.cliente}<br /><span className="texto-suave">{i.rut}</span></td>
+                <td data-label="Cliente">{i.cliente}<br /><span className="texto-suave">{i.rut}</span>{i.estado_suscripcion === 'cancelada' && <><br /><span className="etiqueta neutro">Cancelada por deuda</span></>}</td>
                 <td data-label="Planta">{i.direccion}</td>
                 <td data-label="Comuna">{i.comuna}</td>
                 <td data-label="Meses">{i.meses_adeudados}</td>

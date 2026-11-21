@@ -55,27 +55,41 @@ BEGIN
 
   -- Montos de ejemplo: reemplazar por la cuota real de ENINTI.
   -- La planta de Quillagua queda sin suscripción para probar el alta.
-  INSERT INTO suscripcion (id_planta, monto_mensual, fecha_inicio, dia_cobro, estado)
-  SELECT pl.id_planta, s.monto, s.inicio::date, s.dia, s.estado
+  -- Las fechas son relativas al día en que se carga la base, para que las reglas de deuda
+  -- (migración 004) muestren siempre los mismos casos:
+  --   · María: al día.
+  --   · Luis (Calle Caracoles): debe la cuota de este mes → sigue activa "con deuda".
+  --   · Carmen (Pasaje Los Aromos): debía hace más de un mes → cancelada por morosidad.
+  INSERT INTO suscripcion (id_planta, monto_mensual, fecha_inicio, dia_cobro, estado, fecha_cancelacion, motivo_cancelacion)
+  SELECT pl.id_planta, s.monto, s.inicio::date, 5, s.estado,
+         CASE WHEN s.estado = 'cancelada' THEN CURRENT_DATE END,
+         CASE WHEN s.estado = 'cancelada' THEN 'morosidad' END
   FROM (VALUES
-    ('Av. Granaderos 1234',  20000, '2023-04-01', 5, 'al_dia'),
-    ('Parcela 12, Ayquina',  20000, '2024-02-01', 5, 'al_dia'),
-    ('Calle Caracoles 45',   18000, '2022-12-01', 5, 'morosa'),
-    ('Pasaje Los Aromos 89', 20000, '2023-09-01', 5, 'al_dia')
-  ) AS s(direccion, monto, inicio, dia, estado)
+    ('Av. Granaderos 1234',  20000, '2023-04-01', 'al_dia'),
+    ('Parcela 12, Ayquina',  20000, '2024-02-01', 'al_dia'),
+    ('Calle Caracoles 45',   18000, '2022-12-01', 'al_dia'),
+    ('Pasaje Los Aromos 89', 20000, '2023-09-01', 'cancelada')
+  ) AS s(direccion, monto, inicio, estado)
   JOIN planta pl ON pl.direccion = s.direccion;
 
-  -- Cuotas de agosto a octubre 2026; Calle Caracoles adeuda septiembre y octubre
+  -- Cuotas de los últimos tres meses (m = 0 es el mes actual), con vencimiento el día 5
   INSERT INTO cuota (id_suscripcion, periodo, monto, fecha_vencimiento, estado)
-  SELECT s.id_suscripcion, p.periodo, s.monto_mensual, (p.periodo || '-05')::date,
+  SELECT s.id_suscripcion, to_char(mes, 'YYYY-MM'), s.monto_mensual, (mes + interval '4 days')::date,
          CASE
-           WHEN pl.direccion = 'Calle Caracoles 45' AND p.periodo >= '2026-09' THEN 'vencida'
-           WHEN p.periodo = '2026-10' THEN 'pendiente'
+           WHEN pl.direccion = 'Pasaje Los Aromos 89' THEN 'vencida'
+           WHEN pl.direccion = 'Calle Caracoles 45' AND m.n = 0 THEN
+             CASE WHEN (mes + interval '4 days')::date < CURRENT_DATE THEN 'vencida' ELSE 'pendiente' END
            ELSE 'pagada'
          END
   FROM suscripcion s
   JOIN planta pl ON pl.id_planta = s.id_planta
-  CROSS JOIN (VALUES ('2026-08'), ('2026-09'), ('2026-10')) AS p(periodo);
+  CROSS JOIN (VALUES (2), (1), (0)) AS m(n)
+  CROSS JOIN LATERAL (SELECT date_trunc('month', CURRENT_DATE)::date - make_interval(months => m.n) AS mes) AS x
+  WHERE NOT (pl.direccion = 'Pasaje Los Aromos 89' AND m.n = 0);
+
+  UPDATE suscripcion s SET estado = 'con_deuda'
+  WHERE s.estado = 'al_dia'
+    AND EXISTS (SELECT 1 FROM cuota c WHERE c.id_suscripcion = s.id_suscripcion AND c.estado = 'vencida');
 
   -- Pagos manuales de las cuotas pagadas, registrados por el administrador
   INSERT INTO pago (id_cuota, registrado_por, origen, monto, fecha_pago, referencia)

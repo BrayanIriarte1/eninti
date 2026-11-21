@@ -1,14 +1,17 @@
 import { pool, query } from '../../config/db.js';
 import { HttpError } from '../../shared/utils/httpError.js';
 import * as pasarela from '../pagos/pasarela.service.js';
+import { aplicarReglasDeuda, recalcularEstado } from '../pagos/reglasDeuda.js';
 
 const PERIODO_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 
 // Listado de impagos ordenado por antigüedad de la deuda (HU-01)
+// Incluye la deuda de suscripciones canceladas por morosidad, que sigue por cobrar.
 export async function impagos() {
+  await aplicarReglasDeuda();
   const { rows } = await query(
     `SELECT s.id_suscripcion, c.id_cliente, c.nombre AS cliente, c.rut, c.telefono,
-            p.direccion, co.nombre AS comuna, s.estado AS estado_suscripcion,
+            p.direccion, co.nombre AS comuna, s.estado AS estado_suscripcion, s.motivo_cancelacion,
             array_agg(cu.periodo ORDER BY cu.periodo) AS periodos,
             count(cu.id_cuota)::int AS meses_adeudados,
             sum(cu.monto)::int AS monto_total,
@@ -41,18 +44,6 @@ export async function cuotasDeSuscripcion(idSuscripcion) {
   return rows;
 }
 
-// Recalcula el estado de la suscripción según sus cuotas vencidas
-async function actualizarEstadoSuscripcion(conexion, idSuscripcion) {
-  await conexion.query(
-    `UPDATE suscripcion s
-     SET estado = CASE
-       WHEN EXISTS (SELECT 1 FROM cuota WHERE id_suscripcion = s.id_suscripcion AND estado = 'vencida')
-         THEN 'morosa' ELSE 'al_dia' END
-     WHERE s.id_suscripcion = $1 AND s.estado <> 'cancelada'`,
-    [idSuscripcion],
-  );
-}
-
 // Registro manual de un pago por transferencia o efectivo (HU-02).
 // Audita quién lo registró; una cuota pagada no admite un segundo pago.
 export async function registrarPagoManual(idCuota, { origen, monto, referencia }, idAdmin) {
@@ -80,7 +71,7 @@ export async function registrarPagoManual(idCuota, { origen, monto, referencia }
       [idCuota, idAdmin, origen, monto ?? cuota.monto, referencia?.trim() || null],
     );
     await conexion.query(`UPDATE cuota SET estado = 'pagada' WHERE id_cuota = $1`, [idCuota]);
-    await actualizarEstadoSuscripcion(conexion, cuota.id_suscripcion);
+    await recalcularEstado(conexion, cuota.id_suscripcion);
     await conexion.query('COMMIT');
     return pago[0];
   } catch (err) {
@@ -129,19 +120,12 @@ export async function generarCuotas({ periodo }) {
        ON CONFLICT (id_suscripcion, periodo) DO NOTHING`,
       [periodo],
     );
-    const { rowCount: vencidas } = await conexion.query(
-      `UPDATE cuota SET estado = 'vencida'
-       WHERE estado = 'pendiente' AND fecha_vencimiento < CURRENT_DATE`,
+    const { rows: [{ vencidas }] } = await conexion.query(
+      `SELECT count(*)::int AS vencidas FROM cuota WHERE estado = 'pendiente' AND fecha_vencimiento < CURRENT_DATE`,
     );
-    await conexion.query(
-      `UPDATE suscripcion s
-       SET estado = CASE
-         WHEN EXISTS (SELECT 1 FROM cuota WHERE id_suscripcion = s.id_suscripcion AND estado = 'vencida')
-           THEN 'morosa' ELSE 'al_dia' END
-       WHERE s.estado <> 'cancelada'`,
-    );
+    const reglas = await aplicarReglasDeuda(conexion);
     await conexion.query('COMMIT');
-    return { periodo, cuotas_generadas: generadas, cuotas_vencidas: vencidas };
+    return { periodo, cuotas_generadas: generadas, cuotas_vencidas: vencidas, ...reglas };
   } catch (err) {
     await conexion.query('ROLLBACK');
     throw err;
@@ -152,13 +136,14 @@ export async function generarCuotas({ periodo }) {
 
 // Cobro recurrente (HU-13): intenta cargar en la pasarela cada cuota abierta de los
 // clientes con medio de pago activo. Un rechazo no registra pago ni cambia la cuota.
+// También cobra la deuda vencida de suscripciones canceladas por morosidad.
 export async function procesarCargos() {
   const { rows: pendientes } = await query(
     `SELECT cu.id_cuota, cu.monto, cu.periodo, cu.id_suscripcion,
             mp.id_medio_pago, mp.token_pasarela, mp.ultimos_4,
             c.nombre AS cliente, p.direccion
      FROM cuota cu
-     JOIN suscripcion s ON s.id_suscripcion = cu.id_suscripcion AND s.estado <> 'cancelada'
+     JOIN suscripcion s ON s.id_suscripcion = cu.id_suscripcion AND (s.estado <> 'cancelada' OR cu.estado = 'vencida')
      JOIN planta p  ON p.id_planta = s.id_planta
      JOIN cliente c ON c.id_cliente = p.id_cliente
      JOIN medio_pago mp ON mp.id_cliente = c.id_cliente AND mp.estado = 'activo'
@@ -189,7 +174,7 @@ export async function procesarCargos() {
              VALUES ($1, $2, 'pasarela', $3, $4)`,
             [cuota.id_cuota, cuota.id_medio_pago, cuota.monto, cargo.referencia],
           );
-          await actualizarEstadoSuscripcion(conexion, cuota.id_suscripcion);
+          await recalcularEstado(conexion, cuota.id_suscripcion);
         }
         await conexion.query('COMMIT');
         resultado.aprobados += 1;
@@ -212,5 +197,6 @@ export async function procesarCargos() {
     });
   }
 
+  await aplicarReglasDeuda();
   return resultado;
 }

@@ -8,6 +8,7 @@ import * as mantenciones from './mantenciones.controller.js';
 import * as finanzas from './finanzas.controller.js';
 import * as catalogo from './catalogo.controller.js';
 import * as solicitudesCuenta from './solicitudesCuenta.controller.js';
+import * as solicitudesCliente from './solicitudesCliente.controller.js';
 
 const router = Router();
 
@@ -24,6 +25,16 @@ router.get('/comunas', clientes.listarComunas);
 router.get('/solicitudes-cuenta', solicitudesCuenta.listar);
 router.post('/solicitudes-cuenta/:id/aprobar', solicitudesCuenta.aprobar);
 router.post('/solicitudes-cuenta/:id/rechazar', solicitudesCuenta.rechazar);
+
+// Solicitudes de suscripción: solo el administrador otorga suscripciones
+router.get('/solicitudes-suscripcion', solicitudesCliente.listarSuscripciones);
+router.post('/solicitudes-suscripcion/:id/aprobar', solicitudesCliente.aprobarSuscripcion);
+router.post('/solicitudes-suscripcion/:id/rechazar', solicitudesCliente.rechazarSuscripcion);
+
+// Solicitudes de cambio de correo o teléfono de los clientes
+router.get('/solicitudes-datos', solicitudesCliente.listarCambiosDatos);
+router.post('/solicitudes-datos/:id/aprobar', solicitudesCliente.aprobarCambioDatos);
+router.post('/solicitudes-datos/:id/rechazar', solicitudesCliente.rechazarCambioDatos);
 
 // Plantas y ficha técnica (HU-03)
 router.get('/plantas', plantas.listar);
@@ -46,6 +57,8 @@ router.get('/mantenciones', mantenciones.listar);
 router.post('/mantenciones', mantenciones.crear);
 router.patch('/mantenciones/:id/asignar', mantenciones.asignar);
 router.post('/mantenciones/:id/cancelar', mantenciones.cancelar);
+router.get('/mantenciones/:id/fotos', mantenciones.fotos);
+router.post('/mantenciones/:id/cerrar', mantenciones.cerrarSinCliente); // sin confirmación del cliente
 
 // Bandeja de solicitudes del cliente (HU-11)
 router.get('/solicitudes', mantenciones.listarSolicitudes);

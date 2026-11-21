@@ -21,6 +21,8 @@ import ImpagosPage from '../modules/administrador/pages/ImpagosPage.jsx';
 import PagosMesPage from '../modules/administrador/pages/PagosMesPage.jsx';
 import CatalogoPage from '../modules/administrador/pages/CatalogoPage.jsx';
 import SolicitudesCuentaPage from '../modules/administrador/pages/SolicitudesCuentaPage.jsx';
+import SolicitudesSuscripcionPage from '../modules/administrador/pages/SolicitudesSuscripcionPage.jsx';
+import CambiosDatosPage from '../modules/administrador/pages/CambiosDatosPage.jsx';
 
 // Trabajador
 import AgendaPage from '../modules/trabajador/pages/AgendaPage.jsx';
@@ -32,6 +34,7 @@ import MisPlantasPage from '../modules/cliente/pages/MisPlantasPage.jsx';
 import PlantaClientePage from '../modules/cliente/pages/PlantaClientePage.jsx';
 import MantencionesClientePage from '../modules/cliente/pages/MantencionesClientePage.jsx';
 import SolicitudesClientePage from '../modules/cliente/pages/SolicitudesClientePage.jsx';
+import MisDatosPage from '../modules/cliente/pages/MisDatosPage.jsx';
 
 function Raiz() {
   const { usuario, cargando } = useAuth();
@@ -62,6 +65,8 @@ export default function AppRoutes() {
           <Route path="calendario" element={<CalendarioPage />} />
           <Route path="solicitudes" element={<SolicitudesAdminPage />} />
           <Route path="solicitudes-cuenta" element={<SolicitudesCuentaPage />} />
+          <Route path="solicitudes-suscripcion" element={<SolicitudesSuscripcionPage />} />
+          <Route path="cambios-datos" element={<CambiosDatosPage />} />
           <Route path="impagos" element={<ImpagosPage />} />
           <Route path="pagos" element={<PagosMesPage />} />
           <Route path="catalogo" element={<CatalogoPage />} />
@@ -86,6 +91,7 @@ export default function AppRoutes() {
           <Route path="plantas/:id" element={<PlantaClientePage />} />
           <Route path="mantenciones" element={<MantencionesClientePage />} />
           <Route path="solicitudes" element={<SolicitudesClientePage />} />
+          <Route path="datos" element={<MisDatosPage />} />
         </Route>
       </Route>
 
