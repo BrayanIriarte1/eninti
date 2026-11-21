@@ -118,9 +118,15 @@ Crea las tablas y carga los usuarios, plantas, cuotas y catálogo ficticios:
 npm run db:init --prefix backend
 ```
 
-Debe imprimir cuatro líneas con ✔ (`schema/001`, `schema/002`, `seeds/001`,
-`seeds/002`). Es seguro repetirlo: las tablas se crean solo si no existen y los
+Debe imprimir una línea con ✔ por cada archivo de `database/schema` y
+`database/seeds`. Es seguro repetirlo: las tablas se crean solo si no existen y los
 datos de prueba solo se cargan si la base está vacía.
+
+> **Después de un `git pull`** vuelve a ejecutar `npm run db:init --prefix backend`:
+> aplica las migraciones nuevas (por ejemplo `004`, `005`) sin borrar tus datos.
+> Si tu base tiene **datos de prueba antiguos**, conviene reiniciarlos (sección 11):
+> las reglas de deuda se aplican al iniciar la API y una cuota vencida hace más de un
+> mes cancela la suscripción por morosidad (ver `docs/MANUAL.md`).
 
 ## 7. Iniciar los servidores
 
@@ -273,6 +279,7 @@ período** y **Procesar cargos recurrentes** para ver el cobro automático.
 | Login responde "Credenciales incorrectas" con datos correctos | La base se cargó antes de existir las contraseñas reales | Reiniciar datos (sección 11) |
 | Login responde 429 | 5 intentos fallidos: bloqueo de 15 minutos | Esperar, o reiniciar el backend (el contador vive en memoria) |
 | Error 500 en todas las pantallas con datos | Backend sin conexión a la base | Revisar `DATABASE_URL` y mirar el error en la terminal del backend |
+| El backend se reinicia solo con `Change detected in ...node_modules...` | `node --watch` (modo `npm run dev`) vigila también las dependencias y en Windows a veces detecta cambios que no existen | Usar `npm start` en el backend mientras pruebas flujos largos |
 | Tras cambiar `.env` nada cambia | El backend lee el archivo solo al arrancar | Reiniciar el backend |
 
 ## Pruebas automáticas

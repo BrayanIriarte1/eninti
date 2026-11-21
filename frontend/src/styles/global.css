@@ -379,9 +379,10 @@ input:focus, select:focus, textarea:focus {
 }
 input[type="checkbox"], input[type="radio"] { width: auto; min-height: 0; accent-color: var(--color-primario); }
 .opcional { font-weight: 400; color: var(--color-texto-suave); }
-.telefono { display: flex; gap: 0.4rem; }
-.telefono select { width: auto; max-width: 48%; flex-shrink: 0; }
-.telefono input { flex: 1; min-width: 0; }
+/* Si no caben en una línea (celular), el número baja bajo el código de país sin cortar el texto */
+.telefono { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.telefono select { width: auto; max-width: 100%; flex-shrink: 0; }
+.telefono input { flex: 1 1 9rem; min-width: 0; }
 .campo-ok { font-weight: 500; font-size: 0.85rem; color: var(--color-ok-texto); }
 .campo-error { font-weight: 500; font-size: 0.85rem; color: var(--color-alerta-texto); }
 input[aria-invalid="true"] { border-color: var(--color-alerta-texto); }

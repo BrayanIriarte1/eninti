@@ -1,4 +1,4 @@
-import { query } from '../../config/db.js';
+import { pool, query } from '../../config/db.js';
 import { HttpError } from '../../shared/utils/httpError.js';
 import { anularCuotasFuturas } from '../pagos/reglasDeuda.js';
 
@@ -62,22 +62,32 @@ export async function actualizar(id, { monto_mensual, dia_cobro, estado }) {
     throw new HttpError(400, `estado debe ser uno de: ${ESTADOS.join(', ')}`);
   }
 
-  // La condición estado <> 'cancelada' en el WHERE evita modificar una suscripción ya cancelada
-  const { rows } = await query(
-    `UPDATE suscripcion
-     SET monto_mensual = COALESCE($2, monto_mensual),
-         dia_cobro = COALESCE($3::smallint, dia_cobro),
-         estado = COALESCE($4, estado),
-         fecha_cancelacion = CASE WHEN $4 = 'cancelada' THEN CURRENT_DATE ELSE fecha_cancelacion END,
-         motivo_cancelacion = CASE WHEN $4 = 'cancelada' THEN 'administrador' ELSE motivo_cancelacion END
-     WHERE id_suscripcion = $1 AND estado <> 'cancelada'
-     RETURNING *`,
-    [id, monto_mensual ?? null, dia_cobro ?? null, estado ?? null],
-  );
-  if (rows.length) {
-    if (estado === 'cancelada') await anularCuotasFuturas({ query }, [id]);
-    return rows[0];
+  // La condición estado <> 'cancelada' en el WHERE evita modificar una suscripción ya cancelada.
+  // Si se cancela, anular las cuotas futuras va en la misma transacción.
+  const conexion = await pool.connect();
+  let rows;
+  try {
+    await conexion.query('BEGIN');
+    ({ rows } = await conexion.query(
+      `UPDATE suscripcion
+       SET monto_mensual = COALESCE($2, monto_mensual),
+           dia_cobro = COALESCE($3::smallint, dia_cobro),
+           estado = COALESCE($4, estado),
+           fecha_cancelacion = CASE WHEN $4 = 'cancelada' THEN CURRENT_DATE ELSE fecha_cancelacion END,
+           motivo_cancelacion = CASE WHEN $4 = 'cancelada' THEN 'administrador' ELSE motivo_cancelacion END
+       WHERE id_suscripcion = $1 AND estado <> 'cancelada'
+       RETURNING *`,
+      [id, monto_mensual ?? null, dia_cobro ?? null, estado ?? null],
+    ));
+    if (rows.length && estado === 'cancelada') await anularCuotasFuturas(conexion, [id]);
+    await conexion.query('COMMIT');
+  } catch (err) {
+    await conexion.query('ROLLBACK');
+    throw err;
+  } finally {
+    conexion.release();
   }
+  if (rows.length) return rows[0];
 
   const { rows: existe } = await query('SELECT 1 FROM suscripcion WHERE id_suscripcion = $1', [id]);
   if (!existe.length) throw new HttpError(404, 'Suscripción no encontrada');

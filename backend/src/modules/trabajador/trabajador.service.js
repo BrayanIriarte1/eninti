@@ -1,6 +1,6 @@
 import { pool, query } from '../../config/db.js';
 import { HttpError } from '../../shared/utils/httpError.js';
-import { puedeTransitar } from '../../shared/utils/estadosOrden.js';
+import { puedeTransitarTecnico } from '../../shared/utils/estadosOrden.js';
 import { decodificarFotos, guardarFotos, fotosDeOrden } from '../../shared/utils/fotos.js';
 
 const SELECT_ORDEN = `
@@ -79,7 +79,10 @@ export async function cambiarEstado(id, idTrabajador, { estado, actividades, obs
     if (!rows.length) throw new HttpError(404, 'Orden no encontrada o no asignada a ti');
 
     const actual = rows[0].estado;
-    if (!puedeTransitar(actual, estado)) {
+    if (actual === 'por_confirmar') {
+      throw new HttpError(409, 'La orden espera la confirmación del cliente');
+    }
+    if (!puedeTransitarTecnico(actual, estado)) {
       throw new HttpError(409, `No se puede pasar de ${actual} a ${estado}`);
     }
 

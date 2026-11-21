@@ -181,18 +181,29 @@ export async function misSolicitudes(idUsuario) {
 // Para volver a suscribirse, el cliente envía una solicitud que el administrador acepta.
 export async function cancelarSuscripcion(idUsuario, idSuscripcion) {
   const cliente = await fichaCliente(idUsuario);
-  const { rows } = await query(
-    `UPDATE suscripcion s
-     SET estado = 'cancelada', fecha_cancelacion = CURRENT_DATE, motivo_cancelacion = 'cliente'
-     FROM planta p
-     WHERE s.id_suscripcion = $1 AND p.id_planta = s.id_planta
-       AND p.id_cliente = $2 AND s.estado <> 'cancelada'
-     RETURNING s.*`,
-    [idSuscripcion, cliente.id_cliente],
-  );
-  if (!rows.length) throw new HttpError(404, 'Suscripción no encontrada o ya cancelada');
-  await anularCuotasFuturas({ query }, [idSuscripcion]);
-  return rows[0];
+  // Cancelar y anular las cuotas futuras van juntos: o se hacen ambos o ninguno
+  const conexion = await pool.connect();
+  try {
+    await conexion.query('BEGIN');
+    const { rows } = await conexion.query(
+      `UPDATE suscripcion s
+       SET estado = 'cancelada', fecha_cancelacion = CURRENT_DATE, motivo_cancelacion = 'cliente'
+       FROM planta p
+       WHERE s.id_suscripcion = $1 AND p.id_planta = s.id_planta
+         AND p.id_cliente = $2 AND s.estado <> 'cancelada'
+       RETURNING s.*`,
+      [idSuscripcion, cliente.id_cliente],
+    );
+    if (!rows.length) throw new HttpError(404, 'Suscripción no encontrada o ya cancelada');
+    await anularCuotasFuturas(conexion, [idSuscripcion]);
+    await conexion.query('COMMIT');
+    return rows[0];
+  } catch (err) {
+    await conexion.query('ROLLBACK');
+    throw err;
+  } finally {
+    conexion.release();
+  }
 }
 
 // Aceptar condiciones e inscribir el medio de pago en la pasarela (HU-13, RF-19).

@@ -220,10 +220,10 @@ El token dura **8 horas**. Tras **5 contraseñas incorrectas** con el mismo corr
     '/trabajador/ordenes/{id}/estado': {
       post: {
         tags: ['Trabajador'], summary: 'Cambiar el estado de la orden (HU-05, HU-16)', security: protegido,
-        description: 'Transiciones válidas: `pendiente → en_curso → finalizada`. **No se puede finalizar sin `actividades`.** Cada cambio queda en el historial con fecha, hora y responsable.',
+        description: 'Transiciones del técnico: `pendiente → en_curso → por_confirmar`. **Para terminar exige `actividades` y al menos una foto** (hasta 4, JPG/PNG/WebP de 2 MB como máximo, en base64). La orden queda `por_confirmar` hasta que el cliente la confirma (`finalizada`) o la reabre (`en_curso`); el técnico no puede cambiar una orden por confirmar (409). Cada cambio queda en el historial con fecha, hora y responsable.',
         parameters: [idPath('Id de la mantención')],
-        requestBody: cuerpo(ref('CambioEstadoPeticion'), { estado: 'finalizada', actividades: 'Limpieza de paneles y reapriete de conexiones', observaciones: 'Sin novedades' }),
-        responses: { 200: ok('Orden actualizada', ref('OrdenDetalle')), 400: r400, ...comunes, 404: r404, 409: { description: 'Transición de estado no permitida', content: json(ref('Error'), { error: 'No se puede pasar de pendiente a finalizada' }) } },
+        requestBody: cuerpo(ref('CambioEstadoPeticion'), { estado: 'por_confirmar', actividades: 'Limpieza de paneles y reapriete de conexiones', observaciones: 'Sin novedades', fotos: ['data:image/jpeg;base64,/9j/4AAQ...'] }),
+        responses: { 200: ok('Orden actualizada', ref('OrdenDetalle')), 400: r400, ...comunes, 404: r404, 409: { description: 'Transición de estado no permitida', content: json(ref('Error'), { error: 'No se puede pasar de pendiente a por_confirmar' }) } },
       },
     },
 
@@ -369,7 +369,7 @@ El token dura **8 horas**. Tras **5 contraseñas incorrectas** con el mismo corr
           query('id_comuna', 'Filtrar por comuna', entero),
           query('desde', 'Fecha programada mínima (YYYY-MM-DD)', { type: 'string', format: 'date' }),
           query('hasta', 'Fecha programada máxima (YYYY-MM-DD)', { type: 'string', format: 'date' }),
-          query('estado', 'Filtrar por estado', { type: 'string', enum: ['pendiente', 'en_curso', 'finalizada', 'cancelada'] }),
+          query('estado', 'Filtrar por estado', { type: 'string', enum: ['pendiente', 'en_curso', 'por_confirmar', 'finalizada', 'cancelada'] }),
         ],
         responses: { 200: ok('Mantenciones', lista('MantencionAdmin')), 400: r400, ...comunes },
       },
@@ -528,7 +528,7 @@ El token dura **8 horas**. Tras **5 contraseñas incorrectas** con el mismo corr
 
       // Comunes
       Comuna: { type: 'object', properties: { id_comuna: entero, nombre: texto } },
-      Suscripcion: { type: 'object', properties: { id_suscripcion: entero, id_planta: entero, monto_mensual: { type: 'integer', description: 'CLP' }, fecha_inicio: fecha, dia_cobro: { type: 'integer', minimum: 1, maximum: 28 }, mantenciones_anuales: entero, estado: { type: 'string', enum: ['al_dia', 'morosa', 'cancelada'] }, fecha_cancelacion: { ...fecha, nullable: true }, flow_subscription_id: { type: 'string', nullable: true } } },
+      Suscripcion: { type: 'object', properties: { id_suscripcion: entero, id_planta: entero, monto_mensual: { type: 'integer', description: 'CLP' }, fecha_inicio: fecha, dia_cobro: { type: 'integer', minimum: 1, maximum: 28 }, mantenciones_anuales: entero, estado: { type: 'string', enum: ['al_dia', 'con_deuda', 'cancelada'] }, fecha_cancelacion: { ...fecha, nullable: true }, motivo_cancelacion: { type: 'string', enum: ['cliente', 'morosidad', 'administrador'], nullable: true }, flow_subscription_id: { type: 'string', nullable: true } } },
       SuscripcionResumen: { type: 'object', nullable: true, properties: { id_suscripcion: entero, estado: texto, fecha_inicio: fecha, monto_mensual: entero, dia_cobro: entero, mantenciones_anuales: entero } },
       Solicitud: { type: 'object', properties: { id_solicitud: entero, id_planta: entero, fecha_solicitud: fechaHora, motivo: texto, estado: { type: 'string', enum: ['pendiente', 'asignada', 'rechazada', 'cerrada'] }, fecha_asignada: { ...fecha, nullable: true } } },
       Cuota: { type: 'object', properties: { id_cuota: entero, id_suscripcion: entero, periodo: { type: 'string', example: '2026-11' }, monto: entero, fecha_vencimiento: fecha, estado: { type: 'string', enum: ['pendiente', 'pagada', 'vencida', 'anulada'] }, direccion: texto, cliente: texto } },
@@ -552,9 +552,9 @@ El token dura **8 horas**. Tras **5 contraseñas incorrectas** con el mismo corr
 
       // Trabajador
       FichaOrden: { type: 'object', properties: { id_planta: entero, direccion: texto, comuna: texto, potencia_kw: { type: 'number' }, inversor: texto, paneles: texto, baterias: { type: 'string', nullable: true }, fecha_instalacion: fecha, latitud: { type: 'number', nullable: true }, longitud: { type: 'number', nullable: true } } },
-      Orden: { type: 'object', properties: { id_mantencion: entero, tipo: { type: 'string', enum: ['preventiva', 'correctiva'] }, estado: { type: 'string', enum: ['pendiente', 'en_curso', 'finalizada', 'cancelada'] }, fecha_programada: fecha, fecha_ejecucion: { ...fecha, nullable: true }, actividades: { type: 'string', nullable: true }, observaciones: { type: 'string', nullable: true }, planta: ref('FichaOrden'), cliente: { type: 'object', properties: { nombre: texto, telefono: { type: 'string', nullable: true } } }, motivo_solicitud: { type: 'string', nullable: true } } },
+      Orden: { type: 'object', properties: { id_mantencion: entero, tipo: { type: 'string', enum: ['preventiva', 'correctiva'] }, estado: { type: 'string', enum: ['pendiente', 'en_curso', 'por_confirmar', 'finalizada', 'cancelada'] }, fecha_programada: fecha, fecha_ejecucion: { ...fecha, nullable: true }, actividades: { type: 'string', nullable: true }, observaciones: { type: 'string', nullable: true }, planta: ref('FichaOrden'), cliente: { type: 'object', properties: { nombre: texto, telefono: { type: 'string', nullable: true } } }, motivo_solicitud: { type: 'string', nullable: true } } },
       OrdenDetalle: { allOf: [ref('Orden'), { type: 'object', properties: { historial: { type: 'array', items: { type: 'object', properties: { estado_anterior: { type: 'string', nullable: true }, estado_nuevo: texto, comentario: { type: 'string', nullable: true }, fecha_cambio: fechaHora, responsable: texto } } } } }] },
-      CambioEstadoPeticion: { type: 'object', required: ['estado'], properties: { estado: { type: 'string', enum: ['en_curso', 'finalizada'] }, actividades: { type: 'string', description: '**Obligatorio** al finalizar' }, observaciones: texto, comentario: { type: 'string', maxLength: 255 } } },
+      CambioEstadoPeticion: { type: 'object', required: ['estado'], properties: { estado: { type: 'string', enum: ['en_curso', 'por_confirmar'] }, actividades: { type: 'string', description: '**Obligatorio** al terminar' }, fotos: { type: 'array', maxItems: 4, items: { type: 'string', description: 'data URL base64 (JPG, PNG o WebP, máx. 2 MB)' }, description: '**Obligatorio** al terminar (al menos una)' }, observaciones: texto, comentario: { type: 'string', maxLength: 255 } } },
 
       // Admin
       Cliente: { type: 'object', properties: { id_cliente: entero, id_usuario: { type: 'integer', nullable: true }, rut: texto, nombre: texto, telefono: { type: 'string', nullable: true }, direccion: { type: 'string', nullable: true }, id_comuna: { type: 'integer', nullable: true } } },
@@ -565,7 +565,7 @@ El token dura **8 horas**. Tras **5 contraseñas incorrectas** con el mismo corr
       PlantaPeticion: { type: 'object', required: ['id_cliente', 'id_comuna', 'direccion', 'potencia_kw', 'inversor', 'paneles', 'fecha_instalacion'], properties: { id_cliente: entero, id_comuna: entero, direccion: texto, potencia_kw: { type: 'number', minimum: 0, exclusiveMinimum: true }, inversor: texto, paneles: texto, baterias: { type: 'string', nullable: true, description: 'Opcional; `null` si no tiene' }, fecha_instalacion: fecha } },
       PlantaEdicion: { type: 'object', properties: { id_cliente: entero, id_comuna: entero, direccion: texto, potencia_kw: { type: 'number' }, inversor: texto, paneles: texto, baterias: { type: 'string', nullable: true }, fecha_instalacion: fecha } },
       SuscripcionPeticion: { type: 'object', required: ['monto_mensual'], properties: { monto_mensual: { type: 'integer', minimum: 1, description: 'CLP' }, fecha_inicio: { ...fecha, description: 'Por defecto, hoy' }, dia_cobro: { type: 'integer', minimum: 1, maximum: 28, default: 1 } } },
-      SuscripcionEdicion: { type: 'object', description: 'Indica al menos un campo', properties: { monto_mensual: { type: 'integer', minimum: 1 }, dia_cobro: { type: 'integer', minimum: 1, maximum: 28 }, estado: { type: 'string', enum: ['al_dia', 'morosa', 'cancelada'] } } },
+      SuscripcionEdicion: { type: 'object', description: 'Indica al menos un campo', properties: { monto_mensual: { type: 'integer', minimum: 1 }, dia_cobro: { type: 'integer', minimum: 1, maximum: 28 }, estado: { type: 'string', enum: ['cancelada'], description: 'Solo se puede cancelar (definitivo, motivo `administrador`)' } } },
       TrabajadorAdmin: { type: 'object', properties: { id_usuario: entero, nombre: texto, email: texto, telefono: { type: 'string', nullable: true }, activo: { type: 'boolean' }, fecha_creacion: fechaHora, ultimo_acceso: { ...fechaHora, nullable: true } } },
       TrabajadorPeticion: { type: 'object', required: ['nombre', 'email', 'password'], properties: { nombre: texto, email: { type: 'string', format: 'email' }, password: { type: 'string', minLength: 8, description: 'Contraseña inicial' }, telefono: texto } },
       TrabajadorEdicion: { type: 'object', properties: { nombre: texto, email: texto, password: { type: 'string', minLength: 8 }, telefono: texto, activo: { type: 'boolean' } } },
