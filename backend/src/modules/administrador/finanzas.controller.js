@@ -1,4 +1,5 @@
 import * as finanzas from './finanzas.service.js';
+import { ZONA_HORARIA } from '../../config/db.js';
 import { parseId } from './plantas.controller.js';
 
 export async function impagos(_req, res) {
@@ -19,10 +20,16 @@ export async function pagosDelMes(req, res) {
   if (req.query.formato !== 'csv') return res.json(pagos);
 
   const columnas = ['fecha_pago', 'cliente', 'rut', 'monto', 'origen', 'referencia', 'periodo', 'direccion'];
-  const escapar = (v) => `"${String(v ?? '').replaceAll('"', '""')}"`;
+  // Comillas dobles escapadas y fórmulas neutralizadas (=, +, -, @) para que Excel no las ejecute
+  const escapar = (v) => {
+    let t = String(v ?? '');
+    if (typeof v === 'string' && /^[=+\-@\t\r]/.test(t)) t = `'${t}`;
+    return `"${t.replaceAll('"', '""')}"`;
+  };
+  const fecha = (v) => new Date(v).toLocaleString('es-CL', { timeZone: ZONA_HORARIA });
   const lineas = [
     columnas.join(';'),
-    ...pagos.map((p) => columnas.map((c) => escapar(c === 'fecha_pago' ? new Date(p[c]).toLocaleString('es-CL') : p[c])).join(';')),
+    ...pagos.map((p) => columnas.map((c) => escapar(c === 'fecha_pago' ? fecha(p[c]) : p[c])).join(';')),
   ];
 
   res

@@ -1,8 +1,9 @@
 import { pool, query } from '../../config/db.js';
 import { HttpError } from '../../shared/utils/httpError.js';
 import * as pasarela from '../pagos/pasarela.service.js';
-import { aplicarReglasDeuda, anularCuotasFuturas } from '../pagos/reglasDeuda.js';
+import { aplicarReglasDeuda, cerrarSuscripciones } from '../pagos/reglasDeuda.js';
 import { puedeTransitar } from '../../shared/utils/estadosOrden.js';
+import { enTransaccion } from '../../shared/utils/transaccion.js';
 import { fotosDeOrden } from '../../shared/utils/fotos.js';
 import { telefonoValido } from '../../shared/utils/rut.js';
 
@@ -181,18 +182,21 @@ export async function misSolicitudes(idUsuario) {
 // Para volver a suscribirse, el cliente envía una solicitud que el administrador acepta.
 export async function cancelarSuscripcion(idUsuario, idSuscripcion) {
   const cliente = await fichaCliente(idUsuario);
-  const { rows } = await query(
-    `UPDATE suscripcion s
-     SET estado = 'cancelada', fecha_cancelacion = CURRENT_DATE, motivo_cancelacion = 'cliente'
-     FROM planta p
-     WHERE s.id_suscripcion = $1 AND p.id_planta = s.id_planta
-       AND p.id_cliente = $2 AND s.estado <> 'cancelada'
-     RETURNING s.*`,
-    [idSuscripcion, cliente.id_cliente],
-  );
-  if (!rows.length) throw new HttpError(404, 'Suscripción no encontrada o ya cancelada');
-  await anularCuotasFuturas({ query }, [idSuscripcion]);
-  return rows[0];
+  // Cancelación, anulación de cuotas futuras y de preventivas pendientes en una sola transacción
+  return enTransaccion(async (conexion) => {
+    const { rows } = await conexion.query(
+      `UPDATE suscripcion s
+       SET estado = 'cancelada', fecha_cancelacion = CURRENT_DATE, motivo_cancelacion = 'cliente'
+       FROM planta p
+       WHERE s.id_suscripcion = $1 AND p.id_planta = s.id_planta
+         AND p.id_cliente = $2 AND s.estado <> 'cancelada'
+       RETURNING s.*`,
+      [idSuscripcion, cliente.id_cliente],
+    );
+    if (!rows.length) throw new HttpError(404, 'Suscripción no encontrada o ya cancelada');
+    await cerrarSuscripciones(conexion, [idSuscripcion], idUsuario);
+    return rows[0];
+  });
 }
 
 // Aceptar condiciones e inscribir el medio de pago en la pasarela (HU-13, RF-19).
@@ -212,35 +216,30 @@ export async function iniciarInscripcion(idUsuario, idSuscripcion, { acepta_cond
   );
   if (!rows.length) throw new HttpError(404, 'Suscripción no encontrada o cancelada');
 
-  const conexion = await pool.connect();
-  try {
-    await conexion.query('BEGIN');
-    await conexion.query(
-      `INSERT INTO aceptacion_condiciones (id_suscripcion, version_condiciones, ip_origen)
-       VALUES ($1, $2, $3)`,
-      [idSuscripcion, version_condiciones ?? '1.0', ip ?? null],
-    );
-    const inscripcion = await pasarela.iniciarInscripcion({
-      idCliente: cliente.id_cliente,
-      idSuscripcion,
-      email: null,
-      nombre: cliente.nombre,
-      urlRetorno: `${process.env.APP_URL ?? ''}/cliente/cuenta`,
-    });
-    if (inscripcion.proveedor === 'flow-sandbox') {
-      await conexion.query('UPDATE cliente SET flow_customer_id = $1 WHERE id_cliente = $2', [
-        inscripcion.customerId,
-        cliente.id_cliente,
-      ]);
-    }
-    await conexion.query('COMMIT');
-    return { url_pasarela: inscripcion.url_pasarela, proveedor: inscripcion.proveedor };
-  } catch (err) {
-    await conexion.query('ROLLBACK');
-    throw err;
-  } finally {
-    conexion.release();
+  const { rows: cuenta } = await query('SELECT email FROM usuario WHERE id_usuario = $1', [idUsuario]);
+
+  // Primero la pasarela (sin transacción abierta mientras se espera a Flow). El customerId de
+  // Flow se guarda apenas se crea, para no duplicar el cliente en Flow si algo falla después.
+  const inscripcion = await pasarela.iniciarInscripcion({
+    idCliente: cliente.id_cliente,
+    idSuscripcion,
+    email: cuenta[0]?.email ?? null,
+    nombre: cliente.nombre,
+    flowCustomerId: cliente.flow_customer_id,
+  });
+  if (inscripcion.proveedor === 'flow-sandbox' && inscripcion.customerId !== cliente.flow_customer_id) {
+    await query('UPDATE cliente SET flow_customer_id = $1 WHERE id_cliente = $2', [inscripcion.customerId, cliente.id_cliente]);
   }
+
+  // Consentimiento informado con fecha, versión e IP (RF-19, Ley 21.719)
+  const version = typeof version_condiciones === 'string' && version_condiciones.trim()
+    ? version_condiciones.trim().slice(0, 10)
+    : '1.0';
+  await query(
+    `INSERT INTO aceptacion_condiciones (id_suscripcion, version_condiciones, ip_origen) VALUES ($1, $2, $3)`,
+    [idSuscripcion, version, ip ? String(ip).slice(0, 45) : null],
+  );
+  return { url_pasarela: inscripcion.url_pasarela, proveedor: inscripcion.proveedor };
 }
 
 // ------------------------------------------------------------ Cierre de órdenes

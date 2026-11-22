@@ -126,7 +126,9 @@ export default function CuentaPage() {
         <div className={resultadoInscripcion === 'aprobada' ? 'mensaje-ok' : 'mensaje-error'} role="status">
           {resultadoInscripcion === 'aprobada'
             ? <>Tarjeta inscrita. Las próximas cuotas se cobrarán automáticamente.</>
-            : <><strong>La pasarela rechazó tu tarjeta.</strong> No se guardó ningún medio de pago; intenta con otra tarjeta.</>}
+            : resultadoInscripcion === 'error'
+              ? <><strong>No pudimos confirmar la inscripción con la pasarela.</strong> Intenta de nuevo en unos minutos.</>
+              : <><strong>La pasarela rechazó tu tarjeta.</strong> No se guardó ningún medio de pago; intenta con otra tarjeta.</>}
           {' '}<button type="button" className="enlace-boton" onClick={() => setParams({}, { replace: true })}>Cerrar</button>
         </div>
       )}

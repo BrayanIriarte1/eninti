@@ -9,3 +9,4 @@ build/
 /eninti*.sql
 *.dump
 *.backup
+/respaldos/

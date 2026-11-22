@@ -10,5 +10,5 @@ export async function crear(req, res) {
 }
 
 export async function actualizar(req, res) {
-  res.json(await trabajadores.actualizar(parseId(req.params.id), req.body ?? {}));
+  res.json(await trabajadores.actualizar(parseId(req.params.id), req.body ?? {}, req.usuario.id));
 }

@@ -45,9 +45,10 @@ export async function obtenerOrden(id, idTrabajador) {
   if (!rows.length) throw new HttpError(404, 'Orden no encontrada o no asignada a ti');
 
   const { rows: historial } = await query(
-    `SELECT h.estado_anterior, h.estado_nuevo, h.comentario, h.fecha_cambio, u.nombre AS responsable
+    `SELECT h.estado_anterior, h.estado_nuevo, h.comentario, h.fecha_cambio,
+            COALESCE(u.nombre, 'Proceso automático') AS responsable
      FROM mantencion_historial h
-     JOIN usuario u ON u.id_usuario = h.id_usuario
+     LEFT JOIN usuario u ON u.id_usuario = h.id_usuario
      WHERE h.id_mantencion = $1
      ORDER BY h.fecha_cambio, h.id_historial`,
     [id],
@@ -61,6 +62,14 @@ export async function obtenerOrden(id, idTrabajador) {
 export async function cambiarEstado(id, idTrabajador, { estado, actividades, observaciones, comentario, fotos }) {
   if (!['en_curso', 'por_confirmar'].includes(estado)) {
     throw new HttpError(400, 'estado debe ser en_curso o por_confirmar');
+  }
+  for (const [campo, valor] of Object.entries({ actividades, observaciones, comentario })) {
+    if (valor !== undefined && valor !== null && typeof valor !== 'string') {
+      throw new HttpError(400, `${campo} debe ser texto`);
+    }
+  }
+  if (typeof comentario === 'string' && comentario.length > 255) {
+    throw new HttpError(400, 'El comentario admite hasta 255 caracteres');
   }
   const termina = estado === 'por_confirmar';
   const textoActividades = typeof actividades === 'string' ? actividades.trim() : '';

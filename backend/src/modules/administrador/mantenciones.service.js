@@ -2,6 +2,7 @@ import { pool, query } from '../../config/db.js';
 import { HttpError } from '../../shared/utils/httpError.js';
 import { puedeTransitar } from '../../shared/utils/estadosOrden.js';
 import { fotosDeOrden } from '../../shared/utils/fotos.js';
+import { avisarAsignacionTrabajador, avisarMantencionProgramada, enSegundoPlano } from '../notificaciones/correo.service.js';
 
 const SELECT_MANTENCION = `
   SELECT m.id_mantencion, m.tipo, m.estado, m.fecha_programada, m.fecha_ejecucion,
@@ -67,6 +68,17 @@ export async function crear({ id_planta, tipo, fecha_programada, id_trabajador, 
     await conexion.query('BEGIN');
     if (id_trabajador) await validarTrabajadorActivo(conexion, id_trabajador);
 
+    // Las preventivas son parte de la suscripción: sin suscripción vigente solo hay correctivas
+    if (tipo === 'preventiva') {
+      const { rows: vigente } = await conexion.query(
+        `SELECT 1 FROM suscripcion WHERE id_planta = $1 AND estado <> 'cancelada'`,
+        [id_planta],
+      );
+      if (!vigente.length) {
+        throw new HttpError(409, 'La planta no tiene una suscripción vigente: solo se puede programar una mantención correctiva');
+      }
+    }
+
     if (id_solicitud) {
       const { rows } = await conexion.query(
         `UPDATE solicitud_mantencion
@@ -93,6 +105,9 @@ export async function crear({ id_planta, tipo, fecha_programada, id_trabajador, 
       [creada[0].id_mantencion, idAdmin],
     );
     await conexion.query('COMMIT');
+    // Avisos por correo después de confirmar la transacción (HU-11, HU-17)
+    enSegundoPlano(avisarMantencionProgramada(creada[0].id_mantencion));
+    if (id_trabajador) enSegundoPlano(avisarAsignacionTrabajador(creada[0].id_mantencion));
     return obtener(creada[0].id_mantencion);
   } catch (err) {
     await conexion.query('ROLLBACK');
@@ -119,6 +134,7 @@ export async function asignar(id, { id_trabajador }) {
     );
     if (!rows.length) throw new HttpError(409, 'La mantención no existe o ya está cerrada');
     await conexion.query('COMMIT');
+    enSegundoPlano(avisarAsignacionTrabajador(id)); // HU-17
   } catch (err) {
     await conexion.query('ROLLBACK');
     throw err;
@@ -128,13 +144,14 @@ export async function asignar(id, { id_trabajador }) {
   return obtener(id);
 }
 
-// Cancela una orden abierta dejando historial (HU-16)
+// Cancela una orden abierta dejando historial (HU-16). Si la orden nació de una solicitud
+// del cliente, la solicitud vuelve a 'pendiente' en la bandeja para reprogramarla o rechazarla.
 export async function cancelar(id, idAdmin, comentario) {
   const conexion = await pool.connect();
   try {
     await conexion.query('BEGIN');
     const { rows } = await conexion.query(
-      'SELECT estado FROM mantencion WHERE id_mantencion = $1 FOR UPDATE',
+      'SELECT estado, id_solicitud FROM mantencion WHERE id_mantencion = $1 FOR UPDATE',
       [id],
     );
     if (!rows.length) throw new HttpError(404, 'Mantención no encontrada');
@@ -142,6 +159,13 @@ export async function cancelar(id, idAdmin, comentario) {
       throw new HttpError(409, `No se puede cancelar una mantención ${rows[0].estado}`);
     }
     await conexion.query(`UPDATE mantencion SET estado = 'cancelada' WHERE id_mantencion = $1`, [id]);
+    if (rows[0].id_solicitud) {
+      await conexion.query(
+        `UPDATE solicitud_mantencion SET estado = 'pendiente', fecha_asignada = NULL
+         WHERE id_solicitud = $1 AND estado = 'asignada'`,
+        [rows[0].id_solicitud],
+      );
+    }
     await conexion.query(
       `INSERT INTO mantencion_historial (id_mantencion, id_usuario, estado_anterior, estado_nuevo, comentario)
        VALUES ($1, $2, $3, 'cancelada', $4)`,
