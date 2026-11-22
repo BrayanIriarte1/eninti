@@ -6,6 +6,7 @@ import Layout from '../shared/layouts/Layout.jsx';
 import LoginPage from '../modules/auth/pages/LoginPage.jsx';
 import SolicitarCuentaPage from '../modules/publico/pages/SolicitarCuentaPage.jsx';
 import CotizadorPage from '../modules/publico/pages/CotizadorPage.jsx';
+import ContactoPage from '../modules/publico/pages/ContactoPage.jsx';
 import PasarelaSimuladaPage from '../modules/publico/pages/PasarelaSimuladaPage.jsx';
 
 // Administrador
@@ -50,6 +51,7 @@ export default function AppRoutes() {
       <Route path="/solicitar-cuenta" element={<SolicitarCuentaPage />} />
       <Route path="/registro" element={<Navigate to="/solicitar-cuenta" replace />} />
       <Route path="/cotizador" element={<CotizadorPage />} />
+      <Route path="/contacto" element={<ContactoPage />} />
       <Route path="/pasarela-simulada" element={<PasarelaSimuladaPage />} />
 
       {/* Administrador */}
