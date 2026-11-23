@@ -9,6 +9,7 @@ import * as finanzas from './finanzas.controller.js';
 import * as catalogo from './catalogo.controller.js';
 import * as solicitudesCuenta from './solicitudesCuenta.controller.js';
 import * as solicitudesCliente from './solicitudesCliente.controller.js';
+import * as correo from '../notificaciones/correo.controller.js';
 
 const router = Router();
 
@@ -74,6 +75,10 @@ router.post('/finanzas/procesar-cargos', finanzas.procesarCargos);
 router.get('/finanzas/cobro-automatico', finanzas.estadoCobroAutomatico);
 router.post('/finanzas/cobro-automatico/ejecutar', finanzas.ejecutarCobroAutomatico);
 router.post('/finanzas/intentos/:id/descartar', finanzas.descartarIntento);
+
+// Correo: estado de la configuración, bitácora de avisos y correo de prueba
+router.get('/correo', correo.estado);
+router.post('/correo/prueba', correo.prueba);
 
 // Catálogo de planes y servicios (RNF-07)
 router.get('/catalogo', catalogo.listar);

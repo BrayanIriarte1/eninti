@@ -64,3 +64,6 @@ export const rechazarCambioDatos = (id, respuesta) => api(`/admin/solicitudes-da
 export const estadoCobroAutomatico = () => api('/admin/finanzas/cobro-automatico');
 export const ejecutarCobroAutomatico = () => api('/admin/finanzas/cobro-automatico/ejecutar', { method: 'POST' });
 export const descartarIntento = (id) => api(`/admin/finanzas/intentos/${id}/descartar`, { method: 'POST' });
+// Correo: estado, bitácora y envío de prueba
+export const estadoCorreo = () => api('/admin/correo');
+export const enviarCorreoPrueba = (para) => api('/admin/correo/prueba', { method: 'POST', body: para ? { para } : {} });

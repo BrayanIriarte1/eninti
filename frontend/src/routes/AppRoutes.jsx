@@ -28,6 +28,7 @@ const PagosMesPage = lazy(() => import('../modules/administrador/pages/PagosMesP
 const CatalogoPage = lazy(() => import('../modules/administrador/pages/CatalogoPage.jsx'));
 const SolicitudesCuentaPage = lazy(() => import('../modules/administrador/pages/SolicitudesCuentaPage.jsx'));
 const SolicitudesSuscripcionPage = lazy(() => import('../modules/administrador/pages/SolicitudesSuscripcionPage.jsx'));
+const CorreosPage = lazy(() => import('../modules/administrador/pages/CorreosPage.jsx'));
 const CambiosDatosPage = lazy(() => import('../modules/administrador/pages/CambiosDatosPage.jsx'));
 
 // Trabajador
@@ -80,6 +81,7 @@ export default function AppRoutes() {
           <Route path="impagos" element={<ImpagosPage />} />
           <Route path="pagos" element={<PagosMesPage />} />
           <Route path="catalogo" element={<CatalogoPage />} />
+          <Route path="correos" element={<CorreosPage />} />
           <Route path="seguridad" element={<SeguridadPage />} />
         </Route>
       </Route>
