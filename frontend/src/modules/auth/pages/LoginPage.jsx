@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth, inicioPorRol } from '../../../shared/context/AuthContext.jsx';
 import Mensaje from '../../../shared/components/Mensaje.jsx';
@@ -36,6 +36,8 @@ export default function LoginPage() {
   const [error, setError] = useState(null);
   const [enviando, setEnviando] = useState(false);
   const [sacudir, setSacudir] = useState(false);
+
+  useEffect(() => { document.title = 'Iniciar sesión · ENINTI'; }, []);
 
   if (usuario) return <Navigate to={inicioPorRol(usuario.rol)} replace />;
 
