@@ -5,8 +5,14 @@ import { HttpError } from '../utils/httpError.js';
 // Autenticación por JWT (8 h). Además de validar la firma se comprueba en la base
 // que el usuario siga activo: desactivar un trabajador invalida sus tokens vigentes (HU-15).
 export async function autenticar(req, _res, next) {
-  if (process.env.AUTH_BYPASS === 'true') {
-    req.usuario = { id: 0, rol: 'administrador', nombre: 'Bypass desarrollo' };
+  // Solo desarrollo y nunca en producción. Usa un administrador real para que los
+  // registros auditados (pagos, historial) apunten a un usuario existente.
+  if (process.env.AUTH_BYPASS === 'true' && process.env.NODE_ENV !== 'production') {
+    const { rows } = await query(
+      `SELECT id_usuario, nombre FROM usuario WHERE rol = 'administrador' AND activo ORDER BY id_usuario LIMIT 1`,
+    );
+    if (!rows.length) throw new HttpError(401, 'AUTH_BYPASS requiere un administrador activo en la base');
+    req.usuario = { id: rows[0].id_usuario, rol: 'administrador', nombre: `${rows[0].nombre} (bypass)` };
     return next();
   }
 

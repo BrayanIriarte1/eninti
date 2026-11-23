@@ -2,56 +2,68 @@ import { createHmac, randomUUID } from 'node:crypto';
 import jwt from 'jsonwebtoken';
 import { HttpError } from '../../shared/utils/httpError.js';
 
-// Adaptador de la pasarela de pagos (HU-13, RNF-03).
+// Adaptador de la pasarela de pagos (HU-13, RNF-03). Es el único archivo que conoce a Flow:
+// reemplazar la pasarela no obliga a tocar el resto del sistema.
 // FLOW_MODE=simulado  → pasarela simulada local para la demostración académica (por defecto).
-// FLOW_MODE=sandbox   → API real de Flow en sandbox.flow.cl (requiere FLOW_API_KEY y FLOW_SECRET_KEY).
-// En ningún modo pasan números de tarjeta por el backend de ENINTI: solo tokens y últimos 4 dígitos.
+// FLOW_MODE=sandbox   → API de Flow en sandbox.flow.cl (requiere FLOW_API_KEY y FLOW_SECRET_KEY).
+// En ningún modo pasan números de tarjeta por el backend de ENINTI: solo el customerId de
+// Flow (o un token simulado), la marca y los últimos 4 dígitos.
 
-const modo = () => process.env.FLOW_MODE ?? 'simulado';
-const FLOW_URL = process.env.FLOW_API_URL ?? 'https://sandbox.flow.cl/api';
+export const modo = () => process.env.FLOW_MODE ?? 'simulado';
+const FLOW_URL = () => process.env.FLOW_API_URL ?? 'https://sandbox.flow.cl/api';
 
-// --- Cliente HTTP de Flow: firma HMAC-SHA256 de parámetros ordenados (documentación oficial) ---
-function firmarParams(params) {
-  const ordenados = Object.keys(params).sort();
-  const cadena = ordenados.map((k) => `${k}${params[k]}`).join('');
-  return createHmac('sha256', process.env.FLOW_SECRET_KEY).update(cadena).digest('hex');
+// --- Cliente HTTP de Flow ---------------------------------------------------------------
+// Firma: todos los parámetros salvo 's', ordenados por nombre, concatenados nombre+valor y
+// firmados con HMAC-SHA256 usando la secretKey (documentación oficial de Flow).
+export function firmarParams(params, secreto = process.env.FLOW_SECRET_KEY) {
+  const cadena = Object.keys(params).sort().map((k) => `${k}${params[k]}`).join('');
+  return createHmac('sha256', secreto).update(cadena).digest('hex');
 }
 
 async function llamarFlow(endpoint, params, metodo = 'POST') {
+  if (!process.env.FLOW_API_KEY || !process.env.FLOW_SECRET_KEY) {
+    throw new HttpError(503, 'La pasarela Flow no está configurada (FLOW_API_KEY / FLOW_SECRET_KEY)');
+  }
   const conFirma = { ...params, apiKey: process.env.FLOW_API_KEY };
   conFirma.s = firmarParams(conFirma);
   const cuerpo = new URLSearchParams(conFirma);
 
-  const res = metodo === 'GET'
-    ? await fetch(`${FLOW_URL}${endpoint}?${cuerpo}`)
-    : await fetch(`${FLOW_URL}${endpoint}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: cuerpo,
-      });
+  let res;
+  try {
+    res = metodo === 'GET'
+      ? await fetch(`${FLOW_URL()}${endpoint}?${cuerpo}`, { signal: AbortSignal.timeout(15000) })
+      : await fetch(`${FLOW_URL()}${endpoint}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: cuerpo,
+          signal: AbortSignal.timeout(15000),
+        });
+  } catch (err) {
+    throw new HttpError(502, 'No fue posible comunicarse con la pasarela de pagos', err.message);
+  }
 
   const datos = await res.json().catch(() => null);
-  if (!res.ok) {
-    throw new HttpError(502, `Flow respondió ${res.status}`, datos?.message);
-  }
+  if (!res.ok) throw new HttpError(502, `Flow respondió ${res.status}`, datos?.message);
   return datos;
 }
 
-// --- Inscripción del medio de pago ---
+// --- Inscripción del medio de pago -------------------------------------------------------
 // Devuelve la URL a la que se redirige al cliente para registrar su tarjeta.
-export async function iniciarInscripcion({ idCliente, idSuscripcion, email, nombre, urlRetorno }) {
+export async function iniciarInscripcion({ idCliente, idSuscripcion, email, nombre, flowCustomerId }) {
   if (modo() === 'sandbox') {
-    const externalId = `eninti-cliente-${idCliente}`;
-    const cliente = await llamarFlow('/customer/create', { name: nombre, email, externalId });
+    if (!email) throw new HttpError(400, 'Tu cuenta no tiene correo registrado; Flow lo exige para inscribir la tarjeta');
+    let customerId = flowCustomerId;
+    if (!customerId) {
+      const cliente = await llamarFlow('/customer/create', { name: nombre, email, externalId: `eninti-cliente-${idCliente}` });
+      customerId = cliente.customerId;
+    }
+    // Flow redirige el navegador del cliente con un POST (parámetro token) a url_return
+    const base = process.env.API_URL ?? process.env.APP_URL ?? '';
     const registro = await llamarFlow('/customer/register', {
-      customerId: cliente.customerId,
-      url_return: urlRetorno,
+      customerId,
+      url_return: `${base}/api/pagos/flow/retorno`,
     });
-    return {
-      proveedor: 'flow-sandbox',
-      customerId: cliente.customerId,
-      url_pasarela: `${registro.url}?token=${registro.token}`,
-    };
+    return { proveedor: 'flow-sandbox', customerId, url_pasarela: `${registro.url}?token=${registro.token}` };
   }
 
   // Pasarela simulada: el "token de inscripción" es un JWT corto que lleva el contexto
@@ -61,10 +73,20 @@ export async function iniciarInscripcion({ idCliente, idSuscripcion, email, nomb
     process.env.JWT_SECRET,
     { expiresIn: '30m' },
   );
+  return { proveedor: 'simulado', customerId: `sim-${idCliente}`, url_pasarela: `/pasarela-simulada?token=${token}` };
+}
+
+// Resultado de la inscripción en Flow: se consulta al proveedor, nunca se confía en el retorno
+// del navegador (U2, 3.1.1).
+export async function consultarInscripcionFlow(token) {
+  if (typeof token !== 'string' || !token) throw new HttpError(400, 'Falta el token de Flow');
+  const r = await llamarFlow('/customer/getRegisterStatus', { token }, 'GET');
+  const ultimos = String(r.last4CardDigits ?? '').slice(-4);
   return {
-    proveedor: 'simulado',
-    customerId: `sim-${idCliente}`,
-    url_pasarela: `/pasarela-simulada?token=${token}`,
+    registrado: String(r.status) === '1',
+    customerId: r.customerId,
+    marca: r.creditCardType ?? null,
+    ultimos4: /^[0-9]{4}$/.test(ultimos) ? ultimos : null,
   };
 }
 
@@ -78,23 +100,25 @@ export function validarTokenInscripcion(token) {
   }
 }
 
-// --- Cargo recurrente de una cuota ---
+// --- Cargo recurrente de una cuota -------------------------------------------------------
+// Devuelve { estado: 'aprobado' | 'rechazado' | 'pendiente', referencia }.
+// En Flow, status 2 = pagado y 1 = pendiente; cualquier otro valor se trata como rechazo.
 // En modo simulado la tarjeta terminada en 0002 se inscribe pero sus cobros se rechazan
-// (y la 0000 nunca llega a inscribirse), lo que permite probar el rechazo del objetivo específico 3.
-export async function cobrar({ medioPago, monto, descripcion }) {
+// (y la 0000 nunca llega a inscribirse), para probar el rechazo del objetivo específico 3.
+export async function cobrar({ medioPago, monto, descripcion, idCuota }) {
   if (modo() === 'sandbox') {
+    const commerceOrder = `eninti-c${idCuota}-${Date.now()}`;
     const cargo = await llamarFlow('/customer/charge', {
       customerId: medioPago.token_pasarela,
       amount: monto,
-      subject: descripcion,
-      commerceOrder: `eninti-${randomUUID()}`,
+      subject: descripcion.slice(0, 100),
+      commerceOrder,
     });
-    return { aprobado: cargo.status === 1 || cargo.status === 2, referencia: String(cargo.commerceOrder ?? cargo.token ?? '') };
+    const status = Number(cargo?.status);
+    const estado = status === 2 ? 'aprobado' : status === 1 ? 'pendiente' : 'rechazado';
+    return { estado, referencia: String(cargo?.flowOrder ?? commerceOrder) };
   }
 
   const aprobado = !['0000', '0002'].includes(medioPago.ultimos_4);
-  return {
-    aprobado,
-    referencia: `SIM-${randomUUID().slice(0, 8).toUpperCase()}`,
-  };
+  return { estado: aprobado ? 'aprobado' : 'rechazado', referencia: `SIM-${randomUUID().slice(0, 8).toUpperCase()}` };
 }

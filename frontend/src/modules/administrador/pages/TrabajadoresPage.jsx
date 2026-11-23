@@ -34,9 +34,13 @@ export default function TrabajadoresPage() {
 
   async function alternar(t) {
     const verbo = t.activo ? 'desactivar' : 'reactivar';
-    if (!window.confirm(`¿Seguro que quieres ${verbo} a ${t.nombre}?`)) return;
+    const aviso = t.activo ? ' Sus visitas pendientes quedarán «Sin asignar» en el calendario.' : '';
+    if (!window.confirm(`¿Seguro que quieres ${verbo} a ${t.nombre}?${aviso}`)) return;
     try {
-      await actualizarTrabajador(t.id_usuario, { activo: !t.activo });
+      const r = await actualizarTrabajador(t.id_usuario, { activo: !t.activo });
+      if (r.ordenes_liberadas) {
+        window.alert(`${r.ordenes_liberadas} visita(s) quedaron sin asignar. Reasígnalas desde el Calendario.`);
+      }
       await cargar();
     } catch (err) {
       setError(err);

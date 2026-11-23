@@ -136,3 +136,17 @@ ENINTI/
 | Equipo 1 | Cristofer Álvarez, Fernando Castillo | Cliente |
 | Equipo 2 | Branyan Espinoza, Jeremy Herrera, Rachel Díaz | Trabajador |
 | Conjunto | Ambos equipos | Administrador, autenticación, pagos y base de datos |
+
+## Despliegue de demostración (Render + Neon)
+
+1. Crea la base en Neon y copia la cadena de conexión **directa** (no la *pooled*) con `?sslmode=require`.
+2. Inicializa la base desde tu PC: en `backend/.env` pon esa `DATABASE_URL` y ejecuta `npm run db:init --prefix backend`.
+3. En Render crea el servicio desde este repositorio con el Blueprint `render.yaml` (o a mano: build `npm run build`, start `npm start`, Node 22).
+4. Completa en Render las variables `DATABASE_URL` y `APP_URL` (la URL pública del servicio, p. ej. `https://eninti.onrender.com`).
+5. Un solo dominio sirve la API (`/api`), la documentación (`/api/docs`) y el frontend compilado.
+
+Variables opcionales: `FLOW_MODE=sandbox` + `FLOW_API_KEY` / `FLOW_SECRET_KEY` (pasarela real de pruebas),
+`MAIL_MODE=brevo|resend` + `MAIL_API_KEY` / `MAIL_FROM` (correos de aviso). Sin ellas, la pasarela es simulada
+y los correos se muestran en el registro del servidor.
+
+Respaldo: `npm run db:respaldo --prefix backend` (requiere `pg_dump`) crea `respaldos/eninti-<fecha>.sql` y conserva 14 días.
