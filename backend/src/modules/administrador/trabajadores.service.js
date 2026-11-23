@@ -1,7 +1,7 @@
 import { query } from '../../config/db.js';
 import { enTransaccion } from '../../shared/utils/transaccion.js';
 import { HttpError } from '../../shared/utils/httpError.js';
-import { hashPassword } from '../../shared/utils/password.js';
+import { erroresContrasena, hashPassword } from '../../shared/utils/password.js';
 import { telefonoValido } from '../../shared/utils/rut.js';
 
 const SELECT_TRABAJADOR = `
@@ -21,9 +21,8 @@ function validar({ nombre, email, password, telefono }, { parcial }) {
   if (!parcial || email !== undefined) {
     if (typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errores.push('email no es válido');
   }
-  if ((!parcial && (typeof password !== 'string' || password.length < 8)) ||
-      (parcial && password !== undefined && (typeof password !== 'string' || password.length < 8))) {
-    errores.push('password debe tener al menos 8 caracteres');
+  if (!parcial || password !== undefined) {
+    errores.push(...erroresContrasena(password));
   }
   if (telefono !== undefined && telefono !== null && telefono !== '' && !telefonoValido(telefono)) {
     errores.push('telefono debe incluir el código de país, por ejemplo +56912345678');
@@ -59,6 +58,8 @@ export async function actualizar(id, datos, idAdmin) {
        SET nombre        = COALESCE($2, nombre),
            email         = COALESCE($3, email),
            password_hash = COALESCE($4, password_hash),
+           -- Restablecer la contraseña cierra las sesiones abiertas del trabajador
+           password_actualizado = CASE WHEN $4::text IS NULL THEN password_actualizado ELSE now() END,
            telefono      = COALESCE($5, telefono),
            activo        = COALESCE($6, activo)
        WHERE id_usuario = $1 AND rol = 'trabajador'

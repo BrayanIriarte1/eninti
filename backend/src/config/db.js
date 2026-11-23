@@ -9,10 +9,14 @@ pg.types.setTypeParser(pg.types.builtins.NUMERIC, (value) => Number(value));
 // en hora de Chile aunque el servidor (Render, Neon) funcione en UTC.
 export const ZONA_HORARIA = process.env.APP_TZ ?? 'America/Santiago';
 
-export const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
-
-pool.on('connect', (cliente) => {
-  cliente.query(`SET TIME ZONE '${ZONA_HORARIA.replace(/'/g, '')}'`).catch(() => {});
+// La zona horaria viaja como parámetro de inicio de cada conexión: rige desde la primera
+// consulta. (Antes se hacía SET TIME ZONE en el evento 'connect' sin esperar su respuesta,
+// lo que podía dejar la primera consulta en UTC y provocaba el aviso DeprecationWarning de pg.)
+// Requiere la conexión directa de Neon, no la "pooled", como indica render.yaml.
+const zona = ZONA_HORARIA.replace(/[^A-Za-z0-9_/+-]/g, '');
+export const pool = new pg.Pool({
+  connectionString: process.env.DATABASE_URL,
+  options: `-c TimeZone=${zona}`,
 });
 
 // Un error en una conexión inactiva (p. ej. la base suspendida) no debe botar la API

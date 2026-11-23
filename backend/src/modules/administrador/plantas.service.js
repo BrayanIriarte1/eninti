@@ -1,5 +1,6 @@
 import { query } from '../../config/db.js';
 import { HttpError } from '../../shared/utils/httpError.js';
+import { enTransaccion } from '../../shared/utils/transaccion.js';
 
 // Campos de la ficha técnica y el tipo que se valida para cada uno
 const CAMPOS = {
@@ -91,12 +92,40 @@ export async function crear(datos) {
 export async function actualizar(id, datos) {
   const cambios = validar(datos, { parcial: true });
   const campos = Object.keys(cambios);
-  const { rowCount } = await query(
-    `UPDATE planta
-     SET ${campos.map((c, i) => `${c} = $${i + 2}`).join(', ')}
-     WHERE id_planta = $1`,
-    [id, ...Object.values(cambios)],
-  );
-  if (!rowCount) throw new HttpError(404, 'Planta no encontrada');
+  await enTransaccion(async (conexion) => {
+    const { rows } = await conexion.query('SELECT id_cliente FROM planta WHERE id_planta = $1 FOR UPDATE', [id]);
+    if (!rows.length) throw new HttpError(404, 'Planta no encontrada');
+    if (cambios.id_cliente !== undefined && cambios.id_cliente !== rows[0].id_cliente) {
+      await validarTraspaso(conexion, id);
+    }
+    await conexion.query(
+      `UPDATE planta
+       SET ${campos.map((c, i) => `${c} = $${i + 2}`).join(', ')}
+       WHERE id_planta = $1`,
+      [id, ...Object.values(cambios)],
+    );
+  });
   return obtener(id);
+}
+
+// Cambiar el dueño de una planta solo se permite si no arrastra compromisos del cliente
+// anterior: una suscripción vigente, cuotas sin pagar (incluida la deuda de una suscripción
+// cancelada por morosidad) o visitas abiertas. Así la deuda nunca pasa a otra persona.
+async function validarTraspaso(conexion, idPlanta) {
+  const { rows: [r] } = await conexion.query(
+    `SELECT
+       EXISTS (SELECT 1 FROM suscripcion s WHERE s.id_planta = $1 AND s.estado <> 'cancelada') AS suscripcion,
+       (SELECT count(*) FROM cuota c JOIN suscripcion s USING (id_suscripcion)
+        WHERE s.id_planta = $1 AND c.estado IN ('pendiente', 'vencida'))::int AS cuotas,
+       (SELECT count(*) FROM mantencion m
+        WHERE m.id_planta = $1 AND m.estado IN ('pendiente', 'en_curso', 'por_confirmar'))::int AS visitas`,
+    [idPlanta],
+  );
+  const motivos = [];
+  if (r.suscripcion) motivos.push('tiene una suscripción vigente: cancélala primero');
+  if (r.cuotas) motivos.push(`tiene ${r.cuotas} cuota(s) sin pagar del cliente actual: regístralas o cóbralas primero`);
+  if (r.visitas) motivos.push(`tiene ${r.visitas} visita(s) abierta(s): ciérralas o cancélalas primero`);
+  if (motivos.length) {
+    throw new HttpError(409, 'No se puede cambiar el cliente de esta planta', motivos);
+  }
 }

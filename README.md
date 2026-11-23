@@ -144,11 +144,14 @@ Con `FLOW_MODE=simulado` (por defecto), al inscribir un medio de pago desde
 **Mi Cuenta** se abre una pasarela simulada. Usa cualquier dato de tarjeta ficticio;
 los últimos dígitos **`0000`** fuerzan un rechazo para probar ese caso.
 
-## Pruebas automáticas
+## Pruebas automáticas y linter
 
 ```bash
-npm test --prefix backend
+npm test        # tests del backend (node --test) y del frontend (Vitest)
+npm run lint    # ESLint del frontend, con las reglas de los hooks de React
 ```
+
+También se pueden correr por separado con `npm test --prefix backend` o `npm test --prefix frontend`.
 
 ## Estructura
 

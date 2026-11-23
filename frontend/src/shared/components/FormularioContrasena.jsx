@@ -1,11 +1,6 @@
 import { useState } from 'react';
 import Mensaje from './Mensaje.jsx';
-
-// Mismas reglas que el backend (auth/contrasena.service.js): se muestran mientras se escribe
-const REQUISITOS = [
-  { texto: 'Al menos 8 caracteres', cumple: (p) => p.length >= 8 },
-  { texto: 'Letras y números', cumple: (p) => /[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]/.test(p) && /\d/.test(p) },
-];
+import { REQUISITOS, contrasenaValida } from '../utils/contrasena.js';
 
 // Formulario de contraseña nueva, con la actual opcional (cambiar) o sin ella (restablecer).
 // onEnviar({ actual, nueva }) debe lanzar el error de la API para mostrarlo aquí.
@@ -18,7 +13,7 @@ export default function FormularioContrasena({ pedirActual = false, textoBoton =
   const [enviando, setEnviando] = useState(false);
 
   const coincide = repetir.length > 0 && nueva === repetir;
-  const valida = REQUISITOS.every((r) => r.cumple(nueva)) && coincide;
+  const valida = contrasenaValida(nueva) && coincide;
 
   async function enviar(e) {
     e.preventDefault();
