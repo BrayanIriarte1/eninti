@@ -17,3 +17,16 @@ export async function verificarPassword(password, almacenado) {
   const hash = await scrypt(password, sal, 64);
   return hash.length === esperado.length && timingSafeEqual(hash, esperado);
 }
+
+// Reglas de una contraseña (RNF-10): 8 a 128 caracteres con letras y números.
+// Las usan el cambio y la recuperación de contraseña y las cuentas que crea el administrador.
+export const MINIMO_CONTRASENA = 8;
+export const MAXIMO_CONTRASENA = 128;
+export function erroresContrasena(clave) {
+  if (typeof clave !== 'string' || !clave) return ['La contraseña es obligatoria'];
+  const errores = [];
+  if (clave.length < MINIMO_CONTRASENA) errores.push(`Debe tener al menos ${MINIMO_CONTRASENA} caracteres`);
+  if (clave.length > MAXIMO_CONTRASENA) errores.push(`Debe tener como máximo ${MAXIMO_CONTRASENA} caracteres`);
+  if (!/[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]/.test(clave) || !/\d/.test(clave)) errores.push('Debe combinar letras y números');
+  return errores;
+}

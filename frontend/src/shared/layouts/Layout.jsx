@@ -91,10 +91,11 @@ export default function Layout() {
   const seccion = seccionActual(grupos, pathname);
   const detalle = seccion && pathname !== seccion.ruta; // p. ej. ficha de una planta u orden
   const hoy = new Date().toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' });
+  const tituloSeccion = seccion?.texto;
   useEffect(() => {
-    document.title = seccion ? `${seccion.texto} · ENINTI` : 'ENINTI';
+    document.title = tituloSeccion ? `${tituloSeccion} · ENINTI` : 'ENINTI';
     return () => { document.title = 'ENINTI · Mantención solar'; }; // al salir del panel
-  }, [seccion?.texto]);
+  }, [tituloSeccion]);
   const iniciales = (usuario?.nombre ?? '?').split(' ').slice(0, 2).map((p) => p[0]).join('');
 
   return (

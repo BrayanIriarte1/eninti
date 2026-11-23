@@ -1,7 +1,8 @@
 import { pool, query } from '../../config/db.js';
 import { HttpError } from '../../shared/utils/httpError.js';
-import { hashPassword } from '../../shared/utils/password.js';
+import { erroresContrasena, hashPassword } from '../../shared/utils/password.js';
 import { normalizarRut, rutValido, telefonoValido } from '../../shared/utils/rut.js';
+import { enTransaccion } from '../../shared/utils/transaccion.js';
 
 // Listados básicos para selectores y administración de clientes (HU-03)
 export async function listar() {
@@ -63,19 +64,28 @@ export async function actualizar(id, datos) {
   if ([rut, nombre, telefono, direccion, id_comuna].every((v) => v === undefined)) {
     throw new HttpError(400, 'No hay campos para actualizar');
   }
-  const { rows } = await query(
-    `UPDATE cliente
-     SET rut       = COALESCE($2, rut),
-         nombre    = COALESCE($3, nombre),
-         telefono  = COALESCE($4, telefono),
-         direccion = COALESCE($5, direccion),
-         id_comuna = COALESCE($6, id_comuna)
-     WHERE id_cliente = $1
-     RETURNING *`,
-    [id, rut === undefined ? null : normalizarRut(rut), nombre?.trim() ?? null, telefono ?? null, direccion ?? null, id_comuna ?? null],
-  );
-  if (!rows.length) throw new HttpError(404, 'Cliente no encontrado');
-  return rows[0];
+  return enTransaccion(async (conexion) => {
+    const { rows } = await conexion.query(
+      `UPDATE cliente
+       SET rut       = COALESCE($2, rut),
+           nombre    = COALESCE($3, nombre),
+           telefono  = COALESCE($4, telefono),
+           direccion = COALESCE($5, direccion),
+           id_comuna = COALESCE($6, id_comuna)
+       WHERE id_cliente = $1
+       RETURNING *`,
+      [id, rut === undefined ? null : normalizarRut(rut), nombre?.trim() ?? null, telefono ?? null, direccion ?? null, id_comuna ?? null],
+    );
+    if (!rows.length) throw new HttpError(404, 'Cliente no encontrado');
+    // La cuenta web muestra el mismo nombre y teléfono que la ficha: se mantienen sincronizados
+    if (rows[0].id_usuario && (nombre !== undefined || telefono !== undefined)) {
+      await conexion.query(
+        `UPDATE usuario SET nombre = $2, telefono = $3 WHERE id_usuario = $1`,
+        [rows[0].id_usuario, rows[0].nombre, rows[0].telefono],
+      );
+    }
+    return rows[0];
+  });
 }
 
 // Crea la cuenta web (rol cliente) de una ficha y la enlaza. Se ejecuta dentro de la
@@ -84,7 +94,7 @@ export async function crearCuentaCliente(conexion, cliente, { email, password, t
   const errores = [];
   const correo = typeof email === 'string' ? email.trim().toLowerCase() : '';
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) errores.push('email no es válido');
-  if (typeof password !== 'string' || password.length < 8) errores.push('password debe tener al menos 8 caracteres');
+  errores.push(...erroresContrasena(password));
   if (errores.length) throw new HttpError(400, 'Datos de la cuenta inválidos', errores);
   if (cliente.id_usuario) throw new HttpError(409, 'Este cliente ya tiene una cuenta web');
 

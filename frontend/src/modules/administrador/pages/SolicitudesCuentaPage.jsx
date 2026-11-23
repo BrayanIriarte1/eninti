@@ -124,7 +124,7 @@ export default function SolicitudesCuentaPage() {
                   <input type="email" value={cuenta.email} onChange={(e) => setCuenta({ ...cuenta, email: e.target.value })} required />
                 </label>
                 <label>Contraseña inicial <span className="opcional">(mín. 8; se la comunicas al cliente)</span>
-                  <input type="text" value={cuenta.password} onChange={(e) => setCuenta({ ...cuenta, password: e.target.value })} required minLength={8} autoComplete="off" />
+                  <input type="text" value={cuenta.password} onChange={(e) => setCuenta({ ...cuenta, password: e.target.value })} required minLength={8} maxLength={128} pattern="(?=.*[A-Za-zÁÉÍÓÚÜÑáéíóúüñ])(?=.*[0-9]).{8,128}" title="Al menos 8 caracteres, con letras y números" autoComplete="off" />
                 </label>
                 <div className="acciones">
                   <button type="button" className="boton secundario" onClick={() => setAbierta(null)}>Cancelar</button>

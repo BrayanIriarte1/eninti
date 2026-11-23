@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { query } from '../../config/db.js';
 import { HttpError } from '../../shared/utils/httpError.js';
-import { hashPassword, verificarPassword } from '../../shared/utils/password.js';
+import { erroresContrasena, hashPassword, verificarPassword } from '../../shared/utils/password.js';
 import { enTransaccion } from '../../shared/utils/transaccion.js';
 import { enviarAviso, enSegundoPlano } from '../notificaciones/correo.service.js';
 import { firmarToken, limpiarIntentos } from './auth.service.js';
@@ -11,22 +11,13 @@ import { firmarToken, limpiarIntentos } from './auth.service.js';
 //   · Recuperar responde siempre lo mismo, exista o no el correo (no revela quién tiene cuenta).
 //   · El enlace lleva un token aleatorio de 256 bits; la base guarda solo su SHA-256,
 //     vence en 1 hora y sirve una sola vez.
-export const MINIMO = 8;
-export const MAXIMO = 128;
 export const VIGENCIA_MIN = 60;
 const RESPUESTA_RECUPERAR = {
   mensaje: 'Si el correo pertenece a una cuenta activa, te enviamos un enlace para restablecer tu contraseña. Revisa también tu carpeta de spam.',
 };
 
-// Reglas de una contraseña nueva; devuelve la lista de errores (vacía si es válida)
-export function erroresContrasena(nueva) {
-  if (typeof nueva !== 'string') return ['La contraseña nueva es obligatoria'];
-  const errores = [];
-  if (nueva.length < MINIMO) errores.push(`Debe tener al menos ${MINIMO} caracteres`);
-  if (nueva.length > MAXIMO) errores.push(`Debe tener como máximo ${MAXIMO} caracteres`);
-  if (!/[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]/.test(nueva) || !/\d/.test(nueva)) errores.push('Debe combinar letras y números');
-  return errores;
-}
+// Las reglas viven en shared/utils/password.js (las comparten las cuentas que crea el admin)
+export { erroresContrasena };
 
 function validarNueva(nueva) {
   const errores = erroresContrasena(nueva);
