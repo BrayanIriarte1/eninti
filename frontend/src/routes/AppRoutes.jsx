@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth, inicioPorRol } from '../shared/context/AuthContext.jsx';
 import RutaProtegida from '../shared/components/RutaProtegida.jsx';
@@ -9,33 +10,34 @@ import CotizadorPage from '../modules/publico/pages/CotizadorPage.jsx';
 import ContactoPage from '../modules/publico/pages/ContactoPage.jsx';
 import PasarelaSimuladaPage from '../modules/publico/pages/PasarelaSimuladaPage.jsx';
 
+// Páginas de los paneles: se descargan solo al entrar a cada perfil (carga inicial más liviana, RNF-05)
 // Administrador
-import InicioAdminPage from '../modules/administrador/pages/InicioAdminPage.jsx';
-import PlantasPage from '../modules/administrador/pages/PlantasPage.jsx';
-import PlantaFormPage from '../modules/administrador/pages/PlantaFormPage.jsx';
-import PlantaDetallePage from '../modules/administrador/pages/PlantaDetallePage.jsx';
-import ClientesPage from '../modules/administrador/pages/ClientesPage.jsx';
-import TrabajadoresPage from '../modules/administrador/pages/TrabajadoresPage.jsx';
-import CalendarioPage from '../modules/administrador/pages/CalendarioPage.jsx';
-import SolicitudesAdminPage from '../modules/administrador/pages/SolicitudesAdminPage.jsx';
-import ImpagosPage from '../modules/administrador/pages/ImpagosPage.jsx';
-import PagosMesPage from '../modules/administrador/pages/PagosMesPage.jsx';
-import CatalogoPage from '../modules/administrador/pages/CatalogoPage.jsx';
-import SolicitudesCuentaPage from '../modules/administrador/pages/SolicitudesCuentaPage.jsx';
-import SolicitudesSuscripcionPage from '../modules/administrador/pages/SolicitudesSuscripcionPage.jsx';
-import CambiosDatosPage from '../modules/administrador/pages/CambiosDatosPage.jsx';
+const InicioAdminPage = lazy(() => import('../modules/administrador/pages/InicioAdminPage.jsx'));
+const PlantasPage = lazy(() => import('../modules/administrador/pages/PlantasPage.jsx'));
+const PlantaFormPage = lazy(() => import('../modules/administrador/pages/PlantaFormPage.jsx'));
+const PlantaDetallePage = lazy(() => import('../modules/administrador/pages/PlantaDetallePage.jsx'));
+const ClientesPage = lazy(() => import('../modules/administrador/pages/ClientesPage.jsx'));
+const TrabajadoresPage = lazy(() => import('../modules/administrador/pages/TrabajadoresPage.jsx'));
+const CalendarioPage = lazy(() => import('../modules/administrador/pages/CalendarioPage.jsx'));
+const SolicitudesAdminPage = lazy(() => import('../modules/administrador/pages/SolicitudesAdminPage.jsx'));
+const ImpagosPage = lazy(() => import('../modules/administrador/pages/ImpagosPage.jsx'));
+const PagosMesPage = lazy(() => import('../modules/administrador/pages/PagosMesPage.jsx'));
+const CatalogoPage = lazy(() => import('../modules/administrador/pages/CatalogoPage.jsx'));
+const SolicitudesCuentaPage = lazy(() => import('../modules/administrador/pages/SolicitudesCuentaPage.jsx'));
+const SolicitudesSuscripcionPage = lazy(() => import('../modules/administrador/pages/SolicitudesSuscripcionPage.jsx'));
+const CambiosDatosPage = lazy(() => import('../modules/administrador/pages/CambiosDatosPage.jsx'));
 
 // Trabajador
-import AgendaPage from '../modules/trabajador/pages/AgendaPage.jsx';
-import OrdenPage from '../modules/trabajador/pages/OrdenPage.jsx';
+const AgendaPage = lazy(() => import('../modules/trabajador/pages/AgendaPage.jsx'));
+const OrdenPage = lazy(() => import('../modules/trabajador/pages/OrdenPage.jsx'));
 
 // Cliente
-import CuentaPage from '../modules/cliente/pages/CuentaPage.jsx';
-import MisPlantasPage from '../modules/cliente/pages/MisPlantasPage.jsx';
-import PlantaClientePage from '../modules/cliente/pages/PlantaClientePage.jsx';
-import MantencionesClientePage from '../modules/cliente/pages/MantencionesClientePage.jsx';
-import SolicitudesClientePage from '../modules/cliente/pages/SolicitudesClientePage.jsx';
-import MisDatosPage from '../modules/cliente/pages/MisDatosPage.jsx';
+const CuentaPage = lazy(() => import('../modules/cliente/pages/CuentaPage.jsx'));
+const MisPlantasPage = lazy(() => import('../modules/cliente/pages/MisPlantasPage.jsx'));
+const PlantaClientePage = lazy(() => import('../modules/cliente/pages/PlantaClientePage.jsx'));
+const MantencionesClientePage = lazy(() => import('../modules/cliente/pages/MantencionesClientePage.jsx'));
+const SolicitudesClientePage = lazy(() => import('../modules/cliente/pages/SolicitudesClientePage.jsx'));
+const MisDatosPage = lazy(() => import('../modules/cliente/pages/MisDatosPage.jsx'));
 
 function Raiz() {
   const { usuario, cargando } = useAuth();
@@ -45,6 +47,7 @@ function Raiz() {
 
 export default function AppRoutes() {
   return (
+    <Suspense fallback={<p className="cargando contenido-publico">Cargando…</p>}>
     <Routes>
       <Route path="/" element={<Raiz />} />
       <Route path="/login" element={<LoginPage />} />
@@ -99,5 +102,6 @@ export default function AppRoutes() {
 
       <Route path="*" element={<Raiz />} />
     </Routes>
+    </Suspense>
   );
 }

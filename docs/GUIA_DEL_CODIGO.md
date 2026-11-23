@@ -361,7 +361,7 @@ Trabajador y el Administrador, y está cubierta por pruebas unitarias.
 |---|---|
 | `login` | Busca al usuario por correo, verifica la contraseña y devuelve un JWT de 8 horas. El error es **siempre el mismo** ("Credenciales incorrectas o cuenta inactiva") sin revelar qué dato falló. |
 | Bloqueo de intentos | Un `Map` en memoria cuenta fallos por correo. **5 fallos → bloqueo de 15 minutos** (error 429). |
-| `registrarCliente` | Valida formato de RUT, correo y contraseña (≥ 8). El RUT debe existir en `cliente` y la ficha no debe tener cuenta. En **una transacción** crea el `usuario` y enlaza `cliente.id_usuario`. |
+| Sin autorregistro | El cliente no crea su cuenta. Pide una desde `/solicitar-cuenta` (`POST /publico/solicitudes-cuenta`) y el administrador la aprueba, o la crea desde la ficha del cliente con `crearCuenta` (`administrador/clientes.service.js`). Ambos caminos usan `crearCuentaCliente`, que en **una transacción** crea el `usuario` y enlaza `cliente.id_usuario`. |
 | `perfil` | Datos del usuario autenticado (`/auth/me`). |
 
 El JWT contiene solo `{ id, rol }`. Todo lo demás se consulta en la base en cada
