@@ -3,6 +3,7 @@ import { misDatos, solicitarCambioDatos } from '../services/clienteService.js';
 import Mensaje from '../../../shared/components/Mensaje.jsx';
 import TelefonoInput from '../../../shared/components/TelefonoInput.jsx';
 import { formatoFecha } from '../../../shared/utils/formato.js';
+import CambiarContrasena from '../../../shared/components/CambiarContrasena.jsx';
 
 const ESTADO = {
   pendiente: { texto: 'En revisión', clase: 'aviso' },
@@ -98,6 +99,8 @@ export default function MisDatosPage() {
             </form>
           )}
         </article>
+
+        <CambiarContrasena />
       </div>
 
       {datos.solicitudes.length > 0 && (

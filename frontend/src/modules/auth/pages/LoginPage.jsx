@@ -180,6 +180,8 @@ export default function LoginPage() {
                 </p>
               </div>
 
+              <Link to="/recuperar" state={{ email }} className="login-olvido">¿Olvidaste tu contraseña?</Link>
+
               <button type="submit" className="login-entrar" disabled={enviando} aria-busy={enviando}>
                 {enviando && <span className="login-giro" aria-hidden="true" />}
                 {enviando ? 'Entrando…' : 'Entrar'}

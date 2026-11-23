@@ -96,6 +96,15 @@ Todos son datos ficticios (RNF-04). Entra en http://localhost:5174 con:
 Cada perfil es llevado automáticamente a su panel: el administrador a `/admin`,
 el trabajador a su agenda y el cliente a Mi Cuenta.
 
+### Contraseñas
+
+- **Cambiarla**: administración y técnicos desde *Seguridad* en el menú; el cliente desde *Mis datos*.
+  Se pide la actual y se cierran las demás sesiones abiertas.
+- **Recuperarla**: *¿Olvidaste tu contraseña?* en el login envía un enlace de un solo uso
+  que vence en 1 hora. Con `MAIL_MODE=consola` el correo, con el enlace, aparece en la
+  terminal del backend.
+- Requiere la migración `007_recuperar_contrasena.sql` (la aplica `npm run db:init`).
+
 ## Probar la pasarela de pagos (HU-13)
 
 Con `FLOW_MODE=simulado` (por defecto), al inscribir un medio de pago desde

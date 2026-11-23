@@ -10,6 +10,9 @@ const BLOQUEO_MS = 15 * 60 * 1000;
 // Intentos fallidos por correo (RNF-10). En memoria: suficiente para un solo proceso.
 const intentos = new Map();
 
+// Tras restablecer la contraseña el bloqueo por intentos fallidos ya no corresponde
+export const limpiarIntentos = (email) => intentos.delete(String(email).trim().toLowerCase());
+
 function verificarBloqueo(email) {
   const registro = intentos.get(email);
   if (registro?.bloqueadoHasta > Date.now()) {
@@ -27,7 +30,7 @@ function registrarFallo(email) {
   intentos.set(email, registro);
 }
 
-const firmarToken = (usuario) =>
+export const firmarToken = (usuario) =>
   jwt.sign({ id: usuario.id_usuario, rol: usuario.rol }, process.env.JWT_SECRET, {
     expiresIn: DURACION_SESION,
   });
