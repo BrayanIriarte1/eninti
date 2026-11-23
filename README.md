@@ -105,6 +105,32 @@ el trabajador a su agenda y el cliente a Mi Cuenta.
   terminal del backend.
 - Requiere la migración `007_recuperar_contrasena.sql` (la aplica `npm run db:init`).
 
+## Cobro mensual automático (HU-13)
+
+Cada día, desde las 9:00 (hora de Chile), la API genera las cuotas del mes en curso y cobra
+en la pasarela las que vencen a los clientes con tarjeta inscrita. Se configura con
+`COBRO_AUTOMATICO` y `COBRO_HORA` en `backend/.env`. El estado, el historial y el botón
+**Ejecutar ahora** están en *Pagos del mes*.
+
+- Se ejecuta **una vez al día**, aunque el servidor se reinicie, y nunca dos procesos a la vez.
+- Una tarjeta rechazada se reintenta **una vez al día** y como máximo 5 veces; el cliente
+  recibe un correo para revisar o cambiar su tarjeta.
+- Un cobro que la pasarela deja **en espera** no se repite (evita cobrar dos veces): aparece
+  en *Pagos del mes* para revisarlo y descartarlo si no se cobró.
+- Cada intento queda registrado en `intento_cargo` (migración `008_cobro_automatico.sql`).
+
+**En Render (plan gratuito)** el servidor se duerme sin visitas, así que el reloj interno
+puede no correr. Crea una tarea gratuita en un servicio de cron (por ejemplo cron-job.org)
+que todos los días, después de las 9:00, haga:
+
+```
+POST https://<tu-app>.onrender.com/api/tareas/cobro-diario
+Authorization: Bearer <CRON_SECRET>
+```
+
+`CRON_SECRET` lo genera Render (está en `render.yaml`). Llamarla varias veces es seguro:
+si hoy ya se ejecutó, responde `{ "omitida": true }`.
+
 ## Probar la pasarela de pagos (HU-13)
 
 Con `FLOW_MODE=simulado` (por defecto), al inscribir un medio de pago desde

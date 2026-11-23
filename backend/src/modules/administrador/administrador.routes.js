@@ -71,6 +71,9 @@ router.get('/suscripciones/:id/cuotas', finanzas.cuotasDeSuscripcion);
 router.post('/cuotas/:id/pagos', finanzas.registrarPagoManual);
 router.post('/finanzas/generar-cuotas', finanzas.generarCuotas);
 router.post('/finanzas/procesar-cargos', finanzas.procesarCargos);
+router.get('/finanzas/cobro-automatico', finanzas.estadoCobroAutomatico);
+router.post('/finanzas/cobro-automatico/ejecutar', finanzas.ejecutarCobroAutomatico);
+router.post('/finanzas/intentos/:id/descartar', finanzas.descartarIntento);
 
 // Catálogo de planes y servicios (RNF-07)
 router.get('/catalogo', catalogo.listar);

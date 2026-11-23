@@ -1,3 +1,4 @@
+import * as cobroAutomatico from '../pagos/cobroAutomatico.js';
 import * as finanzas from './finanzas.service.js';
 import { ZONA_HORARIA } from '../../config/db.js';
 import { parseId } from './plantas.controller.js';
@@ -44,5 +45,18 @@ export async function generarCuotas(req, res) {
 }
 
 export async function procesarCargos(_req, res) {
-  res.json(await finanzas.procesarCargos());
+  res.json(await finanzas.procesarCargos({ origen: 'manual' }));
+}
+
+// Cobro automático: estado, ejecución desde el panel y cobros en espera de la pasarela
+export async function estadoCobroAutomatico(_req, res) {
+  res.json({ ...(await cobroAutomatico.estado()), en_espera: await finanzas.cobrosEnEspera() });
+}
+
+export async function ejecutarCobroAutomatico(_req, res) {
+  res.json(await cobroAutomatico.ejecutarCobroDiario({ origen: 'manual', forzar: true }));
+}
+
+export async function descartarIntento(req, res) {
+  res.json(await finanzas.descartarIntento(parseId(req.params.id)));
 }

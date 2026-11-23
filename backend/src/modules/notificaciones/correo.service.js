@@ -152,3 +152,29 @@ export async function avisarAsignacionTrabajador(idMantencion) {
     ],
   });
 }
+
+// HU-13: la pasarela rechazó el cobro mensual; el cliente debe revisar o cambiar su tarjeta
+export async function avisarCobroRechazado(idCliente, monto) {
+  const { rows } = await query(
+    `SELECT u.email, c.nombre, mp.marca, mp.ultimos_4
+     FROM cliente c
+     JOIN usuario u ON u.id_usuario = c.id_usuario
+     LEFT JOIN medio_pago mp ON mp.id_cliente = c.id_cliente AND mp.estado = 'activo'
+     WHERE c.id_cliente = $1`,
+    [idCliente],
+  );
+  const d = rows[0];
+  if (!d) return false;
+  const pesos = `$${Number(monto).toLocaleString('es-CL')}`;
+  return enviarAviso({
+    para: d.email,
+    motivo: 'cobro_rechazado',
+    asunto: 'No pudimos cobrar tu suscripción de mantención',
+    lineas: [
+      `Hola ${d.nombre}:`,
+      `Intentamos cobrar ${pesos} de tu suscripción${d.ultimos_4 ? ` en tu ${d.marca ?? 'tarjeta'} terminada en ${d.ultimos_4}` : ''}, pero la pasarela de pagos lo rechazó.`,
+      'Revisa que la tarjeta tenga cupo y esté vigente, o inscribe otra desde Mi cuenta. Volveremos a intentarlo automáticamente.',
+      `Mi cuenta: ${appUrl()}/cliente/cuenta`,
+    ],
+  });
+}
