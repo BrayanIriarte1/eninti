@@ -54,6 +54,13 @@ export async function registrarPagoManual(idCuota, { origen, monto, referencia }
   if (monto !== undefined && (!Number.isInteger(monto) || monto <= 0)) {
     throw new HttpError(400, 'monto debe ser un entero mayor a 0');
   }
+  if (referencia !== undefined && referencia !== null && (typeof referencia !== 'string' || referencia.length > 100)) {
+    throw new HttpError(400, 'La referencia debe ser texto de hasta 100 caracteres');
+  }
+  // Una transferencia se concilia con el banco por su número de operación
+  if (origen === 'transferencia' && !referencia?.trim()) {
+    throw new HttpError(400, 'Indica el N° de operación de la transferencia');
+  }
 
   const conexion = await pool.connect();
   try {

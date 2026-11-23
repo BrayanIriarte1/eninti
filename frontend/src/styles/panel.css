@@ -421,3 +421,24 @@ label.ver-contrasena { flex-direction: row; align-items: center; gap: 0.5rem; fo
 .lista-advertencias { margin: 0 0 1rem; padding: 0.75rem 1rem 0.75rem 2rem; border-radius: 12px; background: var(--color-alerta-fondo); color: var(--color-alerta-texto); font-weight: 600; font-size: 0.93rem; }
 .lista-advertencias li + li { margin-top: 0.3rem; }
 @media (max-width: 760px) { .layout .tabla td .celda-sub { text-align: right; } }
+
+/* ============================== Diálogo de confirmación (pago manual) */
+.dialogo {
+  width: min(100% - 2rem, 480px);
+  padding: 0;
+  border: none;
+  border-radius: 20px;
+  box-shadow: 0 30px 80px rgba(8, 18, 32, 0.4);
+  color: var(--color-texto);
+}
+.dialogo[open] { animation: subir 0.25s cubic-bezier(0.2, 0.7, 0.2, 1); }
+.dialogo::backdrop { background: rgba(8, 18, 32, 0.55); backdrop-filter: blur(3px); }
+.dialogo-caja { display: flex; flex-direction: column; gap: 1rem; padding: 1.5rem 1.6rem 1.4rem; border-top: 5px solid #ffc21c; }
+.dialogo-caja h2 { margin: 0; font-size: 1.3rem; }
+.dialogo-caja > p { margin: -0.5rem 0 0; }
+.dialogo-caja .ficha { padding: 0.9rem 1rem; border-radius: 12px; background: var(--color-fondo); }
+.dialogo-monto { font-family: var(--fuente-titulo); font-size: 1.25rem; font-weight: 800; }
+.dialogo-caja input { border-radius: 10px; }
+.dialogo-caja .mensaje-error { margin: 0; }
+.dialogo-acciones { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.6rem; margin-top: 0.25rem; }
+@media (max-width: 480px) { .dialogo-acciones .boton { flex: 1 1 100%; } }

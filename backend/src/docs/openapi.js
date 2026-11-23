@@ -466,7 +466,7 @@ El token dura **8 horas**. Tras **5 contraseñas incorrectas** con el mismo corr
     '/admin/cuotas/{id}/pagos': {
       post: {
         tags: ['Admin · Finanzas'], summary: 'Registrar un pago manual (HU-02)', security: protegido,
-        description: 'Por transferencia o efectivo. Guarda quién lo registró y cuándo. La cuota pasa a `pagada` y, si no quedan cuotas vencidas, la suscripción vuelve a `al_dia`. Una cuota ya pagada **no admite un segundo pago**.',
+        description: 'Por transferencia (exige `referencia` con el N° de operación) o efectivo (referencia opcional). Si se envía `monto`, debe ser el total de la cuota. Guarda quién lo registró y cuándo. La cuota pasa a `pagada` y, si no quedan cuotas vencidas, la suscripción vuelve a `al_dia`. Una cuota ya pagada **no admite un segundo pago**.',
         parameters: [idPath('Id de la cuota')],
         requestBody: cuerpo(ref('PagoManualPeticion'), { origen: 'transferencia', referencia: 'TRF-123456' }),
         responses: { 201: ok('Pago registrado', ref('Pago')), 400: r400, ...comunes, 404: r404, 409: { description: 'La cuota ya está pagada o anulada', content: json(ref('Error')) } },
