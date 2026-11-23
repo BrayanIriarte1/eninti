@@ -35,3 +35,9 @@ services:
         sync: false
       - key: MAIL_FROM
         sync: false          # p. ej. ENINTI <avisos@tu-dominio.cl>
+      - key: COBRO_AUTOMATICO
+        value: "true"        # cobro mensual automático; "false" lo desactiva
+      - key: COBRO_HORA
+        value: "9"           # hora de Chile desde la que corre cada día
+      - key: CRON_SECRET
+        generateValue: true  # para el cron externo que despierta al servidor (README)

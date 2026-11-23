@@ -377,3 +377,41 @@ label.ver-contrasena { flex-direction: row; align-items: center; gap: 0.5rem; fo
 .form-contrasena .login-entrar { align-self: stretch; }
 .tarjeta-contrasena h2 { display: flex; align-items: center; gap: 0.5rem; }
 .tarjeta-contrasena h2 svg { color: var(--color-primario); }
+
+/* ============================== Cobro automático (pagos del mes) */
+.layout .cobro-auto { margin-bottom: 1.25rem; }
+.cobro-auto-cabeza { display: flex; align-items: flex-start; gap: 0.9rem; }
+.cobro-auto-cabeza > div { flex: 1; min-width: 0; }
+.cobro-auto-cabeza h2 { margin: 0; }
+.cobro-auto-cabeza p { margin: 0.25rem 0 0; }
+.cobro-auto-icono {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  background: var(--degradado-sol);
+  color: #1d1500;
+  box-shadow: 0 6px 16px rgba(255, 170, 0, 0.35);
+}
+.cobro-auto-icono.apagado { background: var(--color-neutro-fondo); color: var(--color-neutro-texto); box-shadow: none; }
+.cobro-auto-ultima { margin-top: 1rem; padding: 0.8rem 1rem; border-left: 4px solid var(--color-primario); border-radius: 12px; background: #f4f8fb; }
+.cobro-auto-ultima.ok { border-left-color: #2fae62; background: #f1faf4; }
+.cobro-auto-ultima.error { border-left-color: var(--color-alerta-texto); background: var(--color-alerta-fondo); }
+.cobro-auto-ultima div { margin-top: 0.2rem; color: var(--color-texto-suave); }
+.cobro-auto-espera { margin-top: 1.1rem; padding: 1rem 1.1rem; border: 1px solid #f3d48a; border-radius: 14px; background: #fffaf0; }
+.cobro-auto-espera h3 { display: flex; align-items: center; gap: 0.45rem; margin: 0 0 0.35rem; color: var(--color-aviso-texto); }
+.cobro-auto-espera .pendiente { grid-template-columns: auto 1fr auto; }
+.cobro-auto-historial { margin-top: 1rem; }
+.cobro-auto-historial summary, .operaciones-manuales summary { cursor: pointer; font-weight: 700; color: var(--color-primario); }
+.cobro-auto-historial ul { display: grid; gap: 0.5rem; margin: 0.75rem 0 0; padding: 0; list-style: none; font-size: 0.92rem; }
+.cobro-auto-historial li { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.layout .operaciones-manuales { margin-bottom: 1.5rem; padding: 0.9rem 1.2rem; border: 1px dashed #c9d3dd; border-radius: var(--radio-tarjeta); background: rgba(255, 255, 255, 0.6); }
+.operaciones-manuales p { margin: 0.6rem 0 0; }
+.operaciones-manuales .acciones { margin-top: 0.75rem; }
+@media (max-width: 640px) {
+  .cobro-auto-cabeza { flex-wrap: wrap; }
+  .cobro-auto-espera .pendiente { grid-template-columns: auto 1fr; }
+  .cobro-auto-espera .pendiente .boton { grid-column: 1 / -1; }
+}

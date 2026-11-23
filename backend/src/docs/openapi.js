@@ -497,8 +497,37 @@ El token dura **8 horas**. Tras **5 contraseñas incorrectas** con el mismo corr
     '/admin/finanzas/procesar-cargos': {
       post: {
         tags: ['Admin · Finanzas'], summary: 'Cobro recurrente en la pasarela (HU-13)', security: protegido,
-        description: 'Intenta cobrar cada cuota abierta de los clientes con medio de pago activo. Un **rechazo no registra pago** ni cambia la cuota.',
+        description: 'Intenta cobrar cada cuota abierta de los clientes con medio de pago activo. Un **rechazo no registra pago** ni cambia la cuota. Cada intento queda en `intento_cargo`; las cuotas con un cobro **en espera** en la pasarela se omiten para no cobrar dos veces.',
         responses: { 200: ok('Resultado de los cargos', ref('ResultadoCargos')), ...comunes },
+      },
+    },
+    '/admin/finanzas/cobro-automatico': {
+      get: {
+        tags: ['Admin · Finanzas'], summary: 'Estado del cobro mensual automático (HU-13)', security: protegido,
+        description: 'Si está activo, la hora diaria, si hoy ya se ejecutó, las últimas 5 ejecuciones y los cobros en espera de la pasarela.',
+        responses: { 200: ok('Estado', { type: 'object' }), ...comunes },
+      },
+    },
+    '/admin/finanzas/cobro-automatico/ejecutar': {
+      post: {
+        tags: ['Admin · Finanzas'], summary: 'Ejecutar ahora la tarea diaria de cobro', security: protegido,
+        description: 'Genera las cuotas del mes en curso y cobra las que vencen, aunque hoy ya se haya ejecutado. 409 si otra ejecución está en curso.',
+        responses: { 200: ok('Resumen de la ejecución', { type: 'object' }), 409: { description: 'Ya hay una ejecución en curso', content: json(ref('Error')) }, ...comunes },
+      },
+    },
+    '/admin/finanzas/intentos/{id}/descartar': {
+      post: {
+        tags: ['Admin · Finanzas'], summary: 'Descartar un cobro en espera que no se realizó', security: protegido,
+        description: 'Úsalo solo tras confirmar en el panel de la pasarela que no se cobró: la cuota vuelve a cobrarse en el próximo proceso.',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: { 200: ok('Intento descartado', { type: 'object' }), 404: { description: 'No hay un cobro en espera con ese número', content: json(ref('Error')) }, ...comunes },
+      },
+    },
+    '/tareas/cobro-diario': {
+      post: {
+        tags: ['Sistema'], summary: 'Disparador externo del cobro diario (cron)', security: [],
+        description: 'Existe solo si se define `CRON_SECRET`; se llama con `Authorization: Bearer <CRON_SECRET>`. Es seguro repetirlo: si hoy ya se ejecutó responde `{ "omitida": true }`.',
+        responses: { 200: ok('Resultado o tarea omitida', { type: 'object' }), 401: r401, 404: { description: 'CRON_SECRET no configurado', content: json(ref('Error')) } },
       },
     },
 

@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { pagosDelMes, generarCuotas, procesarCargos } from '../services/adminService.js';
 import { leerToken } from '../../../shared/utils/api.js';
 import Mensaje from '../../../shared/components/Mensaje.jsx';
 import { formatoPesos } from '../../../shared/utils/formato.js';
+import CobroAutomaticoPanel from '../components/CobroAutomaticoPanel.jsx';
 
-const mesActual = () => new Date().toISOString().slice(0, 7);
+// Mes en curso en hora de Chile (toISOString usaría UTC y cambiaría de mes 3-4 horas antes)
+const mesActual = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago', year: 'numeric', month: '2-digit' }).format(new Date());
 
 // Listado mensual de pagos para el contador (HU-06) + operaciones de facturación
 export default function PagosMesPage() {
@@ -53,24 +55,38 @@ export default function PagosMesPage() {
     } catch (err) { setError(err); } finally { setOcupado(false); }
   }
 
+  // El listado del mes en curso se carga al entrar
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { consultar(); }, []);
+
   return (
     <section>
       <h1>Pagos del mes</h1>
 
+      <CobroAutomaticoPanel onEjecutado={consultar} />
+
+      <details className="operaciones-manuales">
+        <summary>Operaciones manuales</summary>
+        <p className="texto-suave">
+          No suelen hacer falta: el cobro automático hace ambas cada día. Sirven para generar las cuotas
+          de otro período o reintentar cobros rechazados hoy.
+        </p>
+        <div className="acciones">
+          <button className="boton secundario" disabled={ocupado} onClick={() => ejecutar('cuotas', () => generarCuotas(periodo))}>
+            Generar cuotas de {periodo}
+          </button>
+          <button className="boton secundario" disabled={ocupado} onClick={() => ejecutar('cargos', procesarCargos)}>
+            Reintentar cargos ahora
+          </button>
+        </div>
+      </details>
+
+      <h2>Pagos recibidos</h2>
       <form className="fila" onSubmit={consultar}>
         <label>Período<input type="month" value={periodo} onChange={(e) => setPeriodo(e.target.value)} required /></label>
         <button type="submit" className="boton">Consultar</button>
         <button type="button" className="boton secundario" onClick={descargarCsv}>Descargar CSV</button>
       </form>
-
-      <div className="acciones">
-        <button className="boton secundario" disabled={ocupado} onClick={() => ejecutar('cuotas', () => generarCuotas(periodo))}>
-          Generar cuotas del período
-        </button>
-        <button className="boton secundario" disabled={ocupado} onClick={() => ejecutar('cargos', procesarCargos)}>
-          Procesar cargos recurrentes
-        </button>
-      </div>
 
       <Mensaje error={error} />
       {aviso && <div className="mensaje-ok" role="status">{aviso}</div>}

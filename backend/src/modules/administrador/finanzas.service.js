@@ -2,6 +2,7 @@ import { pool, query, ZONA_HORARIA } from '../../config/db.js';
 import { HttpError } from '../../shared/utils/httpError.js';
 import * as pasarela from '../pagos/pasarela.service.js';
 import { aplicarReglasDeuda, recalcularEstado } from '../pagos/reglasDeuda.js';
+import { avisarCobroRechazado, enSegundoPlano } from '../notificaciones/correo.service.js';
 
 const PERIODO_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 
@@ -152,15 +153,20 @@ export async function generarCuotas({ periodo }) {
 //     veces la misma cuota en la pasarela, no solo registrarla dos veces).
 //   · Cada cuota se vuelve a leer con bloqueo antes del cargo.
 //   · Un rechazo o un error de la pasarela no registra pago y no detiene el resto del lote.
+//   · Cada intento queda en intento_cargo. Una cuota que la pasarela dejó «pendiente» no se
+//     vuelve a cobrar (evita el cobro doble) hasta que el administrador lo resuelva.
+//   · En modo automático: como máximo un intento por cuota al día, y se deja de insistir
+//     tras MAX_RECHAZOS_AUTOMATICOS rechazos (el cliente recibe aviso para cambiar su tarjeta).
 const LLAVE_CANDADO_CARGOS = 731001;
+export const MAX_RECHAZOS_AUTOMATICOS = 5;
 
-export async function procesarCargos() {
+export async function procesarCargos({ origen = 'manual' } = {}) {
   const guardia = await pool.connect();
   try {
     const { rows: [{ ok }] } = await guardia.query('SELECT pg_try_advisory_lock($1) AS ok', [LLAVE_CANDADO_CARGOS]);
     if (!ok) throw new HttpError(409, 'Ya hay un proceso de cobro en curso. Espera a que termine');
     try {
-      return await ejecutarCargos();
+      return await ejecutarCargos(origen);
     } finally {
       await guardia.query('SELECT pg_advisory_unlock($1)', [LLAVE_CANDADO_CARGOS]);
     }
@@ -169,21 +175,35 @@ export async function procesarCargos() {
   }
 }
 
-async function ejecutarCargos() {
+async function ejecutarCargos(origen) {
+  const automatico = origen === 'automatico';
   const { rows: pendientes } = await query(
     `SELECT cu.id_cuota, cu.monto, cu.periodo, cu.id_suscripcion,
             mp.id_medio_pago, mp.token_pasarela, mp.ultimos_4,
-            c.nombre AS cliente, p.direccion
+            c.id_cliente, c.nombre AS cliente, p.direccion
      FROM cuota cu
      JOIN suscripcion s ON s.id_suscripcion = cu.id_suscripcion AND (s.estado <> 'cancelada' OR cu.estado = 'vencida')
      JOIN planta p  ON p.id_planta = s.id_planta
      JOIN cliente c ON c.id_cliente = p.id_cliente
      JOIN medio_pago mp ON mp.id_cliente = c.id_cliente AND mp.estado = 'activo'
      WHERE cu.estado IN ('pendiente', 'vencida') AND cu.fecha_vencimiento <= CURRENT_DATE
+       -- En espera de la pasarela: cobrarla otra vez podría cobrarla dos veces
+       AND NOT EXISTS (SELECT 1 FROM intento_cargo ic WHERE ic.id_cuota = cu.id_cuota AND ic.resultado = 'pendiente')
+       AND (NOT $1::boolean OR (
+         NOT EXISTS (SELECT 1 FROM intento_cargo ic WHERE ic.id_cuota = cu.id_cuota AND ic.fecha::date = CURRENT_DATE)
+         AND (SELECT count(*) FROM intento_cargo ic WHERE ic.id_cuota = cu.id_cuota AND ic.resultado = 'rechazado') < $2
+       ))
      ORDER BY cu.fecha_vencimiento`,
+    [automatico, MAX_RECHAZOS_AUTOMATICOS],
+  );
+  const { rows: [{ en_espera }] } = await query(
+    `SELECT count(DISTINCT ic.id_cuota)::int AS en_espera FROM intento_cargo ic
+     JOIN cuota cu ON cu.id_cuota = ic.id_cuota AND cu.estado IN ('pendiente', 'vencida')
+     WHERE ic.resultado = 'pendiente'`,
   );
 
-  const resultado = { intentos: pendientes.length, aprobados: 0, rechazados: 0, pendientes: 0, errores: 0, detalle: [] };
+  const resultado = { origen, intentos: pendientes.length, aprobados: 0, rechazados: 0, pendientes: 0, errores: 0, en_espera, detalle: [] };
+  const rechazadosPorCliente = new Map();
 
   for (const cuota of pendientes) {
     let estado;
@@ -225,6 +245,11 @@ async function ejecutarCargos() {
         );
         await recalcularEstado(conexion, cuota.id_suscripcion);
       }
+      await conexion.query(
+        `INSERT INTO intento_cargo (id_cuota, id_medio_pago, monto, resultado, referencia, origen)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [cuota.id_cuota, cuota.id_medio_pago, cuota.monto, estado, referencia, origen],
+      );
       await conexion.query('COMMIT');
     } catch (err) {
       await conexion.query('ROLLBACK');
@@ -235,6 +260,9 @@ async function ejecutarCargos() {
 
     const contador = { aprobado: 'aprobados', rechazado: 'rechazados', pendiente: 'pendientes', error: 'errores' }[estado];
     resultado[contador] += 1;
+    if (estado === 'rechazado') {
+      rechazadosPorCliente.set(cuota.id_cliente, (rechazadosPorCliente.get(cuota.id_cliente) ?? 0) + cuota.monto);
+    }
     resultado.detalle.push({
       cuota: cuota.id_cuota,
       periodo: cuota.periodo,
@@ -246,5 +274,34 @@ async function ejecutarCargos() {
   }
 
   await aplicarReglasDeuda();
+  // Un solo aviso por cliente y ejecución, con el total que no se pudo cobrar
+  for (const [idCliente, monto] of rechazadosPorCliente) enSegundoPlano(avisarCobroRechazado(idCliente, monto));
   return resultado;
+}
+
+// Cobros que la pasarela dejó «pendiente»: el administrador los revisa en el panel de la
+// pasarela y, si no se cobraron, los descarta para que la cuota se pueda cobrar de nuevo.
+export async function cobrosEnEspera() {
+  const { rows } = await query(
+    `SELECT ic.id_intento, ic.fecha, ic.monto, ic.referencia, cu.id_cuota, cu.periodo,
+            c.nombre AS cliente, p.direccion
+     FROM intento_cargo ic
+     JOIN cuota cu ON cu.id_cuota = ic.id_cuota AND cu.estado IN ('pendiente', 'vencida')
+     JOIN suscripcion s ON s.id_suscripcion = cu.id_suscripcion
+     JOIN planta p ON p.id_planta = s.id_planta
+     JOIN cliente c ON c.id_cliente = p.id_cliente
+     WHERE ic.resultado = 'pendiente'
+     ORDER BY ic.fecha`,
+  );
+  return rows;
+}
+
+export async function descartarIntento(idIntento) {
+  const { rows } = await query(
+    `UPDATE intento_cargo SET resultado = 'descartado'
+     WHERE id_intento = $1 AND resultado = 'pendiente' RETURNING id_intento`,
+    [idIntento],
+  );
+  if (!rows.length) throw new HttpError(404, 'No hay un cobro en espera con ese número');
+  return { mensaje: 'Intento descartado: la cuota se volverá a cobrar en el próximo proceso' };
 }
