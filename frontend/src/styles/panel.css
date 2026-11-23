@@ -415,3 +415,9 @@ label.ver-contrasena { flex-direction: row; align-items: center; gap: 0.5rem; fo
   .cobro-auto-espera .pendiente { grid-template-columns: auto 1fr; }
   .cobro-auto-espera .pendiente .boton { grid-column: 1 / -1; }
 }
+
+/* ============================== Correos */
+.celda-sub { display: block; margin-top: 0.15rem; color: var(--color-texto-suave); font-size: 0.82rem; font-weight: 400; }
+.lista-advertencias { margin: 0 0 1rem; padding: 0.75rem 1rem 0.75rem 2rem; border-radius: 12px; background: var(--color-alerta-fondo); color: var(--color-alerta-texto); font-weight: 600; font-size: 0.93rem; }
+.lista-advertencias li + li { margin-top: 0.3rem; }
+@media (max-width: 760px) { .layout .tabla td .celda-sub { text-align: right; } }

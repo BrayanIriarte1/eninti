@@ -105,6 +105,13 @@ el trabajador a su agenda y el cliente a Mi Cuenta.
   terminal del backend.
 - Requiere la migración `007_recuperar_contrasena.sql` (la aplica `npm run db:init`).
 
+## Correo
+
+Por defecto (`MAIL_MODE=consola`) los avisos solo aparecen en la terminal del backend.
+Para enviarlos de verdad con Brevo (gratis, sin dominio propio) sigue
+**[docs/CORREO.md](docs/CORREO.md)**. El administrador ve la configuración, la bitácora de
+avisos y un botón de **correo de prueba** en *Sistema → Correos*.
+
 ## Cobro mensual automático (HU-13)
 
 Cada día, desde las 9:00 (hora de Chile), la API genera las cuotas del mes en curso y cobra

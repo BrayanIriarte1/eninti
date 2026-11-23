@@ -98,11 +98,11 @@ export async function solicitar(email) {
       motivo: 'recuperar_contrasena',
       lineas: [
         `Hola ${usuario.nombre.split(' ')[0]}:`,
-        'Recibimos una solicitud para restablecer la contraseña de tu cuenta ENINTI. Abre este enlace para crear una nueva:',
-        `${process.env.APP_URL ?? ''}/restablecer?token=${token}`,
+        'Recibimos una solicitud para restablecer la contraseña de tu cuenta ENINTI. Usa el botón para crear una nueva.',
         `El enlace vence en ${VIGENCIA_MIN} minutos y sirve una sola vez.`,
         'Si no lo pediste, ignora este correo: tu contraseña no cambiará.',
       ],
+      accion: { texto: 'Crear contraseña nueva', url: `${process.env.APP_URL ?? ''}/restablecer?token=${token}` },
     }));
   }
   return RESPUESTA_RECUPERAR;

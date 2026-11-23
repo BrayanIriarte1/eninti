@@ -26,7 +26,10 @@ const MENU = {
       ['/admin/pagos', 'Pagos del mes', 'pagos'],
       ['/admin/catalogo', 'Catálogo', 'catalogo'],
     ] },
-    { grupo: 'Mi cuenta', items: [['/admin/seguridad', 'Seguridad', 'candado']] },
+    { grupo: 'Sistema', items: [
+      ['/admin/correos', 'Correos', 'correo'],
+      ['/admin/seguridad', 'Seguridad', 'candado'],
+    ] },
   ],
   trabajador: [
     { grupo: null, items: [
