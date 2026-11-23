@@ -27,11 +27,16 @@ export async function autenticar(req, _res, next) {
   }
 
   const { rows } = await query(
-    'SELECT id_usuario, nombre, rol, activo FROM usuario WHERE id_usuario = $1',
+    'SELECT id_usuario, nombre, rol, activo, password_actualizado FROM usuario WHERE id_usuario = $1',
     [datos.id],
   );
   if (!rows.length || !rows[0].activo) throw new HttpError(401, 'La cuenta no está activa');
   if (rows[0].rol !== datos.rol) throw new HttpError(401, 'Token inválido o expirado');
+  // Cambiar o restablecer la contraseña cierra las sesiones abiertas antes de ese momento
+  const cambio = rows[0].password_actualizado;
+  if (cambio && datos.iat < Math.floor(new Date(cambio).getTime() / 1000)) {
+    throw new HttpError(401, 'Tu contraseña cambió. Inicia sesión de nuevo');
+  }
 
   req.usuario = { id: rows[0].id_usuario, rol: rows[0].rol, nombre: rows[0].nombre };
   next();

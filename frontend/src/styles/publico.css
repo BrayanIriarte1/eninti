@@ -439,3 +439,22 @@
   .cuadro-luz, .pub-portada, .sol-campos, .sol-revision, .sol-exito-icono, .cot-lineas li { animation: none; }
   .cot-servicio, .con-canal, .pub-boton, .con-accion .pub-icono { transition: none; }
 }
+
+/* ---------- Recuperar y restablecer contraseña: el cuadro del login, solo y centrado */
+.acceso-cuadro { align-self: center; width: min(100%, 460px); margin: clamp(0rem, 4vh, 2.5rem) auto 0; }
+.acceso-caja { padding: clamp(1.5rem, 4vw, 2.4rem); }
+.acceso-logo { display: block; margin: 0 auto 0.6rem; }
+.acceso-caja h1 { margin: 0; text-align: center; font-family: var(--fuente-titulo); font-size: 1.75rem; letter-spacing: -0.01em; }
+.acceso-indicacion { margin: 0.35rem 0 1.4rem; text-align: center; color: var(--color-texto-suave); }
+.acceso-caja .acceso-pie { margin: 1.25rem 0 0; text-align: center; }
+.acceso-caja .acceso-pie a { display: inline-flex; align-items: center; gap: 0.35rem; font-weight: 700; }
+.acceso-nota { margin: 0.75rem 0 0; color: var(--color-texto-suave); font-size: 0.92rem; text-align: center; }
+.acceso-caja a:focus-visible { outline-color: var(--color-primario); }
+.acceso-exito { display: flex; flex-direction: column; align-items: center; gap: 0.8rem; text-align: center; }
+.acceso-exito p { margin: 0; color: var(--color-texto-suave); }
+.acceso-exito .login-entrar { margin-top: 0.4rem; }
+.acceso-exito .sol-exito-icono { margin-bottom: 0.25rem; }
+.acceso-caja .cargando { justify-content: center; }
+/* Ícono dentro del campo, igual que en el login */
+.login-campo > .pub-icono { position: absolute; left: 0.9rem; color: var(--color-texto-suave); pointer-events: none; }
+.login-campo:focus-within > .pub-icono { color: var(--color-primario); }

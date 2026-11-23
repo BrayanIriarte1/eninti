@@ -5,6 +5,9 @@ import RutaProtegida from '../shared/components/RutaProtegida.jsx';
 import Layout from '../shared/layouts/Layout.jsx';
 
 import LoginPage from '../modules/auth/pages/LoginPage.jsx';
+import RecuperarPage from '../modules/auth/pages/RecuperarPage.jsx';
+import RestablecerPage from '../modules/auth/pages/RestablecerPage.jsx';
+const SeguridadPage = lazy(() => import('../shared/components/SeguridadPage.jsx'));
 import SolicitarCuentaPage from '../modules/publico/pages/SolicitarCuentaPage.jsx';
 import CotizadorPage from '../modules/publico/pages/CotizadorPage.jsx';
 import ContactoPage from '../modules/publico/pages/ContactoPage.jsx';
@@ -51,6 +54,8 @@ export default function AppRoutes() {
     <Routes>
       <Route path="/" element={<Raiz />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/recuperar" element={<RecuperarPage />} />
+      <Route path="/restablecer" element={<RestablecerPage />} />
       <Route path="/solicitar-cuenta" element={<SolicitarCuentaPage />} />
       <Route path="/registro" element={<Navigate to="/solicitar-cuenta" replace />} />
       <Route path="/cotizador" element={<CotizadorPage />} />
@@ -75,6 +80,7 @@ export default function AppRoutes() {
           <Route path="impagos" element={<ImpagosPage />} />
           <Route path="pagos" element={<PagosMesPage />} />
           <Route path="catalogo" element={<CatalogoPage />} />
+          <Route path="seguridad" element={<SeguridadPage />} />
         </Route>
       </Route>
 
@@ -84,6 +90,7 @@ export default function AppRoutes() {
           <Route index element={<Navigate to="agenda" replace />} />
           <Route path="agenda" element={<AgendaPage />} />
           <Route path="ordenes/:id" element={<OrdenPage />} />
+          <Route path="seguridad" element={<SeguridadPage />} />
         </Route>
       </Route>
 

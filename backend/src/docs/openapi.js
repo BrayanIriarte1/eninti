@@ -66,7 +66,7 @@ El token dura **8 horas**. Tras **5 contraseñas incorrectas** con el mismo corr
   servers: [{ url: '/api', description: 'Servidor actual' }],
   tags: [
     { name: 'Sistema', description: 'Estado del servicio' },
-    { name: 'Autenticación', description: 'Inicio de sesión (HU-07). No hay autorregistro: la cuenta del cliente la crea el administrador' },
+    { name: 'Autenticación', description: 'Inicio de sesión, cambio y recuperación de contraseña (HU-07). No hay autorregistro: la cuenta del cliente la crea el administrador' },
     { name: 'Público', description: 'Sin sesión: cotizador, solicitud de cuenta y retorno de la pasarela simulada' },
     { name: 'Cliente', description: 'Perfil **cliente**: cuenta, plantas, mantenciones y solicitudes (HU-08 a HU-13)' },
     { name: 'Trabajador', description: 'Perfil **trabajador**: agenda y órdenes de trabajo (HU-05, HU-14, HU-16)' },
@@ -106,6 +106,40 @@ El token dura **8 horas**. Tras **5 contraseñas incorrectas** con el mismo corr
       get: {
         tags: ['Autenticación'], summary: 'Perfil del usuario autenticado', security: protegido,
         responses: { 200: ok('Perfil', ref('Perfil')), 401: r401 },
+      },
+    },
+    '/auth/cambiar-contrasena': {
+      post: {
+        tags: ['Autenticación'], summary: 'Cambiar la contraseña (cualquier rol)', security: protegido,
+        description: 'Exige la contraseña actual. La nueva debe tener 8 a 128 caracteres y combinar letras y números. Devuelve un token nuevo: esta sesión sigue abierta y las demás se cierran. Avisa por correo.',
+        requestBody: cuerpo({ type: 'object', required: ['actual', 'nueva'], properties: { actual: { type: 'string' }, nueva: { type: 'string' } } }, { actual: 'Admin.2026', nueva: 'NuevaClave2026' }),
+        responses: {
+          200: ok('Contraseña actualizada', { type: 'object', properties: { mensaje: { type: 'string' }, token: { type: 'string' } } }),
+          400: r400, 401: r401,
+        },
+      },
+    },
+    '/auth/recuperar': {
+      post: {
+        tags: ['Autenticación'], summary: 'Pedir un enlace para restablecer la contraseña', security: [],
+        description: 'Responde siempre lo mismo, exista o no el correo. Si hay una cuenta activa, envía un enlace de un solo uso que vence en 1 hora. Máximo 5 pedidos cada 15 minutos por IP.',
+        requestBody: cuerpo({ type: 'object', required: ['email'], properties: { email: { type: 'string', format: 'email' } } }, { email: 'maria.gonzalez@ejemplo.cl' }),
+        responses: { 200: ok('Pedido recibido', { type: 'object', properties: { mensaje: { type: 'string' } } }), 400: r400, 429: { description: 'Demasiados pedidos', content: json(ref('Error')) } },
+      },
+    },
+    '/auth/restablecer/verificar': {
+      post: {
+        tags: ['Autenticación'], summary: 'Revisar si un enlace de recuperación sigue vigente', security: [],
+        requestBody: cuerpo({ type: 'object', required: ['token'], properties: { token: { type: 'string' } } }),
+        responses: { 200: ok('Resultado', { type: 'object', properties: { valido: { type: 'boolean' }, email: { type: 'string', description: 'Correo parcialmente oculto' } } }) },
+      },
+    },
+    '/auth/restablecer': {
+      post: {
+        tags: ['Autenticación'], summary: 'Crear la contraseña nueva con el enlace', security: [],
+        description: 'Marca el enlace como usado, cierra las sesiones abiertas, levanta el bloqueo por intentos fallidos y avisa por correo.',
+        requestBody: cuerpo({ type: 'object', required: ['token', 'nueva'], properties: { token: { type: 'string' }, nueva: { type: 'string' } } }),
+        responses: { 200: ok('Contraseña restablecida', { type: 'object', properties: { mensaje: { type: 'string' } } }), 400: r400 },
       },
     },
 

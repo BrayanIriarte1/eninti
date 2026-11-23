@@ -354,3 +354,26 @@ label:has(> .opcional) > .telefono { display: flex; }
   font-size: 0.92rem;
   font-weight: 600;
 }
+
+/* ============================== Formulario de contraseña (cambiar y restablecer) */
+.requisitos { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: -0.4rem 0 0; padding: 0; list-style: none; }
+.requisitos li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  background: var(--color-neutro-fondo);
+  color: var(--color-neutro-texto);
+  font-size: 0.82rem;
+  font-weight: 600;
+  transition: background 0.2s, color 0.2s;
+}
+.requisitos li::before { content: '○'; font-size: 0.8rem; }
+.requisitos li.cumple { background: var(--color-ok-fondo); color: var(--color-ok-texto); }
+.requisitos li.cumple::before { content: '✓'; }
+label.ver-contrasena { flex-direction: row; align-items: center; gap: 0.5rem; font-weight: 500; cursor: pointer; }
+.form-contrasena button[type='submit'] { align-self: flex-start; }
+.form-contrasena .login-entrar { align-self: stretch; }
+.tarjeta-contrasena h2 { display: flex; align-items: center; gap: 0.5rem; }
+.tarjeta-contrasena h2 svg { color: var(--color-primario); }

@@ -26,9 +26,13 @@ const MENU = {
       ['/admin/pagos', 'Pagos del mes', 'pagos'],
       ['/admin/catalogo', 'Catálogo', 'catalogo'],
     ] },
+    { grupo: 'Mi cuenta', items: [['/admin/seguridad', 'Seguridad', 'candado']] },
   ],
   trabajador: [
-    { grupo: null, items: [['/trabajador/agenda', 'Mi agenda', 'agenda']] },
+    { grupo: null, items: [
+      ['/trabajador/agenda', 'Mi agenda', 'agenda'],
+      ['/trabajador/seguridad', 'Seguridad', 'candado'],
+    ] },
   ],
   cliente: [
     { grupo: null, items: [
