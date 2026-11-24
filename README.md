@@ -168,6 +168,7 @@ ENINTI/
 - [docs/GUIA_DEL_CODIGO.md](docs/GUIA_DEL_CODIGO.md) — guía completa para entender el código: arquitectura, base de datos, backend, frontend, flujos, seguridad y trazabilidad de cada historia de usuario.
 - [docs/GUIA_INICIO.md](docs/GUIA_INICIO.md) — instalación paso a paso, inicio manual de los servidores y solución de problemas.
 - [docs/GUIA_OTRO_PC_Y_GITHUB.md](docs/GUIA_OTRO_PC_Y_GITHUB.md) — abrir el proyecto en otro PC y flujo de Git/GitHub (clonar, ramas, commit, push, Pull Request).
+- [docs/RENDER.md](docs/RENDER.md) — publicar el proyecto en Render con la base en Neon.
 - [docs/MANUAL.md](docs/MANUAL.md) — manual de uso por perfil y resumen de la API.
 - **Documentación interactiva de la API (Swagger UI):** con los servidores arriba, abre
   http://localhost:5174/api/docs (o http://localhost:3001/api/docs). Documenta los 51 endpoints, con
@@ -182,16 +183,17 @@ ENINTI/
 | Equipo 2 | Branyan Espinoza, Jeremy Herrera, Rachel Díaz | Trabajador |
 | Conjunto | Ambos equipos | Administrador, autenticación, pagos y base de datos |
 
-## Despliegue de demostración (Render + Neon)
+## Publicar en Render + Neon
+
+Guía paso a paso en [docs/RENDER.md](docs/RENDER.md). En resumen:
 
 1. Crea la base en Neon y copia la cadena de conexión **directa** (no la *pooled*) con `?sslmode=require`.
-2. Inicializa la base desde tu PC: en `backend/.env` pon esa `DATABASE_URL` y ejecuta `npm run db:init --prefix backend`.
-3. En Render crea el servicio desde este repositorio con el Blueprint `render.yaml` (o a mano: build `npm run build`, start `npm start`, Node 22).
-4. Completa en Render las variables `DATABASE_URL` y `APP_URL` (la URL pública del servicio, p. ej. `https://eninti.onrender.com`).
-5. Un solo dominio sirve la API (`/api`), la documentación (`/api/docs`) y el frontend compilado.
+2. En Render: **New → Blueprint** con este repositorio (`render.yaml`) y completa `DATABASE_URL` y `APP_URL`.
+3. Al arrancar, el servicio aplica las migraciones y, si la base está vacía, carga los datos de prueba: no hay que inicializar la base a mano.
+4. Entra como administrador y **cambia las contraseñas de prueba** (son públicas en este README); el registro de Render lo advierte mientras sigan iguales.
 
+Un solo dominio sirve la API (`/api`), la documentación (`/api/docs`) y el frontend compilado.
 Variables opcionales: `FLOW_MODE=sandbox` + `FLOW_API_KEY` / `FLOW_SECRET_KEY` (pasarela real de pruebas),
-`MAIL_MODE=brevo|resend` + `MAIL_API_KEY` / `MAIL_FROM` (correos de aviso). Sin ellas, la pasarela es simulada
-y los correos se muestran en el registro del servidor.
+`MAIL_MODE=brevo|resend` + `MAIL_API_KEY` / `MAIL_FROM` (correos de aviso).
 
 Respaldo: `npm run db:respaldo --prefix backend` (requiere `pg_dump`) crea `respaldos/eninti-<fecha>.sql` y conserva 14 días.
