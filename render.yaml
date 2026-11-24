@@ -8,7 +8,8 @@ services:
     runtime: node
     plan: free
     buildCommand: npm run build
-    startCommand: npm start
+    # Antes de arrancar aplica las migraciones nuevas (y en una base vacía, los datos de prueba)
+    startCommand: npm run db:init --prefix backend && npm start
     healthCheckPath: /api/health
     envVars:
       - key: NODE_VERSION
