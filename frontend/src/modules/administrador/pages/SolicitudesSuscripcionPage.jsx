@@ -1,3 +1,10 @@
+// ============================================================================
+// PANTALLA: Suscripciones solicitadas · URL /admin/solicitudes-suscripcion · Rol: administrador
+// Casos de uso: CU-28
+// Datos: listar/aprobar/rechazarSolicitudSuscripcion() → solicitudesCliente.service.js
+// Patrón: useState (datos/error) → cargar() pide a la API → render. Tras guardar, se vuelve a cargar().
+// Los textos que ves en pantalla están en el JSX de abajo; las reglas están en el backend.
+// ============================================================================
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { listarSolicitudesSuscripcion, aprobarSolicitudSuscripcion, rechazarSolicitudSuscripcion } from '../services/adminService.js';
@@ -12,6 +19,7 @@ const ESTADO = {
   rechazada: { texto: 'Rechazada', clase: 'alerta' },
 };
 
+// [CU-28] Formulario para aprobar (cuota, día de cobro, inicio) o rechazar.
 function Resolver({ solicitud, onListo }) {
   const [modo, setModo] = useState(null); // 'aprobar' | 'rechazar'
   const [monto, setMonto] = useState(String(solicitud.anterior?.monto_mensual ?? ''));

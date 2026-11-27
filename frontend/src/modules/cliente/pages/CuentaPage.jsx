@@ -1,3 +1,10 @@
+// ============================================================================
+// PANTALLA: Mi cuenta · URL /cliente/cuenta · Rol: cliente
+// Casos de uso: CU-04 estado de cuenta · CU-08 cancelar · CU-09 inscribir tarjeta («include» condiciones) · CU-24 pedir suscripción
+// Datos: clienteService.miCuenta() → GET /api/cliente/cuenta → cliente.service.js · cuenta()
+// Patrón: useState (datos/error) → cargar() pide a la API → render. Tras guardar, se vuelve a cargar().
+// Los textos que ves en pantalla están en el JSX de abajo; las reglas están en el backend.
+// ============================================================================
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { miCuenta, cancelarSuscripcion, iniciarInscripcion, solicitarSuscripcion } from '../services/clienteService.js';
@@ -7,6 +14,7 @@ import ArcoSolar, { saludo } from '../../../shared/components/ArcoSolar.jsx';
 import Icono from '../../../shared/components/Icono.jsx';
 import { useAuth } from '../../../shared/context/AuthContext.jsx';
 import { formatoPesos, formatoFecha } from '../../../shared/utils/formato.js';
+import AceptarCondiciones from '../components/AceptarCondiciones.jsx';
 
 const MOTIVO_CANCELACION = {
   cliente: 'La cancelaste tú',
@@ -14,6 +22,7 @@ const MOTIVO_CANCELACION = {
   administrador: 'La canceló la administración',
 };
 
+// [CU-24]
 // Pedir una suscripción para una planta: solo el administrador la otorga
 function PedirSuscripcion({ planta, onEnviada }) {
   const [abierto, setAbierto] = useState(false);
@@ -62,18 +71,23 @@ export default function CuentaPage() {
   const [datos, setDatos] = useState(null);
   const [error, setError] = useState(null);
   const [accion, setAccion] = useState(null); // id de suscripción en proceso
+  const [condicionesPara, setCondicionesPara] = useState(null); // id de suscripción con las condiciones abiertas
   const resultadoInscripcion = params.get('inscripcion');
 
+  // Pide todos los datos de «Mi cuenta» (se llama al entrar y después de cada acción).
   const cargar = useCallback(() => miCuenta().then(setDatos).catch(setError), []);
   useEffect(() => { cargar(); }, [cargar]);
 
-  async function inscribir(idSuscripcion) {
+  // CU-09 Inscribir medio de pago. Solo se llama DESPUÉS de que el cliente marcó
+  // «Acepto» en <AceptarCondiciones> («include» Aceptar condiciones, RF-19).
+  // El backend registra la aceptación y responde con la URL de la pasarela.
+  async function inscribir(idSuscripcion, versionAceptada) {
     setAccion(idSuscripcion);
     setError(null);
     try {
       const { url_pasarela } = await iniciarInscripcion(idSuscripcion, {
         acepta_condiciones: true,
-        version_condiciones: '1.0',
+        version_condiciones: versionAceptada,
       });
       // En modo simulado la URL es una ruta interna; en sandbox sería del proveedor
       if (url_pasarela.startsWith('/')) navigate(url_pasarela);
@@ -84,6 +98,7 @@ export default function CuentaPage() {
     }
   }
 
+  // CU-08 Cancelar suscripción: pide confirmación y el backend la cancela de forma definitiva
   async function cancelar(idSuscripcion) {
     if (!window.confirm('¿Cancelar esta suscripción? Para volver a tenerla deberás enviar una nueva solicitud a la administración.')) return;
     setAccion(idSuscripcion);
@@ -172,16 +187,26 @@ export default function CuentaPage() {
               <div><dt>Meses pagados</dt><dd>{s.meses_pagados}</dd></div>
               <div><dt>Cuotas vencidas</dt><dd>{s.cuotas_vencidas}</dd></div>
             </dl>
-            <div className="acciones">
-              {!medio_pago && (
-                <button className="boton" disabled={accion === s.id_suscripcion} onClick={() => inscribir(s.id_suscripcion)}>
-                  {tarjetaRechazada ? 'Inscribir otra tarjeta' : 'Inscribir medio de pago'}
+            {condicionesPara === s.id_suscripcion ? (
+              // Paso 1 de CU-09: leer y aceptar las condiciones antes de ir a la pasarela
+              <AceptarCondiciones
+                suscripcion={s}
+                enviando={accion === s.id_suscripcion}
+                onAceptar={(version) => inscribir(s.id_suscripcion, version)}
+                onCancelar={() => setCondicionesPara(null)}
+              />
+            ) : (
+              <div className="acciones">
+                {!medio_pago && (
+                  <button className="boton" disabled={accion === s.id_suscripcion} onClick={() => setCondicionesPara(s.id_suscripcion)}>
+                    {tarjetaRechazada ? 'Inscribir otra tarjeta' : 'Inscribir medio de pago'}
+                  </button>
+                )}
+                <button className="boton peligro" disabled={accion === s.id_suscripcion} onClick={() => cancelar(s.id_suscripcion)}>
+                  Cancelar suscripción
                 </button>
-              )}
-              <button className="boton peligro" disabled={accion === s.id_suscripcion} onClick={() => cancelar(s.id_suscripcion)}>
-                Cancelar suscripción
-              </button>
-            </div>
+              </div>
+            )}
           </article>
         ))}
 

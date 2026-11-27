@@ -1,3 +1,10 @@
+// ============================================================================
+// PANTALLA: Inicio del panel · URL /admin · Rol: administrador
+// Casos de uso: resumen de CU-13, CU-16, CU-17, CU-18, CU-28, CU-29
+// Datos: varias funciones listar…() de adminService.js (solo lectura, para los indicadores)
+// Patrón: useState (datos/error) → cargar() pide a la API → render. Tras guardar, se vuelve a cargar().
+// Los textos que ves en pantalla están en el JSX de abajo; las reglas están en el backend.
+// ============================================================================
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {

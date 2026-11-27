@@ -1,3 +1,5 @@
+// CAPA SERVICIO · Solicitudes del cliente que resuelve el administrador:
+// suscripción nueva (CU-28) y cambio de correo/teléfono (CU-29).
 import { pool, query } from '../../config/db.js';
 import { HttpError } from '../../shared/utils/httpError.js';
 
@@ -30,6 +32,7 @@ async function enTransaccion(fn) {
 // Solo el administrador otorga suscripciones. Ve la deuda pendiente del cliente y la
 // suscripción anterior para decidir o llegar a un acuerdo antes de aceptar.
 
+// [CU-28] Incluye la deuda del cliente y su suscripción anterior para decidir.
 export async function listarSuscripciones(estado) {
   validarEstado(estado);
   const { rows } = await query(
@@ -55,6 +58,7 @@ export async function listarSuscripciones(estado) {
   return rows;
 }
 
+// [CU-28] Crea la suscripción con la cuota, día de cobro y fecha que fija el administrador.
 export async function aprobarSuscripcion(id, idAdmin, { monto_mensual, dia_cobro, fecha_inicio, respuesta }) {
   const errores = [];
   if (!Number.isInteger(monto_mensual) || monto_mensual <= 0) errores.push('monto_mensual debe ser un entero mayor a 0');
@@ -97,6 +101,7 @@ export async function aprobarSuscripcion(id, idAdmin, { monto_mensual, dia_cobro
   });
 }
 
+// [CU-28] La respuesta queda visible para el cliente.
 export async function rechazarSuscripcion(id, idAdmin, { respuesta }) {
   const motivo = texto(respuesta);
   if (!motivo) throw new HttpError(400, 'Indica al cliente el motivo o el acuerdo pendiente');
@@ -113,6 +118,7 @@ export async function rechazarSuscripcion(id, idAdmin, { respuesta }) {
 
 // ============================================================ Cambios de datos del cliente
 
+// [CU-29]
 export async function listarCambiosDatos(estado) {
   validarEstado(estado);
   const { rows } = await query(
@@ -129,6 +135,7 @@ export async function listarCambiosDatos(estado) {
   return rows;
 }
 
+// [CU-29]
 // Aplica el nuevo correo (cuenta web) y el nuevo teléfono (ficha y cuenta) en una transacción
 export async function aprobarCambioDatos(id, idAdmin, { respuesta }) {
   return enTransaccion(async (conexion) => {
@@ -164,6 +171,7 @@ export async function aprobarCambioDatos(id, idAdmin, { respuesta }) {
   });
 }
 
+// [CU-29] La respuesta (motivo) es obligatoria y la ve el cliente.
 export async function rechazarCambioDatos(id, idAdmin, { respuesta }) {
   const motivo = texto(respuesta);
   if (!motivo) throw new HttpError(400, 'Indica al cliente el motivo del rechazo');

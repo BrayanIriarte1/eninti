@@ -442,3 +442,12 @@ label.ver-contrasena { flex-direction: row; align-items: center; gap: 0.5rem; fo
 .dialogo-caja .mensaje-error { margin: 0; }
 .dialogo-acciones { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.6rem; margin-top: 0.25rem; }
 @media (max-width: 480px) { .dialogo-acciones .boton { flex: 1 1 100%; } }
+
+/* CU-09 · Condiciones del servicio antes de inscribir el medio de pago */
+.condiciones { border-top: 1px solid var(--color-borde); padding-top: 1rem; }
+.condiciones-texto {
+  max-height: 14rem; overflow-y: auto; margin: 0; padding: 0.75rem 0.75rem 0.75rem 2rem;
+  background: var(--color-fondo); border: 1px solid var(--color-borde); border-radius: var(--radio, 8px);
+  font-size: 0.95rem; line-height: 1.5;
+}
+.condiciones-texto li + li { margin-top: 0.4rem; }

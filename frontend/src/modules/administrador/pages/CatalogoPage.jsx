@@ -1,3 +1,10 @@
+// ============================================================================
+// PANTALLA: Catálogo · URL /admin/catalogo · Rol: administrador
+// Casos de uso: CU-21
+// Datos: listarCatalogo(), crearServicio(), actualizarServicio() → catalogo.service.js
+// Patrón: useState (datos/error) → cargar() pide a la API → render. Tras guardar, se vuelve a cargar().
+// Los textos que ves en pantalla están en el JSX de abajo; las reglas están en el backend.
+// ============================================================================
 import { useCallback, useEffect, useState } from 'react';
 import { listarCatalogo, crearServicio, actualizarServicio } from '../services/adminService.js';
 import Mensaje from '../../../shared/components/Mensaje.jsx';
@@ -17,6 +24,7 @@ export default function CatalogoPage() {
 
   const cambiar = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
+  // [CU-21]
   async function crear(e) {
     e.preventDefault();
     setEnviando(true);
@@ -28,6 +36,7 @@ export default function CatalogoPage() {
     } catch (err) { setError(err); } finally { setEnviando(false); }
   }
 
+  // [CU-21] Activa/oculta el ítem en el cotizador.
   async function alternar(item) {
     try { await actualizarServicio(item.id_item, { activo: !item.activo }); await cargar(); } catch (err) { setError(err); }
   }

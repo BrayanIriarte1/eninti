@@ -1,3 +1,5 @@
+// MÁQUINA DE ESTADOS DE UNA ORDEN (CU-11, CU-12, CU-23, CU-30, CU-31).
+// Para permitir/prohibir un cambio de estado, edita TRANSICIONES (y corre npm test --prefix backend).
 // Transiciones de estado permitidas para una orden de mantención (HU-16).
 // El técnico termina la visita con fotos y la orden queda 'por_confirmar'; el cliente
 // confirma (→ finalizada) o informa que el problema sigue (→ vuelve a en_curso).

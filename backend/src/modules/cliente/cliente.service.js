@@ -1,3 +1,6 @@
+// CAPA SERVICIO · Portal del cliente (CU-04 a CU-09, CU-23 a CU-25).
+// Reglas de negocio + SQL parametrizado ($1, $2…). Lanza HttpError(status, mensaje) ante datos inválidos.
+// REGLA DE ORO: toda función parte de fichaCliente(idUsuario) → el cliente solo ve SUS datos (lo ajeno = 404).
 import { pool, query } from '../../config/db.js';
 import { HttpError } from '../../shared/utils/httpError.js';
 import * as pasarela from '../pagos/pasarela.service.js';
@@ -10,6 +13,7 @@ import { telefonoValido } from '../../shared/utils/rut.js';
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const texto = (v) => (typeof v === 'string' ? v.trim() : '');
 
+// [Seguridad] Usuario del token → su ficha de cliente. Base de TODAS las funciones de este archivo.
 // Resuelve la ficha de cliente del usuario autenticado. Toda consulta del módulo
 // parte de aquí: un cliente solo ve sus propios datos (frontera de confianza).
 async function fichaCliente(idUsuario) {
@@ -18,6 +22,7 @@ async function fichaCliente(idUsuario) {
   return rows[0];
 }
 
+// [CU-06] Plantas del cliente con su suscripción vigente (o null).
 // Mis plantas con su suscripción vigente (HU-10)
 export async function misPlantas(idUsuario) {
   const cliente = await fichaCliente(idUsuario);
@@ -38,6 +43,7 @@ export async function misPlantas(idUsuario) {
   return rows;
 }
 
+// [CU-06] Reutiliza misPlantas(): si la planta no está en la lista del cliente → 404.
 // Ficha técnica de una planta propia; un id ajeno responde 404 (HU-10)
 export async function obtenerPlanta(idUsuario, idPlanta) {
   const plantas = await misPlantas(idUsuario);
@@ -46,6 +52,7 @@ export async function obtenerPlanta(idUsuario, idPlanta) {
   return planta;
 }
 
+// [CU-04] Arma todo lo que muestra «Mi cuenta». Para cambiar cuántos pagos se ven: LIMIT 50.
 // Mi Cuenta: meses pagados, deuda vigente e historial de pagos (HU-08)
 export async function cuenta(idUsuario) {
   const cliente = await fichaCliente(idUsuario);
@@ -128,6 +135,7 @@ export async function cuenta(idUsuario) {
   };
 }
 
+// [CU-05] Por cada planta: última finalizada y próxima abierta.
 // Última mantención finalizada y próxima programada por planta (HU-09)
 export async function mantenciones(idUsuario) {
   const cliente = await fichaCliente(idUsuario);
@@ -150,6 +158,7 @@ export async function mantenciones(idUsuario) {
   return rows;
 }
 
+// [CU-07] Validaciones del motivo aquí (ej. largo mínimo).
 // Solicitud de mantención (HU-11): queda pendiente y visible para el administrador
 export async function crearSolicitud(idUsuario, { id_planta, motivo }) {
   if (!Number.isInteger(id_planta) || id_planta <= 0) throw new HttpError(400, 'id_planta inválido');
@@ -165,6 +174,7 @@ export async function crearSolicitud(idUsuario, { id_planta, motivo }) {
   return rows[0];
 }
 
+// [CU-07] Historial de solicitudes de mantención del cliente.
 export async function misSolicitudes(idUsuario) {
   const cliente = await fichaCliente(idUsuario);
   const { rows } = await query(
@@ -178,6 +188,7 @@ export async function misSolicitudes(idUsuario) {
   return rows;
 }
 
+// [CU-08]
 // Cancelación en dos pasos desde la interfaz (HU-12): es definitiva y registra fecha y motivo.
 // Para volver a suscribirse, el cliente envía una solicitud que el administrador acepta.
 export async function cancelarSuscripcion(idUsuario, idSuscripcion) {
@@ -199,6 +210,7 @@ export async function cancelarSuscripcion(idUsuario, idSuscripcion) {
   });
 }
 
+// [CU-09] Sin acepta_condiciones === true responde 400 («include» Aceptar condiciones, RF-19).
 // Aceptar condiciones e inscribir el medio de pago en la pasarela (HU-13, RF-19).
 // Guarda la aceptación con fecha e IP y devuelve la URL de la pasarela.
 export async function iniciarInscripcion(idUsuario, idSuscripcion, { acepta_condiciones, version_condiciones }, ip) {
@@ -244,6 +256,7 @@ export async function iniciarInscripcion(idUsuario, idSuscripcion, { acepta_cond
 
 // ------------------------------------------------------------ Cierre de órdenes
 
+// [CU-23]
 // Órdenes terminadas por el técnico que esperan la confirmación del cliente, con sus fotos
 export async function ordenesPorConfirmar(idUsuario) {
   const cliente = await fichaCliente(idUsuario);
@@ -263,6 +276,7 @@ export async function ordenesPorConfirmar(idUsuario) {
   return rows;
 }
 
+// [CU-23]
 // El cliente cierra la orden: si el problema quedó resuelto pasa a 'finalizada';
 // si no, vuelve a 'en_curso' para que el técnico regrese, con el comentario del cliente.
 export async function confirmarOrden(idUsuario, idMantencion, { satisfecho, problema_resuelto, comentario }) {
@@ -320,6 +334,7 @@ export async function confirmarOrden(idUsuario, idMantencion, { satisfecho, prob
 
 // ------------------------------------------------------------ Solicitud de suscripción
 
+// [CU-24]
 // Solo el administrador otorga suscripciones: el cliente envía una solicitud por planta
 export async function solicitarSuscripcion(idUsuario, { id_planta, mensaje }) {
   if (!Number.isInteger(id_planta) || id_planta <= 0) throw new HttpError(400, 'id_planta inválido');
@@ -350,6 +365,7 @@ export async function solicitarSuscripcion(idUsuario, { id_planta, mensaje }) {
 
 // ------------------------------------------------------------ Cambio de datos
 
+// [CU-25]
 export async function misDatos(idUsuario) {
   const cliente = await fichaCliente(idUsuario);
   const { rows: usuario } = await query('SELECT email FROM usuario WHERE id_usuario = $1', [idUsuario]);
@@ -369,6 +385,7 @@ export async function misDatos(idUsuario) {
   };
 }
 
+// [CU-25]
 // El cliente pide cambiar su correo o su teléfono; se aplica cuando el administrador lo aprueba
 export async function solicitarCambioDatos(idUsuario, { email, telefono, motivo }) {
   const actuales = await misDatos(idUsuario);

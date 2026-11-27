@@ -1,3 +1,10 @@
+// ============================================================================
+// PANTALLA: Inicio de sesión · URL /login · Rol: público
+// Casos de uso: CU-03 (enlaza a CU-02 y CU-27)
+// Datos: AuthContext.login() → POST /api/auth/login → auth.service.js · login()
+// Patrón: useState (datos/error) → cargar() pide a la API → render. Tras guardar, se vuelve a cargar().
+// Los textos que ves en pantalla están en el JSX de abajo; las reglas están en el backend.
+// ============================================================================
 import { useEffect, useRef, useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth, inicioPorRol } from '../../../shared/context/AuthContext.jsx';
@@ -41,6 +48,7 @@ export default function LoginPage() {
 
   if (usuario) return <Navigate to={inicioPorRol(usuario.rol)} replace />;
 
+  // [CU-03] Inicia sesión y redirige al inicio de su rol (inicioPorRol).
   async function enviar(e) {
     e.preventDefault();
     setEnviando(true);

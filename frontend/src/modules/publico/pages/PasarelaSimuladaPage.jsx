@@ -1,3 +1,10 @@
+// ============================================================================
+// PANTALLA: Pasarela simulada · URL /pasarela-simulada?token=… · Rol: público (token de 30 min)
+// Casos de uso: CU-09 (paso 2: «tarjeta» de prueba; últimos 4 = 0000 fuerza un rechazo en el cobro)
+// Datos: confirmarPasarela() → POST /api/pagos/simulada/confirmar → pagos.service.js · confirmarInscripcionSimulada()
+// Patrón: useState (datos/error) → cargar() pide a la API → render. Tras guardar, se vuelve a cargar().
+// Los textos que ves en pantalla están en el JSX de abajo; las reglas están en el backend.
+// ============================================================================
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { confirmarPasarela } from '../services/publicoService.js';
@@ -15,6 +22,7 @@ export default function PasarelaSimuladaPage() {
   const [error, setError] = useState(null);
   const [enviando, setEnviando] = useState(false);
 
+  // [CU-09] Aprueba o rechaza la inscripción de la tarjeta de prueba.
   async function confirmar(resultado) {
     setEnviando(true);
     setError(null);

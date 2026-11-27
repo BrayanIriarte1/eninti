@@ -1,3 +1,10 @@
+// ============================================================================
+// PANTALLA: Solicitudes de mantención · URL /admin/solicitudes · Rol: administrador
+// Casos de uso: CU-17 atender solicitudes («extend» de CU-16 programar)
+// Datos: listarSolicitudes(), crearMantencion(), rechazarSolicitud() → mantenciones.service.js
+// Patrón: useState (datos/error) → cargar() pide a la API → render. Tras guardar, se vuelve a cargar().
+// Los textos que ves en pantalla están en el JSX de abajo; las reglas están en el backend.
+// ============================================================================
 import { useCallback, useEffect, useState } from 'react';
 import { listarSolicitudes, rechazarSolicitud, listarTrabajadores, crearMantencion } from '../services/adminService.js';
 import Mensaje from '../../../shared/components/Mensaje.jsx';
@@ -20,6 +27,7 @@ export default function SolicitudesAdminPage() {
   }, []);
   useEffect(() => { cargar(); }, [cargar]);
 
+  // [CU-17 → CU-16] Programa la mantención a partir de la solicitud.
   async function programar(s) {
     setError(null);
     try {
@@ -36,6 +44,7 @@ export default function SolicitudesAdminPage() {
     } catch (err) { setError(err); }
   }
 
+  // [CU-17]
   async function rechazar(id) {
     if (!window.confirm('¿Rechazar esta solicitud?')) return;
     try { await rechazarSolicitud(id); await cargar(); } catch (err) { setError(err); }

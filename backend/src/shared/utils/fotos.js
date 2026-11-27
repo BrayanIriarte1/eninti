@@ -1,3 +1,4 @@
+// FOTOS DEL TRABAJO (CU-12): el técnico sube de 1 a MAX_FOTOS; el cliente las ve en CU-23.
 import { HttpError } from './httpError.js';
 
 // Fotos del trabajo realizado (cierre de orden). Llegan desde el navegador como

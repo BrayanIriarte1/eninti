@@ -1,3 +1,10 @@
+// ============================================================================
+// PANTALLA: Restablecer contraseña · URL /restablecer?token=… · Rol: público
+// Casos de uso: CU-27 (paso 2: nueva clave)
+// Datos: verificarEnlace(), restablecerContrasena() → contrasena.service.js
+// Patrón: useState (datos/error) → cargar() pide a la API → render. Tras guardar, se vuelve a cargar().
+// Los textos que ves en pantalla están en el JSX de abajo; las reglas están en el backend.
+// ============================================================================
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import EscenaPublica from '../../publico/components/EscenaPublica.jsx';

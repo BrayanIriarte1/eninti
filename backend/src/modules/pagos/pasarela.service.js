@@ -1,3 +1,5 @@
+// ADAPTADOR DE LA PASARELA DE PAGO (CU-09 inscribir tarjeta, CU-20 cobrar).
+// Único archivo que conoce a la pasarela. FLOW_MODE=simulado (por defecto, sin Internet) o sandbox (Flow).
 import { createHmac, randomUUID } from 'node:crypto';
 import jwt from 'jsonwebtoken';
 import { HttpError } from '../../shared/utils/httpError.js';
@@ -47,6 +49,7 @@ async function llamarFlow(endpoint, params, metodo = 'POST') {
   return datos;
 }
 
+// [CU-09] Devuelve la URL a la que se redirige al cliente para inscribir su tarjeta.
 // --- Inscripción del medio de pago -------------------------------------------------------
 // Devuelve la URL a la que se redirige al cliente para registrar su tarjeta.
 export async function iniciarInscripcion({ idCliente, idSuscripcion, email, nombre, flowCustomerId }) {
@@ -90,6 +93,7 @@ export async function consultarInscripcionFlow(token) {
   };
 }
 
+// [CU-09] Modo simulado: el token JWT de 30 min que viaja a /pasarela-simulada.
 export function validarTokenInscripcion(token) {
   try {
     const datos = jwt.verify(token, process.env.JWT_SECRET);
@@ -100,6 +104,7 @@ export function validarTokenInscripcion(token) {
   }
 }
 
+// [CU-20, CU-34] Simulado: aprueba siempre, salvo tarjeta terminada en 0000 (rechazo).
 // --- Cargo recurrente de una cuota -------------------------------------------------------
 // Devuelve { estado: 'aprobado' | 'rechazado' | 'pendiente', referencia }.
 // En Flow, status 2 = pagado y 1 = pendiente; cualquier otro valor se trata como rechazo.

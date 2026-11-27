@@ -1,3 +1,5 @@
+// CAPA SERVICIO · Suscripción de una planta (CU-14, CU-32 cancelar por administración).
+// 'al_dia' / 'con_deuda' NO se fijan a mano: los calcula pagos/reglasDeuda.js.
 import { query } from '../../config/db.js';
 import { HttpError } from '../../shared/utils/httpError.js';
 import { cerrarSuscripciones } from '../pagos/reglasDeuda.js';
@@ -8,6 +10,7 @@ const ESTADOS = ['cancelada'];
 const esMonto = (v) => Number.isInteger(v) && v > 0;
 const esDiaCobro = (v) => Number.isInteger(v) && v >= 1 && v <= 28;
 
+// [CU-14]
 // Historial completo de suscripciones de una planta, la vigente primero
 export async function listarPorPlanta(idPlanta) {
   const { rows: planta } = await query('SELECT 1 FROM planta WHERE id_planta = $1', [idPlanta]);
@@ -22,6 +25,7 @@ export async function listarPorPlanta(idPlanta) {
   return rows;
 }
 
+// [CU-14] Una planta solo puede tener una vigente (índice único en BD → 409).
 export async function crear(idPlanta, { monto_mensual, fecha_inicio, dia_cobro }) {
   if (!esMonto(monto_mensual)) throw new HttpError(400, 'monto_mensual debe ser un entero mayor a 0');
   if (dia_cobro !== undefined && !esDiaCobro(dia_cobro)) {
@@ -48,6 +52,7 @@ export async function crear(idPlanta, { monto_mensual, fecha_inicio, dia_cobro }
   }
 }
 
+// [CU-14, CU-32]
 // Cambia la cuota o el día de cobro, o cancela (HU-12). Cancelar registra fecha y motivo y es definitivo.
 export async function actualizar(id, { monto_mensual, dia_cobro, estado }, idAdmin = null) {
   if (monto_mensual === undefined && dia_cobro === undefined && estado === undefined) {

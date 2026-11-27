@@ -1,3 +1,6 @@
+// CAPA SERVICIO · Técnico en terreno (CU-10, CU-11, CU-12).
+// Toda consulta filtra por id_trabajador = el del token: un técnico no ve órdenes ajenas (404).
+// Los cambios de estado se validan con shared/utils/estadosOrden.js y quedan en mantencion_historial.
 import { pool, query } from '../../config/db.js';
 import { HttpError } from '../../shared/utils/httpError.js';
 import { puedeTransitar } from '../../shared/utils/estadosOrden.js';
@@ -21,6 +24,7 @@ const SELECT_ORDEN = `
   JOIN cliente c  ON c.id_cliente = p.id_cliente
   LEFT JOIN solicitud_mantencion sm ON sm.id_solicitud = m.id_solicitud`;
 
+// [CU-10]
 // Agenda del trabajador: solo sus órdenes, ordenadas por fecha (HU-14)
 export async function agenda(idTrabajador, { historicas } = {}) {
   const filtroEstado = historicas
@@ -35,6 +39,7 @@ export async function agenda(idTrabajador, { historicas } = {}) {
   return rows;
 }
 
+// [CU-11]
 // Detalle de una orden propia con su historial de estados (HU-16).
 // La pertenencia se verifica en el backend, no solo ocultando botones.
 export async function obtenerOrden(id, idTrabajador) {
@@ -56,6 +61,7 @@ export async function obtenerOrden(id, idTrabajador) {
   return { ...rows[0], historial, fotos: await fotosDeOrden({ query }, id) };
 }
 
+// [CU-11, CU-12] Paso a paso: valida → BEGIN → lee con FOR UPDATE → puedeTransitar → UPDATE → historial → COMMIT.
 // Cambia el estado de una orden propia dejando historial (HU-05, HU-16).
 // Terminar la visita exige actividades y fotos: la orden queda 'por_confirmar'
 // hasta que el cliente confirme que quedó conforme y que el problema se resolvió.

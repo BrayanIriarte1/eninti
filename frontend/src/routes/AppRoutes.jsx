@@ -1,3 +1,6 @@
+// MAPA DE NAVEGACIÓN: URL → pantalla y qué rol puede entrar (RutaProtegida).
+// Pantalla nueva = 1) importarla aquí 2) agregar <Route> 3) si va en el menú, agregarla en MENU de shared/layouts/Layout.jsx.
+// OJO: esto es comodidad; la seguridad real la aplica el backend (permitirRoles en cada *.routes.js).
 import { lazy, Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth, inicioPorRol } from '../shared/context/AuthContext.jsx';

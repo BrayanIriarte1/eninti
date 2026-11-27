@@ -1,3 +1,5 @@
+// CAPA SERVICIO · Inicio de sesión (CU-03).
+// Constantes para cambiar en vivo: DURACION_SESION, MAX_INTENTOS, BLOQUEO_MS.
 import jwt from 'jsonwebtoken';
 import { query } from '../../config/db.js';
 import { HttpError } from '../../shared/utils/httpError.js';
@@ -13,6 +15,7 @@ const intentos = new Map();
 // Tras restablecer la contraseña el bloqueo por intentos fallidos ya no corresponde
 export const limpiarIntentos = (email) => intentos.delete(String(email).trim().toLowerCase());
 
+// [CU-03] ¿Este correo está bloqueado por intentos fallidos? → 429
 function verificarBloqueo(email) {
   const registro = intentos.get(email);
   if (registro?.bloqueadoHasta > Date.now()) {
@@ -20,6 +23,7 @@ function verificarBloqueo(email) {
   }
 }
 
+// [CU-03] Suma un fallo; al llegar a MAX_INTENTOS bloquea BLOQUEO_MS.
 function registrarFallo(email) {
   const registro = intentos.get(email) ?? { fallos: 0, bloqueadoHasta: 0 };
   registro.fallos += 1;
@@ -30,11 +34,13 @@ function registrarFallo(email) {
   intentos.set(email, registro);
 }
 
+// [CU-03] JWT con { id, rol } que dura DURACION_SESION.
 export const firmarToken = (usuario) =>
   jwt.sign({ id: usuario.id_usuario, rol: usuario.rol }, process.env.JWT_SECRET, {
     expiresIn: DURACION_SESION,
   });
 
+// [CU-03]
 // El mensaje de error nunca revela si falló el correo o la contraseña (HU-07)
 export async function login(email, password) {
   if (typeof email !== 'string' || typeof password !== 'string' || !email.trim() || !password) {
@@ -61,6 +67,7 @@ export async function login(email, password) {
   };
 }
 
+// [CU-03]
 export async function perfil(idUsuario) {
   const { rows } = await query(
     `SELECT u.id_usuario, u.nombre, u.email, u.rol, u.telefono, u.ultimo_acceso,

@@ -1,6 +1,8 @@
+// CAPA SERVICIO · Catálogo de planes y servicios (CU-21 administrar, CU-01 cotizador público).
 import { query } from '../../config/db.js';
 import { HttpError } from '../../shared/utils/httpError.js';
 
+// [CU-01]
 // Catálogo de planes y servicios como datos (RNF-07). La parte pública alimenta el cotizador.
 export async function listarPublico() {
   const { rows } = await query(
@@ -10,11 +12,13 @@ export async function listarPublico() {
   return rows;
 }
 
+// [CU-21] Todos, también los inactivos.
 export async function listar() {
   const { rows } = await query('SELECT * FROM catalogo_servicio ORDER BY activo DESC, tipo, precio');
   return rows;
 }
 
+// [CU-21] Reglas de un ítem del catálogo.
 function validar({ nombre, descripcion, tipo, precio }, { parcial }) {
   const errores = [];
   if (!parcial || nombre !== undefined) {
@@ -32,6 +36,7 @@ function validar({ nombre, descripcion, tipo, precio }, { parcial }) {
   if (errores.length) throw new HttpError(400, 'Datos del servicio inválidos', errores);
 }
 
+// [CU-21]
 export async function crear(datos) {
   validar(datos, { parcial: false });
   const { rows } = await query(
@@ -42,6 +47,7 @@ export async function crear(datos) {
   return rows[0];
 }
 
+// [CU-21] activo=false lo oculta del cotizador sin borrarlo.
 export async function actualizar(id, datos) {
   validar(datos, { parcial: true });
   const { nombre, descripcion, tipo, precio, activo } = datos;

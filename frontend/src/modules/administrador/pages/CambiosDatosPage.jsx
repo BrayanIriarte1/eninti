@@ -1,3 +1,10 @@
+// ============================================================================
+// PANTALLA: Cambios de datos · URL /admin/cambios-datos · Rol: administrador
+// Casos de uso: CU-29
+// Datos: listar/aprobar/rechazarCambioDatos() → solicitudesCliente.service.js
+// Patrón: useState (datos/error) → cargar() pide a la API → render. Tras guardar, se vuelve a cargar().
+// Los textos que ves en pantalla están en el JSX de abajo; las reglas están en el backend.
+// ============================================================================
 import { useCallback, useEffect, useState } from 'react';
 import { listarCambiosDatos, aprobarCambioDatos, rechazarCambioDatos } from '../services/adminService.js';
 import Mensaje from '../../../shared/components/Mensaje.jsx';
@@ -10,6 +17,7 @@ const ESTADO = {
   rechazada: { texto: 'Rechazada', clase: 'alerta' },
 };
 
+// [CU-29] Muestra el dato actual → el dato pedido.
 function Cambio({ antes, despues }) {
   return <dd><span className="tachado">{antes ?? '—'}</span> → <strong>{despues}</strong></dd>;
 }
@@ -29,6 +37,7 @@ export default function CambiosDatosPage() {
   }, [estado]);
   useEffect(() => { cargar(); }, [cargar]);
 
+  // [CU-29] aprobar=true aprueba, false rechaza.
   async function resolver(s, aprobar) {
     const respuesta = (respuestas[s.id_solicitud_cambio] ?? '').trim();
     if (!aprobar && !respuesta) {

@@ -1,6 +1,8 @@
+// VALIDACIONES DE RUT Y TELÉFONO (CU-02, CU-14, CU-25).
 // Rutificador: valida el RUT chileno con su dígito verificador (módulo 11).
 // Formato guardado en la base de datos: cuerpo sin puntos, guion y DV en mayúscula (12345678-9).
 
+// Algoritmo módulo 11 del RUT chileno.
 export function digitoVerificador(cuerpo) {
   let suma = 0;
   let factor = 2;

@@ -1,3 +1,4 @@
+// CONFIRMACIÓN DE LA INSCRIPCIÓN DE TARJETA (CU-09). Guarda solo token + últimos 4 dígitos.
 import { query } from '../../config/db.js';
 import { HttpError } from '../../shared/utils/httpError.js';
 import { enTransaccion } from '../../shared/utils/transaccion.js';
@@ -37,6 +38,7 @@ async function registrarMedioPago({ idCliente, token, marca, ultimos4, estado })
   return resultado.medio;
 }
 
+// [CU-09] Paso final del modo simulado. Idempotente: el mismo token no crea dos tarjetas.
 // Confirmación de la pasarela simulada (HU-13). El token JWT emitido al iniciar la
 // inscripción autoriza esta llamada; una notificación repetida no duplica el medio de pago.
 export async function confirmarInscripcionSimulada(token, { resultado, marca, ultimos_4 }) {
@@ -64,6 +66,7 @@ export async function confirmarInscripcionSimulada(token, { resultado, marca, ul
   });
 }
 
+// [CU-09] Paso final con Flow sandbox.
 // Retorno de Flow sandbox (HU-13). Flow envía solo un token; el estado real de la
 // inscripción se consulta en el servidor con getRegisterStatus y el cliente se identifica
 // por el customerId guardado al iniciar la inscripción.

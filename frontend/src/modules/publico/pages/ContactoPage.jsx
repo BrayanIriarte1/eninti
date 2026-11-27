@@ -1,3 +1,10 @@
+// ============================================================================
+// PANTALLA: Contacto · URL /contacto · Rol: público (sin sesión)
+// Casos de uso: CU-35
+// Datos: ninguno: solo enlaces a WhatsApp/correo (shared/utils/contacto.js) y a /solicitar-cuenta
+// Patrón: useState (datos/error) → cargar() pide a la API → render. Tras guardar, se vuelve a cargar().
+// Los textos que ves en pantalla están en el JSX de abajo; las reglas están en el backend.
+// ============================================================================
 import { Link } from 'react-router-dom';
 import EscenaPublica, { PortadaPublica } from '../components/EscenaPublica.jsx';
 import { CONTACTO, enlaceCorreo, enlaceTelefono, enlaceWhatsapp } from '../../../shared/utils/contacto.js';

@@ -1,3 +1,4 @@
+// REGLAS DE DEUDA (CU-18, CU-08, CU-32). Para cambiar el plazo de morosidad: interval '1 month'.
 import { pool } from '../../config/db.js';
 
 // Reglas de deuda de las suscripciones:
@@ -11,6 +12,7 @@ import { pool } from '../../config/db.js';
 
 const HAY_VENCIDA = `EXISTS (SELECT 1 FROM cuota c WHERE c.id_suscripcion = s.id_suscripcion AND c.estado = 'vencida')`;
 
+// [CU-18] 1) pendiente vencida → vencida 2) deuda > 1 mes → cancelada por morosidad 3) recalcula estados.
 export async function aplicarReglasDeuda(conexion = pool) {
   await conexion.query(
     `UPDATE cuota SET estado = 'vencida' WHERE estado = 'pendiente' AND fecha_vencimiento < CURRENT_DATE`,
@@ -31,6 +33,7 @@ export async function aplicarReglasDeuda(conexion = pool) {
   return { canceladas_por_morosidad: canceladas.length };
 }
 
+// [CU-18, CU-22] con alguna cuota vencida → con_deuda; sin vencidas → al_dia.
 // Recalcula 'al_dia' / 'con_deuda' de las suscripciones vigentes (todas o una)
 export async function recalcularEstado(conexion = pool, idSuscripcion = null) {
   await conexion.query(
@@ -49,6 +52,7 @@ export async function anularCuotasFuturas(conexion, ids) {
   );
 }
 
+// [CU-08, CU-32]
 // Efectos de cancelar suscripciones (por el cliente, el administrador o por morosidad):
 // se anulan las cuotas futuras y se cancelan las mantenciones preventivas aún pendientes,
 // que eran parte del servicio. Las correctivas y las visitas en curso no se tocan.

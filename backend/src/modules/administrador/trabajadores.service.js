@@ -1,3 +1,4 @@
+// CAPA SERVICIO · Cuentas de trabajadores (CU-15).
 import { query } from '../../config/db.js';
 import { enTransaccion } from '../../shared/utils/transaccion.js';
 import { HttpError } from '../../shared/utils/httpError.js';
@@ -8,11 +9,13 @@ const SELECT_TRABAJADOR = `
   SELECT id_usuario, nombre, email, telefono, activo, fecha_creacion, ultimo_acceso
   FROM usuario WHERE rol = 'trabajador'`;
 
+// [CU-15]
 export async function listar() {
   const { rows } = await query(`${SELECT_TRABAJADOR} ORDER BY activo DESC, nombre`);
   return rows;
 }
 
+// [CU-15] Reglas del formulario de trabajador.
 function validar({ nombre, email, password, telefono }, { parcial }) {
   const errores = [];
   if (!parcial || nombre !== undefined) {
@@ -30,6 +33,7 @@ function validar({ nombre, email, password, telefono }, { parcial }) {
   if (errores.length) throw new HttpError(400, 'Datos del trabajador inválidos', errores);
 }
 
+// [CU-15]
 // Alta de un trabajador con contraseña inicial (HU-15)
 export async function crear(datos) {
   validar(datos, { parcial: false });
@@ -42,6 +46,7 @@ export async function crear(datos) {
   return rows[0];
 }
 
+// [CU-15]
 // Edita datos, restablece contraseña o activa/desactiva (HU-15).
 // Un trabajador desactivado no puede iniciar sesión y sus tokens vigentes quedan rechazados.
 export async function actualizar(id, datos, idAdmin) {
