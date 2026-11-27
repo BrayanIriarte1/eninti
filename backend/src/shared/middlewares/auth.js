@@ -1,7 +1,9 @@
+// SEGURIDAD (CU-03): autenticar = ¿quién eres? (token válido + cuenta activa en BD) · permitirRoles = ¿puedes entrar?
 import jwt from 'jsonwebtoken';
 import { query } from '../../config/db.js';
 import { HttpError } from '../utils/httpError.js';
 
+// [CU-03] Se pone en cada *.routes.js. Deja req.usuario = { id, rol, nombre }.
 // Autenticación por JWT (8 h). Además de validar la firma se comprueba en la base
 // que el usuario siga activo: desactivar un trabajador invalida sus tokens vigentes (HU-15).
 export async function autenticar(req, _res, next) {
@@ -42,6 +44,7 @@ export async function autenticar(req, _res, next) {
   next();
 }
 
+// [CU-03] Uso: permitirRoles('administrador', 'trabajador'). Rol no permitido → 403.
 export const permitirRoles = (...roles) => (req, _res, next) => {
   if (!roles.includes(req.usuario?.rol)) throw new HttpError(403, 'Acceso no permitido para este rol');
   next();

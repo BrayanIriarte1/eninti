@@ -1,3 +1,5 @@
+// CAPA SERVICIO · Dinero: impagos, pagos manuales, listado mensual, cuotas y cobros (CU-18 a CU-20, CU-22).
+// Ciclo: generarCuotas → cuota 'pendiente' → (vence) 'vencida' → pago manual o cargo → 'pagada'.
 import { pool, query, ZONA_HORARIA } from '../../config/db.js';
 import { HttpError } from '../../shared/utils/httpError.js';
 import * as pasarela from '../pagos/pasarela.service.js';
@@ -6,6 +8,7 @@ import { avisarCobroRechazado, enSegundoPlano } from '../notificaciones/correo.s
 
 const PERIODO_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 
+// [CU-18]
 // Listado de impagos ordenado por antigüedad de la deuda (HU-01)
 // Incluye la deuda de suscripciones canceladas por morosidad, que sigue por cobrar.
 export async function impagos() {
@@ -29,6 +32,7 @@ export async function impagos() {
   return rows;
 }
 
+// [CU-22]
 // Cuotas de una suscripción (apoyo del panel de impagos y del registro manual)
 export async function cuotasDeSuscripcion(idSuscripcion) {
   const { rows } = await query(
@@ -45,6 +49,7 @@ export async function cuotasDeSuscripcion(idSuscripcion) {
   return rows;
 }
 
+// [CU-22]
 // Registro manual de un pago por transferencia o efectivo (HU-02).
 // Audita quién lo registró; una cuota pagada no admite un segundo pago.
 export async function registrarPagoManual(idCuota, { origen, monto, referencia }, idAdmin) {
@@ -94,6 +99,7 @@ export async function registrarPagoManual(idCuota, { origen, monto, referencia }
   }
 }
 
+// [CU-19]
 // Pagos recibidos en un mes para que el contador emita las boletas (HU-06)
 export async function pagosDelMes(periodo) {
   if (!PERIODO_RE.test(periodo ?? '')) throw new HttpError(400, 'periodo debe tener formato YYYY-MM');
@@ -113,6 +119,7 @@ export async function pagosDelMes(periodo) {
   return rows;
 }
 
+// [CU-20]
 // Motor de facturación: genera las cuotas del período para las suscripciones no
 // canceladas y marca como vencidas las cuotas pendientes cuyo plazo pasó.
 // Es idempotente: la restricción UNIQUE (id_suscripcion, periodo) evita duplicados.
@@ -167,6 +174,7 @@ export async function generarCuotas({ periodo }) {
 const LLAVE_CANDADO_CARGOS = 731001;
 export const MAX_RECHAZOS_AUTOMATICOS = 5;
 
+// [CU-20, CU-34]
 export async function procesarCargos({ origen = 'manual' } = {}) {
   const guardia = await pool.connect();
   try {
@@ -182,6 +190,7 @@ export async function procesarCargos({ origen = 'manual' } = {}) {
   }
 }
 
+// [CU-20, CU-34] Recorre las cuotas a cobrar; cada una en su propia transacción.
 async function ejecutarCargos(origen) {
   const automatico = origen === 'automatico';
   const { rows: pendientes } = await query(
@@ -286,6 +295,7 @@ async function ejecutarCargos(origen) {
   return resultado;
 }
 
+// [CU-34]
 // Cobros que la pasarela dejó «pendiente»: el administrador los revisa en el panel de la
 // pasarela y, si no se cobraron, los descarta para que la cuota se pueda cobrar de nuevo.
 export async function cobrosEnEspera() {
@@ -303,6 +313,7 @@ export async function cobrosEnEspera() {
   return rows;
 }
 
+// [CU-34]
 export async function descartarIntento(idIntento) {
   const { rows } = await query(
     `UPDATE intento_cargo SET resultado = 'descartado'

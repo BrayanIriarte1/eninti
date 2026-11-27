@@ -1,3 +1,10 @@
+// ============================================================================
+// PANTALLA: Calendario · URL /admin/calendario · Rol: administrador
+// Casos de uso: CU-16 asignar · CU-30 cancelar mantención · CU-31 cerrar sin cliente
+// Datos: listarMantenciones(filtros) → GET /api/admin/mantenciones → mantenciones.service.js · listar()
+// Patrón: useState (datos/error) → cargar() pide a la API → render. Tras guardar, se vuelve a cargar().
+// Los textos que ves en pantalla están en el JSX de abajo; las reglas están en el backend.
+// ============================================================================
 import { useCallback, useEffect, useState } from 'react';
 import {
   listarMantenciones, listarTrabajadores, asignarMantencion, cancelarMantencion, cerrarSinCliente, fotosMantencion,
@@ -15,6 +22,7 @@ export default function CalendarioPage() {
   const [error, setError] = useState(null);
   const [fotos, setFotos] = useState(null); // { orden, urls }
 
+  // [CU-16] Pide las mantenciones según los filtros y la lista de trabajadores.
   const cargar = useCallback(() => {
     Promise.all([listarMantenciones(filtros), listarTrabajadores()])
       .then(([m, t]) => {
@@ -25,6 +33,7 @@ export default function CalendarioPage() {
   }, [filtros]);
   useEffect(() => { cargar(); }, [cargar]);
 
+  // [CU-16]
   async function asignar(id, idTrabajador) {
     if (!idTrabajador) return;
     setError(null);
@@ -34,6 +43,7 @@ export default function CalendarioPage() {
     } catch (err) { setError(err); }
   }
 
+  // [CU-30]
   async function cancelar(id) {
     if (!window.confirm('¿Cancelar esta mantención?')) return;
     try {
@@ -42,6 +52,7 @@ export default function CalendarioPage() {
     } catch (err) { setError(err); }
   }
 
+  // [CU-31]
   async function verFotos(m) {
     setError(null);
     try {
@@ -50,6 +61,7 @@ export default function CalendarioPage() {
     } catch (err) { setError(err); }
   }
 
+  // [CU-31]
   async function cerrar(m) {
     const motivo = window.prompt('El cliente no ha confirmado. ¿Por qué cierras la orden? (por ejemplo: confirmó por teléfono)');
     if (!motivo?.trim()) return;

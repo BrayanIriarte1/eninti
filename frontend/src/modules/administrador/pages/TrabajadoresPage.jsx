@@ -1,3 +1,10 @@
+// ============================================================================
+// PANTALLA: Trabajadores · URL /admin/trabajadores · Rol: administrador
+// Casos de uso: CU-15
+// Datos: listar/crear/actualizarTrabajador() → trabajadores.service.js
+// Patrón: useState (datos/error) → cargar() pide a la API → render. Tras guardar, se vuelve a cargar().
+// Los textos que ves en pantalla están en el JSX de abajo; las reglas están en el backend.
+// ============================================================================
 import { useCallback, useEffect, useState } from 'react';
 import { listarTrabajadores, crearTrabajador, actualizarTrabajador } from '../services/adminService.js';
 import TelefonoInput from '../../../shared/components/TelefonoInput.jsx';
@@ -17,6 +24,7 @@ export default function TrabajadoresPage() {
 
   const cambiar = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
+  // [CU-15]
   async function crear(e) {
     e.preventDefault();
     setEnviando(true);
@@ -32,6 +40,7 @@ export default function TrabajadoresPage() {
     }
   }
 
+  // [CU-15] Activa/desactiva (desactivar libera sus órdenes abiertas).
   async function alternar(t) {
     const verbo = t.activo ? 'desactivar' : 'reactivar';
     const aviso = t.activo ? ' Sus visitas pendientes quedarán «Sin asignar» en el calendario.' : '';

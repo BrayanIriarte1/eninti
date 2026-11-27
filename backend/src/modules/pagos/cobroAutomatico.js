@@ -1,3 +1,4 @@
+// CU-34 · COBRO AUTOMÁTICO DIARIO: genera cuotas del mes, cobra y aplica reglas de deuda una vez al día.
 import { pool, query, ZONA_HORARIA } from '../../config/db.js';
 import { HttpError } from '../../shared/utils/httpError.js';
 import { generarCuotas, procesarCargos } from '../administrador/finanzas.service.js';
@@ -37,6 +38,7 @@ async function yaSeEjecutoHoy() {
   return rows.length > 0;
 }
 
+// [CU-34]
 // Ejecuta la tarea diaria. forzar = true la ejecuta aunque ya se haya hecho hoy (botón del panel).
 export async function ejecutarCobroDiario({ origen = 'programado', forzar = false } = {}) {
   const guardia = await pool.connect();
@@ -94,6 +96,7 @@ export async function ejecutarCobroDiario({ origen = 'programado', forzar = fals
   }
 }
 
+// [CU-34] Revisa periódicamente si ya toca ejecutar (COBRO_HORA, una vez al día).
 // Reloj interno: revisa al iniciar y luego cada hora
 export function programarCobroAutomatico() {
   if (!activo()) {
@@ -115,6 +118,7 @@ export function programarCobroAutomatico() {
   return setInterval(revisar, CADA_MS).unref();
 }
 
+// [CU-34] Lo que muestra CobroAutomaticoPanel.
 // Estado para el panel de pagos
 export async function estado() {
   const { rows } = await query(

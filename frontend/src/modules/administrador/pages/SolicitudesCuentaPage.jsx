@@ -1,3 +1,10 @@
+// ============================================================================
+// PANTALLA: Nuevas cuentas · URL /admin/solicitudes-cuenta · Rol: administrador
+// Casos de uso: CU-13 gestionar solicitudes de cuenta («include» crear cliente y cuenta web)
+// Datos: listar/aprobar/rechazarSolicitudCuenta() → solicitudesCuenta.service.js
+// Patrón: useState (datos/error) → cargar() pide a la API → render. Tras guardar, se vuelve a cargar().
+// Los textos que ves en pantalla están en el JSX de abajo; las reglas están en el backend.
+// ============================================================================
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { listarSolicitudesCuenta, aprobarSolicitudCuenta, rechazarSolicitudCuenta } from '../services/adminService.js';
@@ -30,6 +37,7 @@ export default function SolicitudesCuentaPage() {
   );
   useEffect(() => { cargar(); }, [cargar]);
 
+  // [CU-13] Abre el formulario de aprobación (correo y contraseña inicial).
   function abrir(s) {
     setAbierta(s.id_solicitud_cuenta);
     setCuenta({ email: s.email, password: '' });
@@ -37,6 +45,7 @@ export default function SolicitudesCuentaPage() {
     setCreada(null);
   }
 
+  // [CU-13]
   async function aprobar(e, s) {
     e.preventDefault();
     setEnviando(true);
@@ -53,6 +62,7 @@ export default function SolicitudesCuentaPage() {
     }
   }
 
+  // [CU-13]
   async function rechazar(s) {
     if (!window.confirm(`¿Rechazar la solicitud de ${s.nombre}?`)) return;
     setError(null);

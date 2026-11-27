@@ -1,3 +1,4 @@
+// Llamadas del administrador a /api/admin/... · Backend: administrador.routes.js
 import { api } from '../../../shared/utils/api.js';
 
 // Clientes (HU-03)

@@ -1,9 +1,11 @@
+// CAPA SERVICIO · Fichas de cliente y su cuenta web (CU-14, CU-13).
 import { pool, query } from '../../config/db.js';
 import { HttpError } from '../../shared/utils/httpError.js';
 import { erroresContrasena, hashPassword } from '../../shared/utils/password.js';
 import { normalizarRut, rutValido, telefonoValido } from '../../shared/utils/rut.js';
 import { enTransaccion } from '../../shared/utils/transaccion.js';
 
+// [CU-14]
 // Listados básicos para selectores y administración de clientes (HU-03)
 export async function listar() {
   const { rows } = await query(
@@ -20,11 +22,13 @@ export async function listar() {
   return rows;
 }
 
+// Comunas donde opera ENINTI (también la usa el formulario público de CU-02).
 export async function listarComunas() {
   const { rows } = await query('SELECT id_comuna, nombre FROM comuna ORDER BY nombre');
   return rows;
 }
 
+// [CU-14] Reglas de la ficha del cliente. Agrega aquí validaciones nuevas.
 function validar({ rut, nombre, telefono, direccion, id_comuna }, { parcial }) {
   const errores = [];
   if (!parcial || rut !== undefined) {
@@ -45,6 +49,7 @@ function validar({ rut, nombre, telefono, direccion, id_comuna }, { parcial }) {
   if (errores.length) throw new HttpError(400, 'Datos del cliente inválidos', errores);
 }
 
+// [CU-14]
 // Alta de la ficha administrativa del cliente (HU-03). La cuenta web la crea el
 // administrador (HU-07): al aprobar una solicitud de cuenta o con crearCuenta().
 export async function crear(datos) {
@@ -58,6 +63,7 @@ export async function crear(datos) {
   return rows[0];
 }
 
+// [CU-14]
 export async function actualizar(id, datos) {
   validar(datos, { parcial: true });
   const { rut, nombre, telefono, direccion, id_comuna } = datos;
@@ -88,6 +94,7 @@ export async function actualizar(id, datos) {
   });
 }
 
+// [CU-13]
 // Crea la cuenta web (rol cliente) de una ficha y la enlaza. Se ejecuta dentro de la
 // transacción de quien llama; la contraseña inicial la define el administrador.
 export async function crearCuentaCliente(conexion, cliente, { email, password, telefono }) {
@@ -113,6 +120,7 @@ export async function crearCuentaCliente(conexion, cliente, { email, password, t
   }
 }
 
+// [CU-13/HU-07]
 // Cuenta web para un cliente ya registrado que aún no la tiene (HU-07)
 export async function crearCuenta(idCliente, datos) {
   const conexion = await pool.connect();

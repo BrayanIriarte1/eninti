@@ -1,3 +1,10 @@
+// ============================================================================
+// PANTALLA: Clientes · URL /admin/clientes · Rol: administrador
+// Casos de uso: CU-14 gestionar clientes · crear cuenta web (HU-07)
+// Datos: adminService → clientes.service.js
+// Patrón: useState (datos/error) → cargar() pide a la API → render. Tras guardar, se vuelve a cargar().
+// Los textos que ves en pantalla están en el JSX de abajo; las reglas están en el backend.
+// ============================================================================
 import { useCallback, useEffect, useState } from 'react';
 import { listarClientes, crearCliente, actualizarCliente, listarComunas, crearCuentaCliente } from '../services/adminService.js';
 import RutInput from '../../../shared/components/RutInput.jsx';
@@ -41,6 +48,7 @@ export default function ClientesPage() {
     setError(null);
   }
 
+  // [CU-14] Crea o actualiza la ficha del cliente.
   async function guardar(e) {
     e.preventDefault();
     setEnviando(true);
@@ -63,6 +71,7 @@ export default function ClientesPage() {
     }
   }
 
+  // [CU-13/HU-07] Crea la cuenta web de un cliente que no la tiene.
   // La cuenta web del cliente la crea el administrador (HU-07)
   async function crearCuenta(e) {
     e.preventDefault();

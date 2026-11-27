@@ -1,3 +1,10 @@
+// ============================================================================
+// PANTALLA: Pagos del mes · URL /admin/pagos · Rol: administrador
+// Casos de uso: CU-19 listado mensual y CSV · CU-20 generar cuotas y procesar cargos · CU-34 (CobroAutomaticoPanel)
+// Datos: pagosDelMes(), generarCuotas(), procesarCargos() → finanzas.service.js
+// Patrón: useState (datos/error) → cargar() pide a la API → render. Tras guardar, se vuelve a cargar().
+// Los textos que ves en pantalla están en el JSX de abajo; las reglas están en el backend.
+// ============================================================================
 import { useEffect, useState } from 'react';
 import { pagosDelMes, generarCuotas, procesarCargos } from '../services/adminService.js';
 import { leerToken } from '../../../shared/utils/api.js';
@@ -16,6 +23,7 @@ export default function PagosMesPage() {
   const [aviso, setAviso] = useState(null);
   const [ocupado, setOcupado] = useState(false);
 
+  // [CU-19]
   async function consultar(e) {
     e?.preventDefault();
     setError(null);
@@ -25,6 +33,7 @@ export default function PagosMesPage() {
     } catch (err) { setError(err); }
   }
 
+  // [CU-19]
   // Descarga el CSV incluyendo el token de sesión (HU-06)
   async function descargarCsv() {
     setError(null);
@@ -43,6 +52,7 @@ export default function PagosMesPage() {
     } catch (err) { setError(err); }
   }
 
+  // [CU-20] Ejecuta generar cuotas o procesar cargos.
   async function ejecutar(accion, fn) {
     setOcupado(true);
     setError(null);

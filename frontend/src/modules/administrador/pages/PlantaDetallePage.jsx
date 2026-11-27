@@ -1,3 +1,10 @@
+// ============================================================================
+// PANTALLA: Detalle de planta · URL /admin/plantas/:id · Rol: administrador
+// Casos de uso: CU-14 · CU-32 (panel de suscripción: components/SuscripcionPanel.jsx)
+// Datos: obtenerPlanta(), listarSuscripciones() → plantas.service.js, suscripciones.service.js
+// Patrón: useState (datos/error) → cargar() pide a la API → render. Tras guardar, se vuelve a cargar().
+// Los textos que ves en pantalla están en el JSX de abajo; las reglas están en el backend.
+// ============================================================================
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { listarSuscripciones, obtenerPlanta } from '../services/plantasService.js';

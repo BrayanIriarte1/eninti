@@ -1,3 +1,5 @@
+// CAPA SERVICIO · Plantas y ficha técnica (CU-14 «extend» Registrar planta).
+// Para agregar un campo a la planta: columna nueva en database/schema/ + una línea en CAMPOS.
 import { query } from '../../config/db.js';
 import { HttpError } from '../../shared/utils/httpError.js';
 import { enTransaccion } from '../../shared/utils/transaccion.js';
@@ -22,6 +24,7 @@ const VALIDADORES = {
   fecha: (v) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v),
 };
 
+// [CU-14] Valida cada campo según su tipo en CAMPOS; parcial=true para editar.
 function validar(datos, { parcial }) {
   const errores = [];
   const limpio = {};
@@ -55,6 +58,7 @@ const SELECT_PLANTA = `
   JOIN comuna co ON co.id_comuna = p.id_comuna
   LEFT JOIN suscripcion s ON s.id_planta = p.id_planta AND s.estado <> 'cancelada'`;
 
+// [CU-14] Filtros dinámicos: los valores van como $1, $2 (nunca concatenados).
 export async function listar({ id_cliente, id_comuna }) {
   const condiciones = [];
   const params = [];
@@ -71,12 +75,14 @@ export async function listar({ id_cliente, id_comuna }) {
   return rows;
 }
 
+// [CU-14]
 export async function obtener(id) {
   const { rows } = await query(`${SELECT_PLANTA} WHERE p.id_planta = $1`, [id]);
   if (!rows.length) throw new HttpError(404, 'Planta no encontrada');
   return rows[0];
 }
 
+// [CU-14]
 export async function crear(datos) {
   const planta = validar(datos, { parcial: false });
   const campos = Object.keys(planta);
@@ -89,6 +95,7 @@ export async function crear(datos) {
   return obtener(rows[0].id_planta);
 }
 
+// [CU-14]
 export async function actualizar(id, datos) {
   const cambios = validar(datos, { parcial: true });
   const campos = Object.keys(cambios);
@@ -108,6 +115,7 @@ export async function actualizar(id, datos) {
   return obtener(id);
 }
 
+// [CU-14]
 // Cambiar el dueño de una planta solo se permite si no arrastra compromisos del cliente
 // anterior: una suscripción vigente, cuotas sin pagar (incluida la deuda de una suscripción
 // cancelada por morosidad) o visitas abiertas. Así la deuda nunca pasa a otra persona.

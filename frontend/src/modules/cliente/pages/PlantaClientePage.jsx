@@ -1,3 +1,10 @@
+// ============================================================================
+// PANTALLA: Ficha de mi planta · URL /cliente/plantas/:id · Rol: cliente
+// Casos de uso: CU-06
+// Datos: clienteService.obtenerPlanta(id) → GET /api/cliente/plantas/:id → cliente.service.js · obtenerPlanta()
+// Patrón: useState (datos/error) → cargar() pide a la API → render. Tras guardar, se vuelve a cargar().
+// Los textos que ves en pantalla están en el JSX de abajo; las reglas están en el backend.
+// ============================================================================
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { obtenerPlanta } from '../services/clienteService.js';

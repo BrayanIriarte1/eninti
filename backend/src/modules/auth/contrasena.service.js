@@ -1,3 +1,5 @@
+// CAPA SERVICIO · Cambiar contraseña (CU-26) y recuperarla por correo (CU-27).
+// Las reglas de la contraseña están en shared/utils/password.js (erroresContrasena).
 import { createHash, randomBytes } from 'node:crypto';
 import { query } from '../../config/db.js';
 import { HttpError } from '../../shared/utils/httpError.js';
@@ -27,6 +29,7 @@ function validarNueva(nueva) {
 export const hashToken = (token) => createHash('sha256').update(String(token)).digest('hex');
 const tokenConFormato = (t) => typeof t === 'string' && /^[A-Za-z0-9_-]{43}$/.test(t);
 
+// [CU-26]
 // Cambiar la contraseña con la sesión iniciada (cualquier rol)
 export async function cambiar(idUsuario, { actual, nueva }) {
   if (typeof actual !== 'string' || !actual) throw new HttpError(400, 'Indica tu contraseña actual');
@@ -58,6 +61,7 @@ export async function cambiar(idUsuario, { actual, nueva }) {
   return { mensaje: 'Contraseña actualizada', token: firmarToken(usuario) };
 }
 
+// [CU-27] paso 1
 // Pedir un enlace de recuperación por correo
 export async function solicitar(email) {
   const correo = typeof email === 'string' ? email.trim().toLowerCase() : '';
@@ -121,6 +125,7 @@ export function ocultarCorreo(email) {
   return `${visible}${'•'.repeat(Math.max(3, nombre.length - visible.length))}@${dominio}`;
 }
 
+// [CU-27] ¿el enlace sigue vigente?
 // Revisar el enlace antes de mostrar el formulario
 export async function verificar(token) {
   const enlace = await enlaceVigente({ query }, token);
@@ -128,6 +133,7 @@ export async function verificar(token) {
   return { valido: true, email: ocultarCorreo(enlace.email) };
 }
 
+// [CU-27] paso 2
 // Crear la contraseña nueva con el enlace
 export async function restablecer({ token, nueva }) {
   validarNueva(nueva);

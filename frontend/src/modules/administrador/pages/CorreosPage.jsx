@@ -1,3 +1,10 @@
+// ============================================================================
+// PANTALLA: Correos · URL /admin/correos · Rol: administrador
+// Casos de uso: CU-33
+// Datos: estadoCorreo(), enviarCorreoPrueba() → correo.controller.js / correo.service.js
+// Patrón: useState (datos/error) → cargar() pide a la API → render. Tras guardar, se vuelve a cargar().
+// Los textos que ves en pantalla están en el JSX de abajo; las reglas están en el backend.
+// ============================================================================
 import { useCallback, useEffect, useState } from 'react';
 import { estadoCorreo, enviarCorreoPrueba } from '../services/adminService.js';
 import Mensaje from '../../../shared/components/Mensaje.jsx';
@@ -28,6 +35,7 @@ export default function CorreosPage() {
   const cargar = useCallback(() => estadoCorreo().then(setDatos).catch(setError), []);
   useEffect(() => { cargar(); }, [cargar]);
 
+  // [CU-33] Envía un correo de prueba.
   async function probar(e) {
     e.preventDefault();
     setEnviando(true);

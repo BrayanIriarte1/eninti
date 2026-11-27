@@ -1,3 +1,10 @@
+// ============================================================================
+// PANTALLA: Cotizador · URL /cotizador · Rol: público (sin sesión)
+// Casos de uso: CU-01
+// Datos: catalogoPublico() → GET /api/publico/catalogo → catalogo.service.js · listarPublico()
+// Patrón: useState (datos/error) → cargar() pide a la API → render. Tras guardar, se vuelve a cargar().
+// Los textos que ves en pantalla están en el JSX de abajo; las reglas están en el backend.
+// ============================================================================
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import EscenaPublica, { PortadaPublica } from '../components/EscenaPublica.jsx';
@@ -67,6 +74,7 @@ export default function CotizadorPage() {
   const totalUnico = serviciosElegidos.reduce((suma, s) => suma + s.precio, 0);
   const vacia = !planElegido && !serviciosElegidos.length;
 
+  // [CU-01] Agrega/quita un servicio puntual de la cotización.
   function alternarServicio(id) {
     setElegidos((previo) => {
       const nuevo = new Set(previo);

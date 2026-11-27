@@ -1,6 +1,9 @@
+// Sesión y contraseña (CU-03, CU-26, CU-27) · Backend: auth.routes.js
 import { api, guardarToken, borrarToken } from '../../../shared/utils/api.js';
 
+// [CU-03]
 export const login = (email, password) => api('/auth/login', { method: 'POST', body: { email, password } });
+// [CU-03]
 export const perfil = () => api('/auth/me');
 
 export function cerrarSesion() {

@@ -1,3 +1,10 @@
+// ============================================================================
+// PANTALLA: Recuperar contraseña · URL /recuperar · Rol: público
+// Casos de uso: CU-27 (paso 1: pedir enlace)
+// Datos: recuperarContrasena() → POST /api/auth/recuperar → contrasena.service.js · solicitar()
+// Patrón: useState (datos/error) → cargar() pide a la API → render. Tras guardar, se vuelve a cargar().
+// Los textos que ves en pantalla están en el JSX de abajo; las reglas están en el backend.
+// ============================================================================
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import EscenaPublica from '../../publico/components/EscenaPublica.jsx';

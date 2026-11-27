@@ -54,7 +54,9 @@ pages/XxxPage.jsx  → services/xxxService.js → xxx.routes.js → xxx.controll
 | Colores | `frontend/src/styles/global.css` (variables `:root`, ej. `--color-primario`) |
 | Formato de pesos/fechas | `frontend/src/shared/utils/formato.js` |
 
-**Truco en vivo:** usa la búsqueda global de VS Code (`Ctrl+Shift+F`) con el **texto que se ve en pantalla** o con el **mensaje de error**. Te lleva directo al archivo.
+**Truco #1 en vivo:** cada función, ruta y pantalla tiene un comentario con su caso de uso. Busca `CU-09` (o el que pida el profe) con `Ctrl+Shift+F` y verás todo su recorrido: pantalla → servicio del frontend → ruta → controlador → servicio del backend. La lista completa de casos de uso (incluidos los nuevos CU-23 a CU-35) está en `docs/CASOS_DE_USO_ACTUALIZADOS.md`.
+
+**Truco #2:** usa la búsqueda global de VS Code (`Ctrl+Shift+F`) con el **texto que se ve en pantalla** o con el **mensaje de error**. Te lleva directo al archivo.
 
 ---
 
@@ -136,7 +138,9 @@ cancelada:     [],
 | "14 tablas" | Hay más: `solicitud_suscripcion`, `solicitud_cambio_datos`, `mantencion_foto`, `aviso_correo`, `recuperacion_contrasena`, `intento_cargo`, `ejecucion_tarea`. |
 | `GUIA_DEL_CODIGO.md` dice "no hay cron" y "no hay correo" | Ya existe cobro automático diario (`cobroAutomatico.js`) y correo (`notificaciones/correo.service.js`). |
 
-Si te preguntan: "el diseño evolucionó durante la implementación; el informe refleja la versión al 13-11".
+| CU-09 «include» Aceptar condiciones | **Corregido**: ahora se muestran las condiciones y se exige la casilla «Acepto» (`cliente/components/AceptarCondiciones.jsx`). |
+
+Si te preguntan: "el diseño evolucionó durante la implementación; el informe refleja la versión al 13-11". Los textos corregidos de la tabla de casos de uso y los diagramas en PlantUML están en `docs/CASOS_DE_USO_ACTUALIZADOS.md`.
 
 ---
 
@@ -159,6 +163,9 @@ export const MINIMO_CONTRASENA = 8;    // ej. 10
 // exigir además una mayúscula:
 if (!/[A-Z]/.test(clave)) errores.push('Debe tener al menos una mayúscula');
 ```
+
+### B2. Cambiar el texto o la versión de las condiciones (CU-09)
+`frontend/src/modules/cliente/components/AceptarCondiciones.jsx`: el arreglo `clausulas` (texto) y `VERSION_CONDICIONES`. Si cambias el texto, sube la versión (ej. `'1.1'`): la base guarda qué versión aceptó cada cliente (`SELECT * FROM aceptacion_condiciones`).
 
 ### C. Cambiar cuántas fotos debe subir el técnico (CU-12)
 Dos lugares (backend = regla, frontend = interfaz):

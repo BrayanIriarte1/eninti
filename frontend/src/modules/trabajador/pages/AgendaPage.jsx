@@ -1,3 +1,10 @@
+// ============================================================================
+// PANTALLA: Mi agenda · URL /trabajador/agenda · Rol: trabajador
+// Casos de uso: CU-10
+// Datos: trabajadorService.miAgenda() → GET /api/trabajador/agenda → trabajador.service.js · agenda()
+// Patrón: useState (datos/error) → cargar() pide a la API → render. Tras guardar, se vuelve a cargar().
+// Los textos que ves en pantalla están en el JSX de abajo; las reglas están en el backend.
+// ============================================================================
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { miAgenda } from '../services/trabajadorService.js';
@@ -8,6 +15,7 @@ import Icono from '../../../shared/components/Icono.jsx';
 import { useAuth } from '../../../shared/context/AuthContext.jsx';
 import { formatoFecha } from '../../../shared/utils/formato.js';
 
+// Dibuja la fecha de la visita (día y mes) en la tarjeta.
 // Mosaico de calendario: día grande, mes y día de la semana ('YYYY-MM-DD' en hora local)
 function FechaMosaico({ fecha }) {
   const d = new Date(`${fecha}T12:00:00`);

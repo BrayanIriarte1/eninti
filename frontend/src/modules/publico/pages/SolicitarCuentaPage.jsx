@@ -1,3 +1,10 @@
+// ============================================================================
+// PANTALLA: Solicitar cuenta · URL /solicitar-cuenta · Rol: público (sin sesión)
+// Casos de uso: CU-02
+// Datos: solicitarCuenta() → POST /api/publico/solicitudes-cuenta → solicitudesCuenta.service.js · crear()
+// Patrón: useState (datos/error) → cargar() pide a la API → render. Tras guardar, se vuelve a cargar().
+// Los textos que ves en pantalla están en el JSX de abajo; las reglas están en el backend.
+// ============================================================================
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { listarComunasPublicas, solicitarCuenta } from '../services/publicoService.js';
@@ -54,6 +61,7 @@ export default function SolicitarCuentaPage() {
     requestAnimationFrame(() => titulo.current?.focus());
   }
 
+  // [CU-02]
   async function enviar(e) {
     e.preventDefault();
     if (paso < PASOS.length - 1) return irA(paso + 1);

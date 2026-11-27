@@ -1,3 +1,10 @@
+// ============================================================================
+// PANTALLA: Impagos · URL /admin/impagos · Rol: administrador
+// Casos de uso: CU-18 consultar impagos · CU-22 registrar pago manual
+// Datos: listarImpagos(), cuotasDeSuscripcion(), registrarPagoManual() → finanzas.service.js
+// Patrón: useState (datos/error) → cargar() pide a la API → render. Tras guardar, se vuelve a cargar().
+// Los textos que ves en pantalla están en el JSX de abajo; las reglas están en el backend.
+// ============================================================================
 import { useCallback, useEffect, useState } from 'react';
 import { listarImpagos, cuotasDeSuscripcion, registrarPagoManual } from '../services/adminService.js';
 import Mensaje from '../../../shared/components/Mensaje.jsx';
@@ -15,6 +22,7 @@ export default function ImpagosPage() {
   const cargar = useCallback(() => listarImpagos().then(setImpagos).catch(setError), []);
   useEffect(() => { cargar(); }, [cargar]);
 
+  // [CU-18 → CU-22] Muestra las cuotas de la suscripción morosa.
   async function abrir(imp) {
     setError(null);
     try {
@@ -23,6 +31,7 @@ export default function ImpagosPage() {
     } catch (err) { setError(err); }
   }
 
+  // [CU-22] Abre el diálogo de confirmación del pago.
   // Abre la confirmación: el pago NO se registra hasta presionar «Registrar pago»
   function pedirConfirmacion(cuota, origen) {
     setError(null);
@@ -30,6 +39,7 @@ export default function ImpagosPage() {
     setPago({ cuota, origen, cliente: detalle.imp.cliente, direccion: detalle.imp.direccion });
   }
 
+  // [CU-22]
   // Lo llama el diálogo; si la API falla, el error se muestra dentro del diálogo
   async function registrar(referencia) {
     const { cuota, origen } = pago;

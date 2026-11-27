@@ -1,3 +1,10 @@
+// ============================================================================
+// PANTALLA: Nueva / editar planta · URL /admin/plantas/nueva y /admin/plantas/:id/editar · Rol: administrador
+// Casos de uso: CU-14 «extend» Registrar planta y ficha técnica
+// Datos: crearPlanta() / actualizarPlanta() → plantas.service.js (los campos válidos están en CAMPOS)
+// Patrón: useState (datos/error) → cargar() pide a la API → render. Tras guardar, se vuelve a cargar().
+// Los textos que ves en pantalla están en el JSX de abajo; las reglas están en el backend.
+// ============================================================================
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
@@ -16,6 +23,7 @@ const VACIO = {
   fecha_instalacion: '',
 };
 
+// [CU-14] Convierte el formulario (todo texto) al formato que espera la API (números, null).
 // Convierte los valores del formulario (todos texto) a los tipos que espera la API
 function aDatosApi(form) {
   return {
@@ -64,6 +72,7 @@ export default function PlantaFormPage() {
 
   const cambiar = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
+  // [CU-14] Crea o actualiza la planta.
   async function guardar(e) {
     e.preventDefault();
     setGuardando(true);

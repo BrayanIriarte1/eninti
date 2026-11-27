@@ -1,3 +1,10 @@
+// ============================================================================
+// PANTALLA: Mis datos · URL /cliente/datos · Rol: cliente
+// Casos de uso: CU-25
+// Datos: misDatos(), solicitarCambioDatos() → cliente.service.js
+// Patrón: useState (datos/error) → cargar() pide a la API → render. Tras guardar, se vuelve a cargar().
+// Los textos que ves en pantalla están en el JSX de abajo; las reglas están en el backend.
+// ============================================================================
 import { useCallback, useEffect, useState } from 'react';
 import { misDatos, solicitarCambioDatos } from '../services/clienteService.js';
 import Mensaje from '../../../shared/components/Mensaje.jsx';
@@ -25,6 +32,7 @@ export default function MisDatosPage() {
 
   const cambiar = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
+  // [CU-25] Envía la solicitud de cambio de correo/teléfono.
   async function enviar(e) {
     e.preventDefault();
     setEnviando(true);

@@ -1,3 +1,4 @@
+// AVISOS POR CORREO (CU-33). MAIL_MODE=consola (solo imprime) | brevo | resend.
 import { query } from '../../config/db.js';
 
 // Correo transaccional (HU-11, HU-13, HU-17). Adaptador único para poder cambiar de proveedor:

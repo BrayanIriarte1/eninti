@@ -1,3 +1,10 @@
+// ============================================================================
+// PANTALLA: Seguridad · URL /admin/seguridad y /trabajador/seguridad · Rol: administrador y trabajador
+// Casos de uso: CU-26 cambiar contraseña
+// Datos: CambiarContrasena → authService.cambiarContrasena() → contrasena.service.js · cambiar()
+// Patrón: useState (datos/error) → cargar() pide a la API → render. Tras guardar, se vuelve a cargar().
+// Los textos que ves en pantalla están en el JSX de abajo; las reglas están en el backend.
+// ============================================================================
 import CambiarContrasena from './CambiarContrasena.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 
