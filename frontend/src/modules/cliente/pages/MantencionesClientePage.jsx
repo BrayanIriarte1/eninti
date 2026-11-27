@@ -1,3 +1,10 @@
+// ============================================================================
+// PANTALLA: Mantenciones · URL /cliente/mantenciones · Rol: cliente
+// Casos de uso: CU-05 última y próxima · CU-23 confirmar cierre de orden
+// Datos: misMantenciones(), ordenesPorConfirmar(), confirmarOrden() → cliente.service.js
+// Patrón: useState (datos/error) → cargar() pide a la API → render. Tras guardar, se vuelve a cargar().
+// Los textos que ves en pantalla están en el JSX de abajo; las reglas están en el backend.
+// ============================================================================
 import { useCallback, useEffect, useState } from 'react';
 import { misMantenciones, ordenesPorConfirmar, confirmarOrden } from '../services/clienteService.js';
 import Mensaje from '../../../shared/components/Mensaje.jsx';
@@ -5,6 +12,7 @@ import GaleriaFotos from '../../../shared/components/GaleriaFotos.jsx';
 import Icono from '../../../shared/components/Icono.jsx';
 import { formatoFecha } from '../../../shared/utils/formato.js';
 
+// [CU-23] Pregunta Sí/No del formulario de confirmación.
 function Pregunta({ nombre, texto, valor, onCambio }) {
   return (
     <fieldset className="pregunta">
@@ -21,6 +29,7 @@ function Pregunta({ nombre, texto, valor, onCambio }) {
   );
 }
 
+// [CU-23] Formulario para confirmar o reclamar una orden por_confirmar.
 // Trabajo terminado por el técnico: el cliente revisa las fotos y confirma para cerrar la orden
 function ConfirmarTrabajo({ orden, onListo }) {
   const [satisfecho, setSatisfecho] = useState('');
@@ -89,6 +98,7 @@ export default function MantencionesClientePage() {
   const [error, setError] = useState(null);
   const [cargando, setCargando] = useState(true);
 
+  // [CU-05, CU-23] Última/próxima mantención + órdenes que esperan confirmación.
   const cargar = useCallback(() => Promise.all([
     misMantenciones().then(setPlantas),
     ordenesPorConfirmar().then(setPorConfirmar),

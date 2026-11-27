@@ -1,14 +1,19 @@
+// CAPA SERVICIO · Portal del cliente (CU-04 a CU-09, CU-23 a CU-25).
+// Reglas de negocio + SQL parametrizado ($1, $2…). Lanza HttpError(status, mensaje) ante datos inválidos.
+// REGLA DE ORO: toda función parte de fichaCliente(idUsuario) → el cliente solo ve SUS datos (lo ajeno = 404).
 import { pool, query } from '../../config/db.js';
 import { HttpError } from '../../shared/utils/httpError.js';
 import * as pasarela from '../pagos/pasarela.service.js';
-import { aplicarReglasDeuda, anularCuotasFuturas } from '../pagos/reglasDeuda.js';
+import { aplicarReglasDeuda, cerrarSuscripciones } from '../pagos/reglasDeuda.js';
 import { puedeTransitar } from '../../shared/utils/estadosOrden.js';
+import { enTransaccion } from '../../shared/utils/transaccion.js';
 import { fotosDeOrden } from '../../shared/utils/fotos.js';
 import { telefonoValido } from '../../shared/utils/rut.js';
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const texto = (v) => (typeof v === 'string' ? v.trim() : '');
 
+// [Seguridad] Usuario del token → su ficha de cliente. Base de TODAS las funciones de este archivo.
 // Resuelve la ficha de cliente del usuario autenticado. Toda consulta del módulo
 // parte de aquí: un cliente solo ve sus propios datos (frontera de confianza).
 async function fichaCliente(idUsuario) {
@@ -17,6 +22,7 @@ async function fichaCliente(idUsuario) {
   return rows[0];
 }
 
+// [CU-06] Plantas del cliente con su suscripción vigente (o null).
 // Mis plantas con su suscripción vigente (HU-10)
 export async function misPlantas(idUsuario) {
   const cliente = await fichaCliente(idUsuario);
@@ -37,6 +43,7 @@ export async function misPlantas(idUsuario) {
   return rows;
 }
 
+// [CU-06] Reutiliza misPlantas(): si la planta no está en la lista del cliente → 404.
 // Ficha técnica de una planta propia; un id ajeno responde 404 (HU-10)
 export async function obtenerPlanta(idUsuario, idPlanta) {
   const plantas = await misPlantas(idUsuario);
@@ -45,6 +52,7 @@ export async function obtenerPlanta(idUsuario, idPlanta) {
   return planta;
 }
 
+// [CU-04] Arma todo lo que muestra «Mi cuenta». Para cambiar cuántos pagos se ven: LIMIT 50.
 // Mi Cuenta: meses pagados, deuda vigente e historial de pagos (HU-08)
 export async function cuenta(idUsuario) {
   const cliente = await fichaCliente(idUsuario);
@@ -127,6 +135,7 @@ export async function cuenta(idUsuario) {
   };
 }
 
+// [CU-05] Por cada planta: última finalizada y próxima abierta.
 // Última mantención finalizada y próxima programada por planta (HU-09)
 export async function mantenciones(idUsuario) {
   const cliente = await fichaCliente(idUsuario);
@@ -149,6 +158,7 @@ export async function mantenciones(idUsuario) {
   return rows;
 }
 
+// [CU-07] Validaciones del motivo aquí (ej. largo mínimo).
 // Solicitud de mantención (HU-11): queda pendiente y visible para el administrador
 export async function crearSolicitud(idUsuario, { id_planta, motivo }) {
   if (!Number.isInteger(id_planta) || id_planta <= 0) throw new HttpError(400, 'id_planta inválido');
@@ -164,6 +174,7 @@ export async function crearSolicitud(idUsuario, { id_planta, motivo }) {
   return rows[0];
 }
 
+// [CU-07] Historial de solicitudes de mantención del cliente.
 export async function misSolicitudes(idUsuario) {
   const cliente = await fichaCliente(idUsuario);
   const { rows } = await query(
@@ -177,14 +188,13 @@ export async function misSolicitudes(idUsuario) {
   return rows;
 }
 
+// [CU-08]
 // Cancelación en dos pasos desde la interfaz (HU-12): es definitiva y registra fecha y motivo.
 // Para volver a suscribirse, el cliente envía una solicitud que el administrador acepta.
 export async function cancelarSuscripcion(idUsuario, idSuscripcion) {
   const cliente = await fichaCliente(idUsuario);
-  // Cancelar y anular las cuotas futuras van juntos: o se hacen ambos o ninguno
-  const conexion = await pool.connect();
-  try {
-    await conexion.query('BEGIN');
+  // Cancelación, anulación de cuotas futuras y de preventivas pendientes en una sola transacción
+  return enTransaccion(async (conexion) => {
     const { rows } = await conexion.query(
       `UPDATE suscripcion s
        SET estado = 'cancelada', fecha_cancelacion = CURRENT_DATE, motivo_cancelacion = 'cliente'
@@ -195,17 +205,12 @@ export async function cancelarSuscripcion(idUsuario, idSuscripcion) {
       [idSuscripcion, cliente.id_cliente],
     );
     if (!rows.length) throw new HttpError(404, 'Suscripción no encontrada o ya cancelada');
-    await anularCuotasFuturas(conexion, [idSuscripcion]);
-    await conexion.query('COMMIT');
+    await cerrarSuscripciones(conexion, [idSuscripcion], idUsuario);
     return rows[0];
-  } catch (err) {
-    await conexion.query('ROLLBACK');
-    throw err;
-  } finally {
-    conexion.release();
-  }
+  });
 }
 
+// [CU-09] Sin acepta_condiciones === true responde 400 («include» Aceptar condiciones, RF-19).
 // Aceptar condiciones e inscribir el medio de pago en la pasarela (HU-13, RF-19).
 // Guarda la aceptación con fecha e IP y devuelve la URL de la pasarela.
 export async function iniciarInscripcion(idUsuario, idSuscripcion, { acepta_condiciones, version_condiciones }, ip) {
@@ -223,39 +228,35 @@ export async function iniciarInscripcion(idUsuario, idSuscripcion, { acepta_cond
   );
   if (!rows.length) throw new HttpError(404, 'Suscripción no encontrada o cancelada');
 
-  const conexion = await pool.connect();
-  try {
-    await conexion.query('BEGIN');
-    await conexion.query(
-      `INSERT INTO aceptacion_condiciones (id_suscripcion, version_condiciones, ip_origen)
-       VALUES ($1, $2, $3)`,
-      [idSuscripcion, version_condiciones ?? '1.0', ip ?? null],
-    );
-    const inscripcion = await pasarela.iniciarInscripcion({
-      idCliente: cliente.id_cliente,
-      idSuscripcion,
-      email: null,
-      nombre: cliente.nombre,
-      urlRetorno: `${process.env.APP_URL ?? ''}/cliente/cuenta`,
-    });
-    if (inscripcion.proveedor === 'flow-sandbox') {
-      await conexion.query('UPDATE cliente SET flow_customer_id = $1 WHERE id_cliente = $2', [
-        inscripcion.customerId,
-        cliente.id_cliente,
-      ]);
-    }
-    await conexion.query('COMMIT');
-    return { url_pasarela: inscripcion.url_pasarela, proveedor: inscripcion.proveedor };
-  } catch (err) {
-    await conexion.query('ROLLBACK');
-    throw err;
-  } finally {
-    conexion.release();
+  const { rows: cuenta } = await query('SELECT email FROM usuario WHERE id_usuario = $1', [idUsuario]);
+
+  // Primero la pasarela (sin transacción abierta mientras se espera a Flow). El customerId de
+  // Flow se guarda apenas se crea, para no duplicar el cliente en Flow si algo falla después.
+  const inscripcion = await pasarela.iniciarInscripcion({
+    idCliente: cliente.id_cliente,
+    idSuscripcion,
+    email: cuenta[0]?.email ?? null,
+    nombre: cliente.nombre,
+    flowCustomerId: cliente.flow_customer_id,
+  });
+  if (inscripcion.proveedor === 'flow-sandbox' && inscripcion.customerId !== cliente.flow_customer_id) {
+    await query('UPDATE cliente SET flow_customer_id = $1 WHERE id_cliente = $2', [inscripcion.customerId, cliente.id_cliente]);
   }
+
+  // Consentimiento informado con fecha, versión e IP (RF-19, Ley 21.719)
+  const version = typeof version_condiciones === 'string' && version_condiciones.trim()
+    ? version_condiciones.trim().slice(0, 10)
+    : '1.0';
+  await query(
+    `INSERT INTO aceptacion_condiciones (id_suscripcion, version_condiciones, ip_origen) VALUES ($1, $2, $3)`,
+    [idSuscripcion, version, ip ? String(ip).slice(0, 45) : null],
+  );
+  return { url_pasarela: inscripcion.url_pasarela, proveedor: inscripcion.proveedor };
 }
 
 // ------------------------------------------------------------ Cierre de órdenes
 
+// [CU-23]
 // Órdenes terminadas por el técnico que esperan la confirmación del cliente, con sus fotos
 export async function ordenesPorConfirmar(idUsuario) {
   const cliente = await fichaCliente(idUsuario);
@@ -275,6 +276,7 @@ export async function ordenesPorConfirmar(idUsuario) {
   return rows;
 }
 
+// [CU-23]
 // El cliente cierra la orden: si el problema quedó resuelto pasa a 'finalizada';
 // si no, vuelve a 'en_curso' para que el técnico regrese, con el comentario del cliente.
 export async function confirmarOrden(idUsuario, idMantencion, { satisfecho, problema_resuelto, comentario }) {
@@ -332,6 +334,7 @@ export async function confirmarOrden(idUsuario, idMantencion, { satisfecho, prob
 
 // ------------------------------------------------------------ Solicitud de suscripción
 
+// [CU-24]
 // Solo el administrador otorga suscripciones: el cliente envía una solicitud por planta
 export async function solicitarSuscripcion(idUsuario, { id_planta, mensaje }) {
   if (!Number.isInteger(id_planta) || id_planta <= 0) throw new HttpError(400, 'id_planta inválido');
@@ -362,6 +365,7 @@ export async function solicitarSuscripcion(idUsuario, { id_planta, mensaje }) {
 
 // ------------------------------------------------------------ Cambio de datos
 
+// [CU-25]
 export async function misDatos(idUsuario) {
   const cliente = await fichaCliente(idUsuario);
   const { rows: usuario } = await query('SELECT email FROM usuario WHERE id_usuario = $1', [idUsuario]);
@@ -381,6 +385,7 @@ export async function misDatos(idUsuario) {
   };
 }
 
+// [CU-25]
 // El cliente pide cambiar su correo o su teléfono; se aplica cuando el administrador lo aprueba
 export async function solicitarCambioDatos(idUsuario, { email, telefono, motivo }) {
   const actuales = await misDatos(idUsuario);

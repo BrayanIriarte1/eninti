@@ -1,3 +1,4 @@
+// Llamadas del administrador a /api/admin/... · Backend: administrador.routes.js
 import { api } from '../../../shared/utils/api.js';
 
 // Clientes (HU-03)
@@ -60,3 +61,10 @@ export const rechazarSolicitudSuscripcion = (id, respuesta) =>
 export const listarCambiosDatos = (estado) => api(`/admin/solicitudes-datos${estado ? `?estado=${estado}` : ''}`);
 export const aprobarCambioDatos = (id, respuesta) => api(`/admin/solicitudes-datos/${id}/aprobar`, { method: 'POST', body: { respuesta } });
 export const rechazarCambioDatos = (id, respuesta) => api(`/admin/solicitudes-datos/${id}/rechazar`, { method: 'POST', body: { respuesta } });
+// Cobro mensual automático: estado, ejecución inmediata y cobros en espera de la pasarela
+export const estadoCobroAutomatico = () => api('/admin/finanzas/cobro-automatico');
+export const ejecutarCobroAutomatico = () => api('/admin/finanzas/cobro-automatico/ejecutar', { method: 'POST' });
+export const descartarIntento = (id) => api(`/admin/finanzas/intentos/${id}/descartar`, { method: 'POST' });
+// Correo: estado, bitácora y envío de prueba
+export const estadoCorreo = () => api('/admin/correo');
+export const enviarCorreoPrueba = (para) => api('/admin/correo/prueba', { method: 'POST', body: para ? { para } : {} });

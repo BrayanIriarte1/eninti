@@ -1,9 +1,17 @@
-import { useRef, useState } from 'react';
+// ============================================================================
+// PANTALLA: Inicio de sesión · URL /login · Rol: público
+// Casos de uso: CU-03 (enlaza a CU-02 y CU-27)
+// Datos: AuthContext.login() → POST /api/auth/login → auth.service.js · login()
+// Patrón: useState (datos/error) → cargar() pide a la API → render. Tras guardar, se vuelve a cargar().
+// Los textos que ves en pantalla están en el JSX de abajo; las reglas están en el backend.
+// ============================================================================
+import { useEffect, useRef, useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth, inicioPorRol } from '../../../shared/context/AuthContext.jsx';
 import Mensaje from '../../../shared/components/Mensaje.jsx';
 import LogoEninti from '../../../shared/components/LogoEninti.jsx';
 import FondoSolar from '../components/FondoSolar.jsx';
+import { CONTACTO as CONTACTO_ENINTI, enlaceWhatsapp } from '../../../shared/utils/contacto.js';
 
 // Lo que cada perfil encuentra tras iniciar sesión (inicio de sesión unificado, CU-03)
 const PERFILES = [
@@ -12,13 +20,7 @@ const PERFILES = [
   { icono: <IconoPanel />, titulo: 'Administración', texto: 'Plantas, calendario, asignación de órdenes, cobros y catálogo de planes.' },
 ];
 
-// Canales de contacto oficiales de ENINTI
-const CONTACTO = {
-  instagram: 'https://www.instagram.com/eninticl/',
-  whatsapp: 'https://wa.me/56987203499?text=' + encodeURIComponent('Hola ENINTI, necesito ayuda con mi cuenta.'),
-  telefono: '+56 9 8720 3499',
-  correo: 'contacto@eninti.cl',
-};
+const CONTACTO = { ...CONTACTO_ENINTI, whatsapp: enlaceWhatsapp() };
 
 function saludo() {
   const hora = new Date().getHours();
@@ -42,8 +44,11 @@ export default function LoginPage() {
   const [enviando, setEnviando] = useState(false);
   const [sacudir, setSacudir] = useState(false);
 
+  useEffect(() => { document.title = 'Iniciar sesión · ENINTI'; }, []);
+
   if (usuario) return <Navigate to={inicioPorRol(usuario.rol)} replace />;
 
+  // [CU-03] Inicia sesión y redirige al inicio de su rol (inicioPorRol).
   async function enviar(e) {
     e.preventDefault();
     setEnviando(true);
@@ -101,6 +106,7 @@ export default function LoginPage() {
         </span>
         <nav className="login-barra-nav" aria-label="Accesos públicos">
           <Link to="/cotizador">Planes<span className="login-solo-amplio"> y servicios</span></Link>
+          <Link to="/contacto">Contacto</Link>
           <Link to="/solicitar-cuenta" className="login-barra-cta">Solicitar cuenta</Link>
         </nav>
       </header>
@@ -182,6 +188,8 @@ export default function LoginPage() {
                 </p>
               </div>
 
+              <Link to="/recuperar" state={{ email }} className="login-olvido">¿Olvidaste tu contraseña?</Link>
+
               <button type="submit" className="login-entrar" disabled={enviando} aria-busy={enviando}>
                 {enviando && <span className="login-giro" aria-hidden="true" />}
                 {enviando ? 'Entrando…' : 'Entrar'}
@@ -190,8 +198,9 @@ export default function LoginPage() {
             </form>
 
             <p className="login-pie">
-              ¿Eres cliente y aún no tienes cuenta?{' '}
-              <Link to="/solicitar-cuenta">Contacta al administrador</Link>
+              ¿Aún no tienes cuenta? <Link to="/solicitar-cuenta">Solicítala aquí</Link>
+              <br />
+              ¿No puedes entrar? <Link to="/contacto">Contacta al administrador</Link>
             </p>
 
             <div className="login-contacto">

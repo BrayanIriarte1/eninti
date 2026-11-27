@@ -1,8 +1,10 @@
+// CAPA SERVICIO · Calendario y órdenes desde administración (CU-16, CU-17, CU-30, CU-31).
 import { pool, query } from '../../config/db.js';
 import { HttpError } from '../../shared/utils/httpError.js';
 import { textoOpcional } from '../../shared/utils/texto.js';
 import { puedeTransitar } from '../../shared/utils/estadosOrden.js';
 import { fotosDeOrden } from '../../shared/utils/fotos.js';
+import { avisarAsignacionTrabajador, avisarMantencionProgramada, enSegundoPlano } from '../notificaciones/correo.service.js';
 
 const SELECT_MANTENCION = `
   SELECT m.id_mantencion, m.tipo, m.estado, m.fecha_programada, m.fecha_ejecucion,
@@ -18,6 +20,7 @@ const SELECT_MANTENCION = `
   JOIN cliente c  ON c.id_cliente = p.id_cliente
   LEFT JOIN usuario u ON u.id_usuario = m.id_trabajador`;
 
+// [CU-16] Filtro nuevo: agregar('columna = ?', valor).
 // Calendario de mantenciones filtrable por comuna y rango de fechas (HU-04)
 export async function listar({ id_comuna, desde, hasta, estado }) {
   const condiciones = [];
@@ -39,12 +42,14 @@ export async function listar({ id_comuna, desde, hasta, estado }) {
   return rows;
 }
 
+// Una mantención con sus datos de planta, cliente y técnico.
 async function obtener(id) {
   const { rows } = await query(`${SELECT_MANTENCION} WHERE m.id_mantencion = $1`, [id]);
   if (!rows.length) throw new HttpError(404, 'Mantención no encontrada');
   return rows[0];
 }
 
+// [CU-16] Solo se asigna a un trabajador activo (la BD también lo exige con un trigger).
 async function validarTrabajadorActivo(conexion, idTrabajador) {
   const { rows } = await conexion.query(
     `SELECT 1 FROM usuario WHERE id_usuario = $1 AND rol = 'trabajador' AND activo`,
@@ -53,6 +58,7 @@ async function validarTrabajadorActivo(conexion, idTrabajador) {
   if (!rows.length) throw new HttpError(400, 'Solo se puede asignar a un trabajador activo');
 }
 
+// [CU-16, CU-17]
 // Programa una mantención, opcionalmente desde una solicitud del cliente (HU-11, HU-17)
 export async function crear({ id_planta, tipo, fecha_programada, id_trabajador, id_solicitud }, idAdmin) {
   const errores = [];
@@ -67,6 +73,17 @@ export async function crear({ id_planta, tipo, fecha_programada, id_trabajador, 
   try {
     await conexion.query('BEGIN');
     if (id_trabajador) await validarTrabajadorActivo(conexion, id_trabajador);
+
+    // Las preventivas son parte de la suscripción: sin suscripción vigente solo hay correctivas
+    if (tipo === 'preventiva') {
+      const { rows: vigente } = await conexion.query(
+        `SELECT 1 FROM suscripcion WHERE id_planta = $1 AND estado <> 'cancelada'`,
+        [id_planta],
+      );
+      if (!vigente.length) {
+        throw new HttpError(409, 'La planta no tiene una suscripción vigente: solo se puede programar una mantención correctiva');
+      }
+    }
 
     if (id_solicitud) {
       const { rows } = await conexion.query(
@@ -94,6 +111,9 @@ export async function crear({ id_planta, tipo, fecha_programada, id_trabajador, 
       [creada[0].id_mantencion, idAdmin],
     );
     await conexion.query('COMMIT');
+    // Avisos por correo después de confirmar la transacción (HU-11, HU-17)
+    enSegundoPlano(avisarMantencionProgramada(creada[0].id_mantencion));
+    if (id_trabajador) enSegundoPlano(avisarAsignacionTrabajador(creada[0].id_mantencion));
     return obtener(creada[0].id_mantencion);
   } catch (err) {
     await conexion.query('ROLLBACK');
@@ -103,6 +123,7 @@ export async function crear({ id_planta, tipo, fecha_programada, id_trabajador, 
   }
 }
 
+// [CU-16]
 // Asigna o reasigna la visita a un trabajador activo (HU-17)
 export async function asignar(id, { id_trabajador }) {
   if (!Number.isInteger(id_trabajador) || id_trabajador <= 0) {
@@ -120,6 +141,7 @@ export async function asignar(id, { id_trabajador }) {
     );
     if (!rows.length) throw new HttpError(409, 'La mantención no existe o ya está cerrada');
     await conexion.query('COMMIT');
+    enSegundoPlano(avisarAsignacionTrabajador(id)); // HU-17
   } catch (err) {
     await conexion.query('ROLLBACK');
     throw err;
@@ -129,14 +151,16 @@ export async function asignar(id, { id_trabajador }) {
   return obtener(id);
 }
 
-// Cancela una orden abierta dejando historial (HU-16)
+// [CU-30]
+// Cancela una orden abierta dejando historial (HU-16). Si la orden nació de una solicitud
+// del cliente, la solicitud vuelve a 'pendiente' en la bandeja para reprogramarla o rechazarla.
 export async function cancelar(id, idAdmin, comentario) {
   const textoComentario = textoOpcional(comentario, 'comentario', 255);
   const conexion = await pool.connect();
   try {
     await conexion.query('BEGIN');
     const { rows } = await conexion.query(
-      'SELECT estado FROM mantencion WHERE id_mantencion = $1 FOR UPDATE',
+      'SELECT estado, id_solicitud FROM mantencion WHERE id_mantencion = $1 FOR UPDATE',
       [id],
     );
     if (!rows.length) throw new HttpError(404, 'Mantención no encontrada');
@@ -144,6 +168,13 @@ export async function cancelar(id, idAdmin, comentario) {
       throw new HttpError(409, `No se puede cancelar una mantención ${rows[0].estado}`);
     }
     await conexion.query(`UPDATE mantencion SET estado = 'cancelada' WHERE id_mantencion = $1`, [id]);
+    if (rows[0].id_solicitud) {
+      await conexion.query(
+        `UPDATE solicitud_mantencion SET estado = 'pendiente', fecha_asignada = NULL
+         WHERE id_solicitud = $1 AND estado = 'asignada'`,
+        [rows[0].id_solicitud],
+      );
+    }
     await conexion.query(
       `INSERT INTO mantencion_historial (id_mantencion, id_usuario, estado_anterior, estado_nuevo, comentario)
        VALUES ($1, $2, $3, 'cancelada', $4)`,
@@ -159,6 +190,7 @@ export async function cancelar(id, idAdmin, comentario) {
   return obtener(id);
 }
 
+// [CU-17]
 // Bandeja de solicitudes de los clientes (HU-11)
 export async function listarSolicitudes({ estado }) {
   const params = [];
@@ -181,6 +213,7 @@ export async function listarSolicitudes({ estado }) {
   return rows;
 }
 
+// [CU-17]
 export async function rechazarSolicitud(id) {
   const { rows } = await query(
     `UPDATE solicitud_mantencion SET estado = 'rechazada'
@@ -192,12 +225,14 @@ export async function rechazarSolicitud(id) {
   return rows[0];
 }
 
+// [CU-31]
 // Fotos del trabajo realizado que el técnico envió al cliente
 export async function fotos(id) {
   await obtener(id);
   return fotosDeOrden({ query }, id);
 }
 
+// [CU-31]
 // Cierre por el administrador cuando el cliente no puede confirmar (por ejemplo, no tiene
 // cuenta web o confirmó por teléfono). Queda en el historial quién cerró y por qué.
 export async function cerrarSinCliente(id, idAdmin, comentario) {

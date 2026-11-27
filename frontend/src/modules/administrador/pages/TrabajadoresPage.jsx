@@ -1,3 +1,10 @@
+// ============================================================================
+// PANTALLA: Trabajadores · URL /admin/trabajadores · Rol: administrador
+// Casos de uso: CU-15
+// Datos: listar/crear/actualizarTrabajador() → trabajadores.service.js
+// Patrón: useState (datos/error) → cargar() pide a la API → render. Tras guardar, se vuelve a cargar().
+// Los textos que ves en pantalla están en el JSX de abajo; las reglas están en el backend.
+// ============================================================================
 import { useCallback, useEffect, useState } from 'react';
 import { listarTrabajadores, crearTrabajador, actualizarTrabajador } from '../services/adminService.js';
 import TelefonoInput from '../../../shared/components/TelefonoInput.jsx';
@@ -11,13 +18,13 @@ export default function TrabajadoresPage() {
   const [form, setForm] = useState(VACIO);
   const [error, setError] = useState(null);
   const [enviando, setEnviando] = useState(false);
-  const [aviso, setAviso] = useState(null);
 
   const cargar = useCallback(() => listarTrabajadores().then(setTrabajadores).catch(setError), []);
   useEffect(() => { cargar(); }, [cargar]);
 
   const cambiar = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
+  // [CU-15]
   async function crear(e) {
     e.preventDefault();
     setEnviando(true);
@@ -33,14 +40,15 @@ export default function TrabajadoresPage() {
     }
   }
 
+  // [CU-15] Activa/desactiva (desactivar libera sus órdenes abiertas).
   async function alternar(t) {
     const verbo = t.activo ? 'desactivar' : 'reactivar';
-    if (!window.confirm(`¿Seguro que quieres ${verbo} a ${t.nombre}?`)) return;
-    setAviso(null);
+    const aviso = t.activo ? ' Sus visitas pendientes quedarán «Sin asignar» en el calendario.' : '';
+    if (!window.confirm(`¿Seguro que quieres ${verbo} a ${t.nombre}?${aviso}`)) return;
     try {
-      const actualizado = await actualizarTrabajador(t.id_usuario, { activo: !t.activo });
-      if (actualizado.ordenes_liberadas > 0) {
-        setAviso(`${t.nombre} tenía ${actualizado.ordenes_liberadas} orden(es) abierta(s): quedaron sin técnico. Reasígnalas en el Calendario.`);
+      const r = await actualizarTrabajador(t.id_usuario, { activo: !t.activo });
+      if (r.ordenes_liberadas) {
+        window.alert(`${r.ordenes_liberadas} visita(s) quedaron sin asignar. Reasígnalas desde el Calendario.`);
       }
       await cargar();
     } catch (err) {
@@ -51,7 +59,6 @@ export default function TrabajadoresPage() {
   return (
     <section>
       <h1>Trabajadores</h1>
-      {aviso && <p className="mensaje-ok" role="status">{aviso}</p>}
 
       <article className="tarjeta" style={{ marginBottom: '1.5rem' }}>
         <h2>Nuevo trabajador</h2>
@@ -61,7 +68,7 @@ export default function TrabajadoresPage() {
             <legend>Datos de acceso</legend>
             <label>Nombre<input name="nombre" value={form.nombre} onChange={cambiar} required maxLength={120} /></label>
             <label>Correo<input name="email" type="email" value={form.email} onChange={cambiar} required /></label>
-            <label>Contraseña inicial <span className="opcional">(mín. 8)</span><input name="password" type="password" value={form.password} onChange={cambiar} required minLength={8} /></label>
+            <label>Contraseña inicial <span className="opcional">(8 o más, con letras y números)</span><input name="password" type="password" value={form.password} onChange={cambiar} required minLength={8} maxLength={128} pattern="(?=.*[A-Za-zÁÉÍÓÚÜÑáéíóúüñ])(?=.*[0-9]).{8,128}" title="Al menos 8 caracteres, con letras y números" /></label>
             <label>Teléfono <span className="opcional">(opcional)</span><TelefonoInput value={form.telefono} onChange={cambiar} /></label>
           </fieldset>
           <div className="acciones">

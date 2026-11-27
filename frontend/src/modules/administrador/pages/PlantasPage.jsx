@@ -1,3 +1,10 @@
+// ============================================================================
+// PANTALLA: Plantas · URL /admin/plantas · Rol: administrador
+// Casos de uso: CU-14
+// Datos: plantasService.listarPlantas() → GET /api/admin/plantas → plantas.service.js · listar()
+// Patrón: useState (datos/error) → cargar() pide a la API → render. Tras guardar, se vuelve a cargar().
+// Los textos que ves en pantalla están en el JSX de abajo; las reglas están en el backend.
+// ============================================================================
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { listarPlantas } from '../services/plantasService.js';

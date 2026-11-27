@@ -1,18 +1,28 @@
+// ============================================================================
+// PANTALLA: Impagos · URL /admin/impagos · Rol: administrador
+// Casos de uso: CU-18 consultar impagos · CU-22 registrar pago manual
+// Datos: listarImpagos(), cuotasDeSuscripcion(), registrarPagoManual() → finanzas.service.js
+// Patrón: useState (datos/error) → cargar() pide a la API → render. Tras guardar, se vuelve a cargar().
+// Los textos que ves en pantalla están en el JSX de abajo; las reglas están en el backend.
+// ============================================================================
 import { useCallback, useEffect, useState } from 'react';
 import { listarImpagos, cuotasDeSuscripcion, registrarPagoManual } from '../services/adminService.js';
 import Mensaje from '../../../shared/components/Mensaje.jsx';
 import { formatoPesos, formatoFecha } from '../../../shared/utils/formato.js';
+import ConfirmarPagoDialogo from '../components/ConfirmarPagoDialogo.jsx';
 
 // Listado de impagos con registro manual de pagos (HU-01, HU-02)
 export default function ImpagosPage() {
   const [impagos, setImpagos] = useState([]);
   const [error, setError] = useState(null);
   const [detalle, setDetalle] = useState(null); // { suscripcion, cuotas }
-  const [enviando, setEnviando] = useState(false);
+  const [pago, setPago] = useState(null); // pago por confirmar: { cuota, origen, cliente, direccion }
+  const [aviso, setAviso] = useState(null);
 
   const cargar = useCallback(() => listarImpagos().then(setImpagos).catch(setError), []);
   useEffect(() => { cargar(); }, [cargar]);
 
+  // [CU-18 → CU-22] Muestra las cuotas de la suscripción morosa.
   async function abrir(imp) {
     setError(null);
     try {
@@ -21,22 +31,32 @@ export default function ImpagosPage() {
     } catch (err) { setError(err); }
   }
 
-  async function pagar(idCuota, origen) {
-    setEnviando(true);
+  // [CU-22] Abre el diálogo de confirmación del pago.
+  // Abre la confirmación: el pago NO se registra hasta presionar «Registrar pago»
+  function pedirConfirmacion(cuota, origen) {
     setError(null);
-    try {
-      const referencia = window.prompt('Referencia del pago (N° de transferencia, folio, etc.):') ?? '';
-      await registrarPagoManual(idCuota, { origen, referencia: referencia.trim() || undefined });
-      const cuotas = await cuotasDeSuscripcion(detalle.imp.id_suscripcion);
-      setDetalle({ ...detalle, cuotas });
-      await cargar();
-    } catch (err) { setError(err); } finally { setEnviando(false); }
+    setAviso(null);
+    setPago({ cuota, origen, cliente: detalle.imp.cliente, direccion: detalle.imp.direccion });
+  }
+
+  // [CU-22]
+  // Lo llama el diálogo; si la API falla, el error se muestra dentro del diálogo
+  async function registrar(referencia) {
+    const { cuota, origen } = pago;
+    await registrarPagoManual(cuota.id_cuota, { origen, monto: cuota.monto, referencia });
+    setPago(null);
+    setAviso(`Pago de ${formatoPesos(cuota.monto)} (${cuota.periodo}) registrado por ${origen}.`);
+    const cuotas = await cuotasDeSuscripcion(detalle.imp.id_suscripcion);
+    setDetalle({ ...detalle, cuotas });
+    await cargar();
   }
 
   return (
     <section>
       <h1>Impagos y morosidad</h1>
       <Mensaje error={error} />
+      {aviso && <p className="mensaje-ok" role="status">{aviso}</p>}
+      {pago && <ConfirmarPagoDialogo pago={pago} onConfirmar={registrar} onCerrar={() => setPago(null)} />}
 
       {impagos.length === 0 && <p>No hay cuotas vencidas: todos los clientes están al día.</p>}
 
@@ -91,8 +111,8 @@ export default function ImpagosPage() {
                   <td data-label="Registrar pago">
                     {['pendiente', 'vencida'].includes(c.estado) ? (
                       <div className="acciones" style={{ margin: 0 }}>
-                        <button className="boton secundario" disabled={enviando} onClick={() => pagar(c.id_cuota, 'transferencia')}>Transferencia</button>
-                        <button className="boton secundario" disabled={enviando} onClick={() => pagar(c.id_cuota, 'efectivo')}>Efectivo</button>
+                        <button className="boton secundario" onClick={() => pedirConfirmacion(c, 'transferencia')}>Transferencia</button>
+                        <button className="boton secundario" onClick={() => pedirConfirmacion(c, 'efectivo')}>Efectivo</button>
                       </div>
                     ) : '—'}
                   </td>

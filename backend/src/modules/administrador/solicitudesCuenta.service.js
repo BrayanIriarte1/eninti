@@ -1,3 +1,4 @@
+// CAPA SERVICIO · Solicitudes de cuenta: el visitante pide (CU-02), el administrador aprueba o rechaza (CU-13).
 import { pool, query } from '../../config/db.js';
 import { HttpError } from '../../shared/utils/httpError.js';
 import { crearCuentaCliente } from './clientes.service.js';
@@ -8,6 +9,7 @@ const ESTADOS = ['pendiente', 'aprobada', 'rechazada'];
 
 const texto = (v) => (typeof v === 'string' ? v.trim() : '');
 
+// [CU-02]
 // Solicitud pública de cuenta (HU-07): el cliente no crea su cuenta, la pide.
 // Se guardan sus datos y los de su planta para que el administrador los revise.
 export async function crear(datos) {
@@ -75,6 +77,7 @@ function bloquearRut(conexion, rut) {
   return conexion.query("SELECT pg_advisory_xact_lock(hashtext('solicitud_cuenta:' || $1))", [rut]);
 }
 
+// [CU-13]
 export async function listar(estado) {
   if (estado !== undefined && !ESTADOS.includes(estado)) {
     throw new HttpError(400, `estado debe ser uno de: ${ESTADOS.join(', ')}`);
@@ -94,6 +97,7 @@ export async function listar(estado) {
   return rows;
 }
 
+// [CU-13]
 // Aprobar: en una sola transacción crea (o reutiliza) la ficha del cliente, crea su
 // cuenta web con la contraseña inicial que define el administrador y cierra la solicitud.
 // La planta se registra a continuación con su ficha técnica completa (HU-03).
@@ -147,6 +151,7 @@ export async function aprobar(id, idAdmin, { email, password } = {}) {
   }
 }
 
+// [CU-13]
 export async function rechazar(id, idAdmin) {
   const { rows } = await query(
     `UPDATE solicitud_cuenta

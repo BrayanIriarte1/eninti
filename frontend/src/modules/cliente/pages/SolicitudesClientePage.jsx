@@ -1,3 +1,10 @@
+// ============================================================================
+// PANTALLA: Solicitudes · URL /cliente/solicitudes · Rol: cliente
+// Casos de uso: CU-07
+// Datos: crearSolicitud() → POST /api/cliente/solicitudes → cliente.service.js · crearSolicitud()
+// Patrón: useState (datos/error) → cargar() pide a la API → render. Tras guardar, se vuelve a cargar().
+// Los textos que ves en pantalla están en el JSX de abajo; las reglas están en el backend.
+// ============================================================================
 import { useCallback, useEffect, useState } from 'react';
 import { misPlantas, misSolicitudes, crearSolicitud } from '../services/clienteService.js';
 import Mensaje from '../../../shared/components/Mensaje.jsx';
@@ -23,6 +30,7 @@ export default function SolicitudesClientePage() {
   );
   useEffect(() => { cargar(); }, [cargar]);
 
+  // [CU-07] Envía la solicitud y recarga la lista.
   async function enviar(e) {
     e.preventDefault();
     setEnviando(true);

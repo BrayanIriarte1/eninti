@@ -1,15 +1,20 @@
+// SEGURIDAD (CU-03): autenticar = ¿quién eres? (token válido + cuenta activa en BD) · permitirRoles = ¿puedes entrar?
 import jwt from 'jsonwebtoken';
 import { query } from '../../config/db.js';
 import { HttpError } from '../utils/httpError.js';
 
+// [CU-03] Se pone en cada *.routes.js. Deja req.usuario = { id, rol, nombre }.
 // Autenticación por JWT (8 h). Además de validar la firma se comprueba en la base
 // que el usuario siga activo: desactivar un trabajador invalida sus tokens vigentes (HU-15).
 export async function autenticar(req, _res, next) {
-  // Solo desarrollo: entra como el primer administrador activo, sin login.
-  // Se ignora en producción. Usa un usuario real (y no id 0) para que los registros
-  // que guardan quién hizo la acción (pagos manuales, historial) no fallen.
+  // Solo desarrollo y nunca en producción. Usa un administrador real para que los
+  // registros auditados (pagos, historial) apunten a un usuario existente.
   if (process.env.AUTH_BYPASS === 'true' && process.env.NODE_ENV !== 'production') {
-    req.usuario = await administradorDeDesarrollo();
+    const { rows } = await query(
+      `SELECT id_usuario, nombre FROM usuario WHERE rol = 'administrador' AND activo ORDER BY id_usuario LIMIT 1`,
+    );
+    if (!rows.length) throw new HttpError(401, 'AUTH_BYPASS requiere un administrador activo en la base');
+    req.usuario = { id: rows[0].id_usuario, rol: 'administrador', nombre: `${rows[0].nombre} (bypass)` };
     return next();
   }
 
@@ -24,25 +29,22 @@ export async function autenticar(req, _res, next) {
   }
 
   const { rows } = await query(
-    'SELECT id_usuario, nombre, rol, activo FROM usuario WHERE id_usuario = $1',
+    'SELECT id_usuario, nombre, rol, activo, password_actualizado FROM usuario WHERE id_usuario = $1',
     [datos.id],
   );
   if (!rows.length || !rows[0].activo) throw new HttpError(401, 'La cuenta no está activa');
   if (rows[0].rol !== datos.rol) throw new HttpError(401, 'Token inválido o expirado');
+  // Cambiar o restablecer la contraseña cierra las sesiones abiertas antes de ese momento
+  const cambio = rows[0].password_actualizado;
+  if (cambio && datos.iat < Math.floor(new Date(cambio).getTime() / 1000)) {
+    throw new HttpError(401, 'Tu contraseña cambió. Inicia sesión de nuevo');
+  }
 
   req.usuario = { id: rows[0].id_usuario, rol: rows[0].rol, nombre: rows[0].nombre };
   next();
 }
 
-async function administradorDeDesarrollo() {
-  const { rows } = await query(
-    `SELECT id_usuario, nombre FROM usuario
-     WHERE rol = 'administrador' AND activo ORDER BY id_usuario LIMIT 1`,
-  );
-  if (!rows.length) throw new HttpError(500, 'AUTH_BYPASS necesita al menos un administrador activo en la base');
-  return { id: rows[0].id_usuario, rol: 'administrador', nombre: rows[0].nombre };
-}
-
+// [CU-03] Uso: permitirRoles('administrador', 'trabajador'). Rol no permitido → 403.
 export const permitirRoles = (...roles) => (req, _res, next) => {
   if (!roles.includes(req.usuario?.rol)) throw new HttpError(403, 'Acceso no permitido para este rol');
   next();

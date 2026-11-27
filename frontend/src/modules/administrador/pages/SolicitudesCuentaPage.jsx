@@ -1,3 +1,10 @@
+// ============================================================================
+// PANTALLA: Nuevas cuentas · URL /admin/solicitudes-cuenta · Rol: administrador
+// Casos de uso: CU-13 gestionar solicitudes de cuenta («include» crear cliente y cuenta web)
+// Datos: listar/aprobar/rechazarSolicitudCuenta() → solicitudesCuenta.service.js
+// Patrón: useState (datos/error) → cargar() pide a la API → render. Tras guardar, se vuelve a cargar().
+// Los textos que ves en pantalla están en el JSX de abajo; las reglas están en el backend.
+// ============================================================================
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { listarSolicitudesCuenta, aprobarSolicitudCuenta, rechazarSolicitudCuenta } from '../services/adminService.js';
@@ -30,6 +37,7 @@ export default function SolicitudesCuentaPage() {
   );
   useEffect(() => { cargar(); }, [cargar]);
 
+  // [CU-13] Abre el formulario de aprobación (correo y contraseña inicial).
   function abrir(s) {
     setAbierta(s.id_solicitud_cuenta);
     setCuenta({ email: s.email, password: '' });
@@ -37,6 +45,7 @@ export default function SolicitudesCuentaPage() {
     setCreada(null);
   }
 
+  // [CU-13]
   async function aprobar(e, s) {
     e.preventDefault();
     setEnviando(true);
@@ -53,6 +62,7 @@ export default function SolicitudesCuentaPage() {
     }
   }
 
+  // [CU-13]
   async function rechazar(s) {
     if (!window.confirm(`¿Rechazar la solicitud de ${s.nombre}?`)) return;
     setError(null);
@@ -124,7 +134,7 @@ export default function SolicitudesCuentaPage() {
                   <input type="email" value={cuenta.email} onChange={(e) => setCuenta({ ...cuenta, email: e.target.value })} required />
                 </label>
                 <label>Contraseña inicial <span className="opcional">(mín. 8; se la comunicas al cliente)</span>
-                  <input type="text" value={cuenta.password} onChange={(e) => setCuenta({ ...cuenta, password: e.target.value })} required minLength={8} autoComplete="off" />
+                  <input type="text" value={cuenta.password} onChange={(e) => setCuenta({ ...cuenta, password: e.target.value })} required minLength={8} maxLength={128} pattern="(?=.*[A-Za-zÁÉÍÓÚÜÑáéíóúüñ])(?=.*[0-9]).{8,128}" title="Al menos 8 caracteres, con letras y números" autoComplete="off" />
                 </label>
                 <div className="acciones">
                   <button type="button" className="boton secundario" onClick={() => setAbierta(null)}>Cancelar</button>

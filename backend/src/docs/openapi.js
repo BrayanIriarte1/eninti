@@ -66,7 +66,7 @@ El token dura **8 horas**. Tras **5 contraseñas incorrectas** con el mismo corr
   servers: [{ url: '/api', description: 'Servidor actual' }],
   tags: [
     { name: 'Sistema', description: 'Estado del servicio' },
-    { name: 'Autenticación', description: 'Inicio de sesión (HU-07). No hay autorregistro: la cuenta del cliente la crea el administrador' },
+    { name: 'Autenticación', description: 'Inicio de sesión, cambio y recuperación de contraseña (HU-07). No hay autorregistro: la cuenta del cliente la crea el administrador' },
     { name: 'Público', description: 'Sin sesión: cotizador, solicitud de cuenta y retorno de la pasarela simulada' },
     { name: 'Cliente', description: 'Perfil **cliente**: cuenta, plantas, mantenciones y solicitudes (HU-08 a HU-13)' },
     { name: 'Trabajador', description: 'Perfil **trabajador**: agenda y órdenes de trabajo (HU-05, HU-14, HU-16)' },
@@ -106,6 +106,40 @@ El token dura **8 horas**. Tras **5 contraseñas incorrectas** con el mismo corr
       get: {
         tags: ['Autenticación'], summary: 'Perfil del usuario autenticado', security: protegido,
         responses: { 200: ok('Perfil', ref('Perfil')), 401: r401 },
+      },
+    },
+    '/auth/cambiar-contrasena': {
+      post: {
+        tags: ['Autenticación'], summary: 'Cambiar la contraseña (cualquier rol)', security: protegido,
+        description: 'Exige la contraseña actual. La nueva debe tener 8 a 128 caracteres y combinar letras y números. Devuelve un token nuevo: esta sesión sigue abierta y las demás se cierran. Avisa por correo.',
+        requestBody: cuerpo({ type: 'object', required: ['actual', 'nueva'], properties: { actual: { type: 'string' }, nueva: { type: 'string' } } }, { actual: 'Admin.2026', nueva: 'NuevaClave2026' }),
+        responses: {
+          200: ok('Contraseña actualizada', { type: 'object', properties: { mensaje: { type: 'string' }, token: { type: 'string' } } }),
+          400: r400, 401: r401,
+        },
+      },
+    },
+    '/auth/recuperar': {
+      post: {
+        tags: ['Autenticación'], summary: 'Pedir un enlace para restablecer la contraseña', security: [],
+        description: 'Responde siempre lo mismo, exista o no el correo. Si hay una cuenta activa, envía un enlace de un solo uso que vence en 1 hora. Máximo 5 pedidos cada 15 minutos por IP.',
+        requestBody: cuerpo({ type: 'object', required: ['email'], properties: { email: { type: 'string', format: 'email' } } }, { email: 'maria.gonzalez@ejemplo.cl' }),
+        responses: { 200: ok('Pedido recibido', { type: 'object', properties: { mensaje: { type: 'string' } } }), 400: r400, 429: { description: 'Demasiados pedidos', content: json(ref('Error')) } },
+      },
+    },
+    '/auth/restablecer/verificar': {
+      post: {
+        tags: ['Autenticación'], summary: 'Revisar si un enlace de recuperación sigue vigente', security: [],
+        requestBody: cuerpo({ type: 'object', required: ['token'], properties: { token: { type: 'string' } } }),
+        responses: { 200: ok('Resultado', { type: 'object', properties: { valido: { type: 'boolean' }, email: { type: 'string', description: 'Correo parcialmente oculto' } } }) },
+      },
+    },
+    '/auth/restablecer': {
+      post: {
+        tags: ['Autenticación'], summary: 'Crear la contraseña nueva con el enlace', security: [],
+        description: 'Marca el enlace como usado, cierra las sesiones abiertas, levanta el bloqueo por intentos fallidos y avisa por correo.',
+        requestBody: cuerpo({ type: 'object', required: ['token', 'nueva'], properties: { token: { type: 'string' }, nueva: { type: 'string' } } }),
+        responses: { 200: ok('Contraseña restablecida', { type: 'object', properties: { mensaje: { type: 'string' } } }), 400: r400 },
       },
     },
 
@@ -432,7 +466,7 @@ El token dura **8 horas**. Tras **5 contraseñas incorrectas** con el mismo corr
     '/admin/cuotas/{id}/pagos': {
       post: {
         tags: ['Admin · Finanzas'], summary: 'Registrar un pago manual (HU-02)', security: protegido,
-        description: 'Por transferencia o efectivo. Guarda quién lo registró y cuándo. La cuota pasa a `pagada` y, si no quedan cuotas vencidas, la suscripción vuelve a `al_dia`. Una cuota ya pagada **no admite un segundo pago**.',
+        description: 'Por transferencia (exige `referencia` con el N° de operación) o efectivo (referencia opcional). Si se envía `monto`, debe ser el total de la cuota. Guarda quién lo registró y cuándo. La cuota pasa a `pagada` y, si no quedan cuotas vencidas, la suscripción vuelve a `al_dia`. Una cuota ya pagada **no admite un segundo pago**.',
         parameters: [idPath('Id de la cuota')],
         requestBody: cuerpo(ref('PagoManualPeticion'), { origen: 'transferencia', referencia: 'TRF-123456' }),
         responses: { 201: ok('Pago registrado', ref('Pago')), 400: r400, ...comunes, 404: r404, 409: { description: 'La cuota ya está pagada o anulada', content: json(ref('Error')) } },
@@ -463,8 +497,37 @@ El token dura **8 horas**. Tras **5 contraseñas incorrectas** con el mismo corr
     '/admin/finanzas/procesar-cargos': {
       post: {
         tags: ['Admin · Finanzas'], summary: 'Cobro recurrente en la pasarela (HU-13)', security: protegido,
-        description: 'Intenta cobrar cada cuota abierta de los clientes con medio de pago activo. Un **rechazo no registra pago** ni cambia la cuota.',
+        description: 'Intenta cobrar cada cuota abierta de los clientes con medio de pago activo. Un **rechazo no registra pago** ni cambia la cuota. Cada intento queda en `intento_cargo`; las cuotas con un cobro **en espera** en la pasarela se omiten para no cobrar dos veces.',
         responses: { 200: ok('Resultado de los cargos', ref('ResultadoCargos')), ...comunes },
+      },
+    },
+    '/admin/finanzas/cobro-automatico': {
+      get: {
+        tags: ['Admin · Finanzas'], summary: 'Estado del cobro mensual automático (HU-13)', security: protegido,
+        description: 'Si está activo, la hora diaria, si hoy ya se ejecutó, las últimas 5 ejecuciones y los cobros en espera de la pasarela.',
+        responses: { 200: ok('Estado', { type: 'object' }), ...comunes },
+      },
+    },
+    '/admin/finanzas/cobro-automatico/ejecutar': {
+      post: {
+        tags: ['Admin · Finanzas'], summary: 'Ejecutar ahora la tarea diaria de cobro', security: protegido,
+        description: 'Genera las cuotas del mes en curso y cobra las que vencen, aunque hoy ya se haya ejecutado. 409 si otra ejecución está en curso.',
+        responses: { 200: ok('Resumen de la ejecución', { type: 'object' }), 409: { description: 'Ya hay una ejecución en curso', content: json(ref('Error')) }, ...comunes },
+      },
+    },
+    '/admin/finanzas/intentos/{id}/descartar': {
+      post: {
+        tags: ['Admin · Finanzas'], summary: 'Descartar un cobro en espera que no se realizó', security: protegido,
+        description: 'Úsalo solo tras confirmar en el panel de la pasarela que no se cobró: la cuota vuelve a cobrarse en el próximo proceso.',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: { 200: ok('Intento descartado', { type: 'object' }), 404: { description: 'No hay un cobro en espera con ese número', content: json(ref('Error')) }, ...comunes },
+      },
+    },
+    '/tareas/cobro-diario': {
+      post: {
+        tags: ['Sistema'], summary: 'Disparador externo del cobro diario (cron)', security: [],
+        description: 'Existe solo si se define `CRON_SECRET`; se llama con `Authorization: Bearer <CRON_SECRET>`. Es seguro repetirlo: si hoy ya se ejecutó responde `{ "omitida": true }`.',
+        responses: { 200: ok('Resultado o tarea omitida', { type: 'object' }), 401: r401, 404: { description: 'CRON_SECRET no configurado', content: json(ref('Error')) } },
       },
     },
 
@@ -487,6 +550,70 @@ El token dura **8 horas**. Tras **5 contraseñas incorrectas** con el mismo corr
         requestBody: cuerpo(ref('CatalogoEdicion'), { precio: 16000 }),
         responses: { 200: ok('Ítem actualizado', ref('CatalogoItem')), 400: r400, ...comunes, 404: r404, 409: r409 },
       },
+    },
+    // ---------------------------------------------------------------- Cierre de órdenes y solicitudes del cliente
+    '/cliente/ordenes/por-confirmar': {
+      get: {
+        tags: ['Cliente'], summary: 'Órdenes terminadas por el técnico que esperan mi confirmación (con fotos)', security: protegido,
+        responses: { 200: ok('Órdenes por confirmar', { type: 'array', items: { type: 'object' } }), ...comunes },
+      },
+    },
+    '/cliente/ordenes/{id}/confirmar': {
+      post: {
+        tags: ['Cliente'], summary: 'Confirmar el trabajo (→ finalizada) o informar que el problema sigue (→ en_curso)', security: protegido,
+        parameters: [idPath('Id de la mantención')],
+        requestBody: cuerpo({ type: 'object', required: ['satisfecho', 'problema_resuelto'], properties: { satisfecho: { type: 'boolean' }, problema_resuelto: { type: 'boolean' }, comentario: { type: 'string', maxLength: 500, description: 'Obligatorio si el problema sigue' } } }, { satisfecho: true, problema_resuelto: true }),
+        responses: { 200: ok('Nuevo estado', { type: 'object', properties: { id_mantencion: entero, estado: texto } }), 400: r400, ...comunes, 404: r404, 409: r409 },
+      },
+    },
+    '/cliente/solicitudes-suscripcion': {
+      post: {
+        tags: ['Cliente'], summary: 'Pedir (de nuevo) una suscripción para una planta propia; la otorga el administrador', security: protegido,
+        requestBody: cuerpo({ type: 'object', required: ['id_planta'], properties: { id_planta: entero, mensaje: { type: 'string', maxLength: 500 } } }, { id_planta: 1 }),
+        responses: { 201: ok('Solicitud creada', { type: 'object' }), 400: r400, ...comunes, 404: r404, 409: r409 },
+      },
+    },
+    '/cliente/datos': {
+      get: { tags: ['Cliente'], summary: 'Mis datos y mis solicitudes de cambio', security: protegido, responses: { 200: ok('Datos del cliente', { type: 'object' }), ...comunes } },
+    },
+    '/cliente/datos/solicitudes': {
+      post: {
+        tags: ['Cliente'], summary: 'Solicitar cambio de correo o teléfono (lo aprueba el administrador)', security: protegido,
+        requestBody: cuerpo({ type: 'object', required: ['motivo'], properties: { email: { type: 'string', format: 'email' }, telefono: { type: 'string', example: '+56912345678' }, motivo: { type: 'string', maxLength: 300 } } }),
+        responses: { 201: ok('Solicitud creada', { type: 'object' }), 400: r400, ...comunes, 409: r409 },
+      },
+    },
+    '/pagos/flow/retorno': {
+      post: {
+        tags: ['Pagos'], summary: 'Retorno de Flow sandbox tras inscribir la tarjeta',
+        description: 'Flow redirige el navegador con un POST (token). El servidor consulta `customer/getRegisterStatus`, guarda solo customerId, marca y últimos 4 dígitos, y redirige a Mi cuenta.',
+        requestBody: { required: true, content: { 'application/x-www-form-urlencoded': { schema: { type: 'object', properties: { token: texto } } } } },
+        responses: { 303: { description: 'Redirección a /cliente/cuenta?inscripcion=aprobada|rechazada|error' } },
+      },
+    },
+    '/admin/solicitudes-suscripcion': {
+      get: { tags: ['Admin · Solicitudes'], summary: 'Solicitudes de suscripción (con deuda del cliente y suscripción anterior)', security: protegido, parameters: [query('estado', 'pendiente, aprobada o rechazada')], responses: { 200: ok('Solicitudes', { type: 'array', items: { type: 'object' } }), 400: r400, ...comunes } },
+    },
+    '/admin/solicitudes-suscripcion/{id}/aprobar': {
+      post: { tags: ['Admin · Solicitudes'], summary: 'Aprobar y crear la suscripción', security: protegido, parameters: [idPath()], requestBody: cuerpo({ type: 'object', required: ['monto_mensual'], properties: { monto_mensual: entero, dia_cobro: { type: 'integer', minimum: 1, maximum: 28 }, fecha_inicio: fecha, respuesta: { type: 'string', maxLength: 500 } } }, { monto_mensual: 15000 }), responses: { 200: ok('Solicitud y suscripción', { type: 'object' }), 400: r400, ...comunes, 404: r404, 409: r409 } },
+    },
+    '/admin/solicitudes-suscripcion/{id}/rechazar': {
+      post: { tags: ['Admin · Solicitudes'], summary: 'Rechazar con motivo visible para el cliente', security: protegido, parameters: [idPath()], requestBody: cuerpo({ type: 'object', required: ['respuesta'], properties: { respuesta: texto } }), responses: { 200: ok('Solicitud rechazada', { type: 'object' }), 400: r400, ...comunes, 409: r409 } },
+    },
+    '/admin/solicitudes-datos': {
+      get: { tags: ['Admin · Solicitudes'], summary: 'Solicitudes de cambio de correo o teléfono', security: protegido, parameters: [query('estado', 'pendiente, aprobada o rechazada')], responses: { 200: ok('Solicitudes', { type: 'array', items: { type: 'object' } }), 400: r400, ...comunes } },
+    },
+    '/admin/solicitudes-datos/{id}/aprobar': {
+      post: { tags: ['Admin · Solicitudes'], summary: 'Aprobar y aplicar el cambio', security: protegido, parameters: [idPath()], responses: { 200: ok('Solicitud aprobada', { type: 'object' }), ...comunes, 404: r404, 409: r409 } },
+    },
+    '/admin/solicitudes-datos/{id}/rechazar': {
+      post: { tags: ['Admin · Solicitudes'], summary: 'Rechazar con motivo', security: protegido, parameters: [idPath()], requestBody: cuerpo({ type: 'object', required: ['respuesta'], properties: { respuesta: texto } }), responses: { 200: ok('Solicitud rechazada', { type: 'object' }), 400: r400, ...comunes, 409: r409 } },
+    },
+    '/admin/mantenciones/{id}/fotos': {
+      get: { tags: ['Admin · Mantenciones'], summary: 'Fotos del trabajo enviadas por el técnico', security: protegido, parameters: [idPath()], responses: { 200: ok('Fotos (data URL)', { type: 'array', items: { type: 'object' } }), ...comunes, 404: r404 } },
+    },
+    '/admin/mantenciones/{id}/cerrar': {
+      post: { tags: ['Admin · Mantenciones'], summary: 'Cerrar una orden por confirmar sin el cliente (queda el motivo en el historial)', security: protegido, parameters: [idPath()], requestBody: cuerpo({ type: 'object', required: ['comentario'], properties: { comentario: texto } }), responses: { 200: ok('Orden finalizada', ref('MantencionAdmin')), 400: r400, ...comunes, 404: r404, 409: r409 } },
     },
   },
 
@@ -554,7 +681,7 @@ El token dura **8 horas**. Tras **5 contraseñas incorrectas** con el mismo corr
       FichaOrden: { type: 'object', properties: { id_planta: entero, direccion: texto, comuna: texto, potencia_kw: { type: 'number' }, inversor: texto, paneles: texto, baterias: { type: 'string', nullable: true }, fecha_instalacion: fecha, latitud: { type: 'number', nullable: true }, longitud: { type: 'number', nullable: true } } },
       Orden: { type: 'object', properties: { id_mantencion: entero, tipo: { type: 'string', enum: ['preventiva', 'correctiva'] }, estado: { type: 'string', enum: ['pendiente', 'en_curso', 'por_confirmar', 'finalizada', 'cancelada'] }, fecha_programada: fecha, fecha_ejecucion: { ...fecha, nullable: true }, actividades: { type: 'string', nullable: true }, observaciones: { type: 'string', nullable: true }, planta: ref('FichaOrden'), cliente: { type: 'object', properties: { nombre: texto, telefono: { type: 'string', nullable: true } } }, motivo_solicitud: { type: 'string', nullable: true } } },
       OrdenDetalle: { allOf: [ref('Orden'), { type: 'object', properties: { historial: { type: 'array', items: { type: 'object', properties: { estado_anterior: { type: 'string', nullable: true }, estado_nuevo: texto, comentario: { type: 'string', nullable: true }, fecha_cambio: fechaHora, responsable: texto } } } } }] },
-      CambioEstadoPeticion: { type: 'object', required: ['estado'], properties: { estado: { type: 'string', enum: ['en_curso', 'por_confirmar'] }, actividades: { type: 'string', description: '**Obligatorio** al terminar' }, fotos: { type: 'array', maxItems: 4, items: { type: 'string', description: 'data URL base64 (JPG, PNG o WebP, máx. 2 MB)' }, description: '**Obligatorio** al terminar (al menos una)' }, observaciones: texto, comentario: { type: 'string', maxLength: 255 } } },
+      CambioEstadoPeticion: { type: 'object', required: ['estado'], properties: { estado: { type: 'string', enum: ['en_curso', 'por_confirmar'] }, actividades: { type: 'string', description: '**Obligatorio** al terminar (por_confirmar)' }, fotos: { type: 'array', minItems: 1, maxItems: 4, items: { type: 'string', description: 'data:image/jpeg;base64,…' }, description: '**Obligatorio** al terminar: 1 a 4 fotos de hasta 2 MB' }, observaciones: texto, comentario: { type: 'string', maxLength: 255 } } },
 
       // Admin
       Cliente: { type: 'object', properties: { id_cliente: entero, id_usuario: { type: 'integer', nullable: true }, rut: texto, nombre: texto, telefono: { type: 'string', nullable: true }, direccion: { type: 'string', nullable: true }, id_comuna: { type: 'integer', nullable: true } } },
@@ -565,7 +692,7 @@ El token dura **8 horas**. Tras **5 contraseñas incorrectas** con el mismo corr
       PlantaPeticion: { type: 'object', required: ['id_cliente', 'id_comuna', 'direccion', 'potencia_kw', 'inversor', 'paneles', 'fecha_instalacion'], properties: { id_cliente: entero, id_comuna: entero, direccion: texto, potencia_kw: { type: 'number', minimum: 0, exclusiveMinimum: true }, inversor: texto, paneles: texto, baterias: { type: 'string', nullable: true, description: 'Opcional; `null` si no tiene' }, fecha_instalacion: fecha } },
       PlantaEdicion: { type: 'object', properties: { id_cliente: entero, id_comuna: entero, direccion: texto, potencia_kw: { type: 'number' }, inversor: texto, paneles: texto, baterias: { type: 'string', nullable: true }, fecha_instalacion: fecha } },
       SuscripcionPeticion: { type: 'object', required: ['monto_mensual'], properties: { monto_mensual: { type: 'integer', minimum: 1, description: 'CLP' }, fecha_inicio: { ...fecha, description: 'Por defecto, hoy' }, dia_cobro: { type: 'integer', minimum: 1, maximum: 28, default: 1 } } },
-      SuscripcionEdicion: { type: 'object', description: 'Indica al menos un campo', properties: { monto_mensual: { type: 'integer', minimum: 1 }, dia_cobro: { type: 'integer', minimum: 1, maximum: 28 }, estado: { type: 'string', enum: ['cancelada'], description: 'Solo se puede cancelar (definitivo, motivo `administrador`)' } } },
+      SuscripcionEdicion: { type: 'object', description: 'Indica al menos un campo', properties: { monto_mensual: { type: 'integer', minimum: 1 }, dia_cobro: { type: 'integer', minimum: 1, maximum: 28 }, estado: { type: 'string', enum: ['cancelada'], description: 'al_dia y con_deuda los calculan las reglas de deuda' } } },
       TrabajadorAdmin: { type: 'object', properties: { id_usuario: entero, nombre: texto, email: texto, telefono: { type: 'string', nullable: true }, activo: { type: 'boolean' }, fecha_creacion: fechaHora, ultimo_acceso: { ...fechaHora, nullable: true } } },
       TrabajadorPeticion: { type: 'object', required: ['nombre', 'email', 'password'], properties: { nombre: texto, email: { type: 'string', format: 'email' }, password: { type: 'string', minLength: 8, description: 'Contraseña inicial' }, telefono: texto } },
       TrabajadorEdicion: { type: 'object', properties: { nombre: texto, email: texto, password: { type: 'string', minLength: 8 }, telefono: texto, activo: { type: 'boolean' } } },
@@ -575,7 +702,7 @@ El token dura **8 horas**. Tras **5 contraseñas incorrectas** con el mismo corr
       Impago: { type: 'object', properties: { id_suscripcion: entero, id_cliente: entero, cliente: texto, rut: texto, telefono: { type: 'string', nullable: true }, direccion: texto, comuna: texto, estado_suscripcion: texto, periodos: { type: 'array', items: texto, example: ['2026-09', '2026-10'] }, meses_adeudados: entero, monto_total: { type: 'integer', description: 'CLP' }, vencida_desde: fecha } },
       PagoManualPeticion: { type: 'object', required: ['origen'], properties: { origen: { type: 'string', enum: ['transferencia', 'efectivo'] }, monto: { type: 'integer', minimum: 1, description: 'Por defecto, el monto de la cuota' }, referencia: { type: 'string', maxLength: 100, description: 'N° de transferencia, folio, etc.' } } },
       PagoMes: { type: 'object', properties: { id_pago: entero, fecha_pago: fechaHora, cliente: texto, rut: texto, monto: entero, origen: texto, referencia: { type: 'string', nullable: true }, periodo: texto, direccion: texto, registrado_por: { type: 'string', nullable: true } } },
-      ResultadoCargos: { type: 'object', properties: { intentos: entero, aprobados: entero, rechazados: entero, detalle: { type: 'array', items: { type: 'object', properties: { cuota: entero, periodo: texto, cliente: texto, monto: entero, resultado: { type: 'string', enum: ['aprobado', 'rechazado'] }, referencia: { type: 'string', nullable: true } } } } } },
+      ResultadoCargos: { type: 'object', properties: { intentos: entero, aprobados: entero, rechazados: entero, pendientes: entero, errores: entero, detalle: { type: 'array', items: { type: 'object', properties: { cuota: entero, periodo: texto, cliente: texto, monto: entero, resultado: { type: 'string', enum: ['aprobado', 'rechazado', 'pendiente', 'error'] }, referencia: { type: 'string', nullable: true } } } } } },
     },
   },
 };

@@ -1,3 +1,10 @@
+// ============================================================================
+// PANTALLA: Orden de trabajo · URL /trabajador/ordenes/:id · Rol: trabajador
+// Casos de uso: CU-11 gestionar orden · CU-12 registrar actividades y fotos
+// Datos: obtenerOrden(id), cambiarEstado(id, datos) → trabajador.service.js · obtenerOrden(), cambiarEstado()
+// Patrón: useState (datos/error) → cargar() pide a la API → render. Tras guardar, se vuelve a cargar().
+// Los textos que ves en pantalla están en el JSX de abajo; las reglas están en el backend.
+// ============================================================================
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { obtenerOrden, cambiarEstado } from '../services/trabajadorService.js';
@@ -25,6 +32,7 @@ export default function OrdenPage() {
   const [procesando, setProcesando] = useState(false);
   const [enviando, setEnviando] = useState(false);
 
+  // [CU-11] Pide la orden con su ficha técnica e historial.
   const cargar = useCallback(() => obtenerOrden(id).then((o) => {
     setOrden(o);
     setActividades(o.actividades ?? '');
@@ -32,6 +40,7 @@ export default function OrdenPage() {
   }).catch(setError), [id]);
   useEffect(() => { cargar(); }, [cargar]);
 
+  // [CU-12] Comprime las fotos en el navegador antes de enviarlas (máx. MAX_FOTOS).
   async function agregarFotos(e) {
     const archivos = [...e.target.files].slice(0, MAX_FOTOS - fotos.length);
     e.target.value = '';
@@ -48,6 +57,7 @@ export default function OrdenPage() {
     }
   }
 
+  // [CU-11, CU-12] Iniciar (en_curso) o enviar al cliente (por_confirmar).
   async function transicionar(estado) {
     setEnviando(true);
     setError(null);

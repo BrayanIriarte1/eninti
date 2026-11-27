@@ -1,0 +1,44 @@
+# Despliegue de demostración en Render (Blueprint).
+# Un solo servicio web entrega la API (/api) y el frontend compilado desde el mismo dominio.
+# La base de datos es PostgreSQL administrado externo (Neon): pega su cadena de conexión
+# directa (no la "pooled") en DATABASE_URL, con ?sslmode=require.
+services:
+  - type: web
+    name: eninti
+    runtime: node
+    plan: free
+    buildCommand: npm run build
+    # Antes de arrancar aplica las migraciones nuevas (y en una base vacía, los datos de prueba)
+    startCommand: npm run db:init --prefix backend && npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: TZ
+        value: America/Santiago
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: APP_URL
+        sync: false          # p. ej. https://eninti.onrender.com
+      - key: FLOW_MODE
+        value: simulado      # 'sandbox' cuando estén las credenciales de sandbox.flow.cl
+      - key: FLOW_API_KEY
+        sync: false
+      - key: FLOW_SECRET_KEY
+        sync: false
+      - key: MAIL_MODE
+        value: consola       # 'brevo' o 'resend' con su API key
+      - key: MAIL_API_KEY
+        sync: false
+      - key: MAIL_FROM
+        sync: false          # p. ej. ENINTI <avisos@tu-dominio.cl>
+      - key: COBRO_AUTOMATICO
+        value: "true"        # cobro mensual automático; "false" lo desactiva
+      - key: COBRO_HORA
+        value: "9"           # hora de Chile desde la que corre cada día
+      - key: CRON_SECRET
+        generateValue: true  # para el cron externo que despierta al servidor (README)

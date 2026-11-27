@@ -361,7 +361,7 @@ Trabajador y el Administrador, y está cubierta por pruebas unitarias.
 |---|---|
 | `login` | Busca al usuario por correo, verifica la contraseña y devuelve un JWT de 8 horas. El error es **siempre el mismo** ("Credenciales incorrectas o cuenta inactiva") sin revelar qué dato falló. |
 | Bloqueo de intentos | Un `Map` en memoria cuenta fallos por correo. **5 fallos → bloqueo de 15 minutos** (error 429). |
-| `registrarCliente` | Valida formato de RUT, correo y contraseña (≥ 8). El RUT debe existir en `cliente` y la ficha no debe tener cuenta. En **una transacción** crea el `usuario` y enlaza `cliente.id_usuario`. |
+| Sin autorregistro | El cliente no crea su cuenta. Pide una desde `/solicitar-cuenta` (`POST /publico/solicitudes-cuenta`) y el administrador la aprueba, o la crea desde la ficha del cliente con `crearCuenta` (`administrador/clientes.service.js`). Ambos caminos usan `crearCuentaCliente`, que en **una transacción** crea el `usuario` y enlaza `cliente.id_usuario`. |
 | `perfil` | Datos del usuario autenticado (`/auth/me`). |
 
 El JWT contiene solo `{ id, rol }`. Todo lo demás se consulta en la base en cada
@@ -874,7 +874,7 @@ lo dé por hecho.
 | Tema | Situación | Impacto |
 |---|---|---|
 | **Entrega de la contraseña inicial (HU-07)** | La cuenta la crea el administrador, por lo que ya no hay autorregistro con RUT. La contraseña inicial se comunica al cliente por fuera del sistema. | Falta forzar el cambio de contraseña en el primer inicio de sesión. |
-| **Condiciones de servicio (HU-13, RF-19)** | `CuentaPage` envía `acepta_condiciones: true` al pulsar el botón, **sin mostrar las condiciones ni pedir una casilla**. | No es un consentimiento informado real. |
+| **Condiciones de servicio (HU-13, RF-19)** | Resuelto: `cliente/components/AceptarCondiciones.jsx` muestra las condiciones (versión `VERSION_CONDICIONES`) y exige marcar «Acepto» antes de ir a la pasarela. | El texto es de demostración: la versión definitiva la debe validar ENINTI. |
 | Bloqueo de intentos en memoria | El contador vive en un `Map`; se pierde al reiniciar y no se comparte entre procesos. | Sirve para un solo proceso. |
 | Token en `localStorage` | Es legible por cualquier script de la página. | Alternativa: cookie `HttpOnly`. Hay que documentar la decisión. |
 | Parámetros de scrypt | Se usan los valores por defecto de Node. | Falta fijarlos y medirlos. |

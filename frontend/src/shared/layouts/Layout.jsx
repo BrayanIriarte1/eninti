@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import Icono from '../components/Icono.jsx';
-import Marca from '../components/Marca.jsx';
+import LogoEninti from '../components/LogoEninti.jsx';
 
 // Menú de navegación según el rol (RNF-10: cada perfil ve solo lo suyo).
 // Cada grupo lleva un título solo cuando el rol tiene varios grupos.
@@ -26,9 +26,16 @@ const MENU = {
       ['/admin/pagos', 'Pagos del mes', 'pagos'],
       ['/admin/catalogo', 'Catálogo', 'catalogo'],
     ] },
+    { grupo: 'Sistema', items: [
+      ['/admin/correos', 'Correos', 'correo'],
+      ['/admin/seguridad', 'Seguridad', 'candado'],
+    ] },
   ],
   trabajador: [
-    { grupo: null, items: [['/trabajador/agenda', 'Mi agenda', 'agenda']] },
+    { grupo: null, items: [
+      ['/trabajador/agenda', 'Mi agenda', 'agenda'],
+      ['/trabajador/seguridad', 'Seguridad', 'candado'],
+    ] },
   ],
   cliente: [
     { grupo: null, items: [
@@ -42,6 +49,20 @@ const MENU = {
 };
 
 const ROL = { administrador: 'Administración', trabajador: 'Técnico en terreno', cliente: 'Cliente' };
+const PANEL = { administrador: 'Panel de administración', trabajador: 'Panel del técnico', cliente: 'Portal del cliente' };
+
+// Sección actual según la ruta: la del menú que mejor coincide (la más larga)
+function seccionActual(grupos, pathname) {
+  let mejor = null;
+  for (const g of grupos) {
+    for (const [ruta, texto, icono] of g.items) {
+      if ((pathname === ruta || pathname.startsWith(`${ruta}/`)) && (!mejor || ruta.length > mejor.ruta.length)) {
+        mejor = { ruta, texto, icono, grupo: g.grupo };
+      }
+    }
+  }
+  return mejor;
+}
 
 export default function Layout() {
   const { usuario, cerrarSesion } = useAuth();
@@ -67,12 +88,20 @@ export default function Layout() {
     navigate('/login', { replace: true });
   }
 
+  const seccion = seccionActual(grupos, pathname);
+  const detalle = seccion && pathname !== seccion.ruta; // p. ej. ficha de una planta u orden
+  const hoy = new Date().toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' });
+  const tituloSeccion = seccion?.texto;
+  useEffect(() => {
+    document.title = tituloSeccion ? `${tituloSeccion} · ENINTI` : 'ENINTI';
+    return () => { document.title = 'ENINTI · Mantención solar'; }; // al salir del panel
+  }, [tituloSeccion]);
   const iniciales = (usuario?.nombre ?? '?').split(' ').slice(0, 2).map((p) => p[0]).join('');
 
   return (
     <div className={`layout ${conPestanas ? 'layout-pestanas' : ''}`}>
       <header className="barra-movil">
-        <Marca />
+        <span className="lateral-marca"><LogoEninti tamano={34} /><strong>ENINTI</strong></span>
         {items.length > 1 && !conPestanas ? (
           <button type="button" className="boton-icono" onClick={() => setAbierto(true)} aria-label="Abrir menú" aria-expanded={abierto} aria-controls="menu-lateral">
             <Icono nombre="menu" tamano={24} />
@@ -88,7 +117,13 @@ export default function Layout() {
 
       <aside id="menu-lateral" className={`lateral ${abierto ? 'abierto' : ''}`}>
         <div className="lateral-cabeza">
-          <Marca />
+          <span className="lateral-marca">
+            <LogoEninti tamano={40} animado />
+            <span>
+              <strong>ENINTI</strong>
+              <small>{PANEL[usuario?.rol]}</small>
+            </span>
+          </span>
           <button type="button" className="boton-icono solo-movil" onClick={() => setAbierto(false)} aria-label="Cerrar menú">
             <Icono nombre="cerrar" tamano={22} />
           </button>
@@ -119,7 +154,23 @@ export default function Layout() {
       </aside>
 
       <main className="contenido">
-        <Outlet />
+        <div className="panel-barra">
+          <nav aria-label="Ubicación" className="migas">
+            <span>{PANEL[usuario?.rol]}</span>
+            {seccion?.grupo && <><Icono nombre="flecha" tamano={14} /><span>{seccion.grupo}</span></>}
+            {seccion && (
+              <>
+                <Icono nombre="flecha" tamano={14} />
+                {detalle ? <NavLink to={seccion.ruta} end>{seccion.texto}</NavLink> : <span aria-current="page">{seccion.texto}</span>}
+              </>
+            )}
+            {detalle && <><Icono nombre="flecha" tamano={14} /><span aria-current="page">Detalle</span></>}
+          </nav>
+          <span className="panel-fecha"><Icono nombre="calendario" tamano={16} />{hoy}</span>
+        </div>
+        <Suspense fallback={<p className="cargando">Cargando…</p>}>
+          <Outlet />
+        </Suspense>
       </main>
 
       {conPestanas && (
