@@ -1,0 +1,127 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1464" viewBox="0 0 1440 1464" font-family="Calibri, Carlito, 'Segoe UI', Arial, sans-serif">
+<rect width="100%" height="100%" fill="#fff"/>
+<defs>
+  <marker id="abierta" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="11" markerHeight="11" orient="auto-start-reverse">
+    <path d="M1,1 L11,6 L1,11" fill="none" stroke="#1F2328" stroke-width="1.4"/></marker>
+  <marker id="hueca" viewBox="0 0 16 16" refX="15" refY="8" markerWidth="15" markerHeight="15" orient="auto-start-reverse">
+    <path d="M1,1 L15,8 L1,15 Z" fill="#fff" stroke="#1F2328" stroke-width="1.4"/></marker>
+</defs>
+<rect x="250" y="30" width="950" height="1314.0" fill="#fff" stroke="#1F2328" stroke-width="1.6"/>
+<polyline points="730.0,190 840.0,190" fill="none" stroke="#1F2328" stroke-width="1.3" stroke-dasharray="6 4" marker-end="url(#abierta)"/>
+<polyline points="985,242.0 985,222.0" fill="none" stroke="#1F2328" stroke-width="1.3" stroke-dasharray="6 4" marker-end="url(#abierta)"/>
+<polyline points="840.0,376 730.0,358" fill="none" stroke="#1F2328" stroke-width="1.3" stroke-dasharray="6 4" marker-end="url(#abierta)"/>
+<polyline points="560,746.0 560,726.0" fill="none" stroke="#1F2328" stroke-width="1.3" stroke-dasharray="6 4" marker-end="url(#abierta)"/>
+<polyline points="840.0,694 730.0,694" fill="none" stroke="#1F2328" stroke-width="1.3" stroke-dasharray="6 4" marker-end="url(#abierta)"/>
+<polyline points="840.0,946 730.0,946" fill="none" stroke="#1F2328" stroke-width="1.3" stroke-dasharray="6 4" marker-end="url(#abierta)"/>
+<polyline points="840.0,1030 730.0,1114" fill="none" stroke="#1F2328" stroke-width="1.3" stroke-dasharray="6 4" marker-end="url(#abierta)"/>
+<line x1="162" y1="679.0" x2="390.0" y2="106" stroke="#1F2328" stroke-width="1.3"/>
+<line x1="162" y1="679.0" x2="390.0" y2="190" stroke="#1F2328" stroke-width="1.3"/>
+<line x1="162" y1="679.0" x2="390.0" y2="358" stroke="#1F2328" stroke-width="1.3"/>
+<line x1="162" y1="679.0" x2="390.0" y2="442" stroke="#1F2328" stroke-width="1.3"/>
+<line x1="162" y1="679.0" x2="390.0" y2="526" stroke="#1F2328" stroke-width="1.3"/>
+<line x1="162" y1="679.0" x2="390.0" y2="610" stroke="#1F2328" stroke-width="1.3"/>
+<line x1="162" y1="679.0" x2="390.0" y2="694" stroke="#1F2328" stroke-width="1.3"/>
+<line x1="162" y1="679.0" x2="390.0" y2="778" stroke="#1F2328" stroke-width="1.3"/>
+<line x1="162" y1="679.0" x2="390.0" y2="862" stroke="#1F2328" stroke-width="1.3"/>
+<line x1="162" y1="679.0" x2="390.0" y2="946" stroke="#1F2328" stroke-width="1.3"/>
+<line x1="162" y1="679.0" x2="390.0" y2="1030" stroke="#1F2328" stroke-width="1.3"/>
+<line x1="162" y1="679.0" x2="390.0" y2="1114" stroke="#1F2328" stroke-width="1.3"/>
+<line x1="162" y1="679.0" x2="390.0" y2="1198" stroke="#1F2328" stroke-width="1.3"/>
+<line x1="162" y1="679.0" x2="390.0" y2="1282" stroke="#1F2328" stroke-width="1.3"/>
+<line x1="1296" y1="975" x2="1130.0" y2="1030" stroke="#1F2328" stroke-width="1.3"/>
+<polyline points="730.0,1114 790.0,1150 1296,1203" fill="none" stroke="#1F2328" stroke-width="1.3"/>
+<ellipse cx="560" cy="106" rx="170.0" ry="32.0" fill="#FDE8E8" stroke="#B71C1C" stroke-width="1.6"/>
+<ellipse cx="560" cy="190" rx="170.0" ry="32.0" fill="#FDE8E8" stroke="#B71C1C" stroke-width="1.6"/>
+<ellipse cx="560" cy="358" rx="170.0" ry="32.0" fill="#FDE8E8" stroke="#B71C1C" stroke-width="1.6"/>
+<ellipse cx="560" cy="442" rx="170.0" ry="32.0" fill="#E3F0FA" stroke="#0B5C8A" stroke-width="1.6"/>
+<ellipse cx="560" cy="526" rx="170.0" ry="32.0" fill="#E3F0FA" stroke="#0B5C8A" stroke-width="1.6"/>
+<ellipse cx="560" cy="610" rx="170.0" ry="32.0" fill="#FDE8E8" stroke="#B71C1C" stroke-width="1.6"/>
+<ellipse cx="560" cy="694" rx="170.0" ry="32.0" fill="#FDE8E8" stroke="#B71C1C" stroke-width="1.6"/>
+<ellipse cx="560" cy="778" rx="170.0" ry="32.0" fill="#FDE8E8" stroke="#B71C1C" stroke-width="1.6"/>
+<ellipse cx="560" cy="862" rx="170.0" ry="32.0" fill="#E3F0FA" stroke="#0B5C8A" stroke-width="1.6"/>
+<ellipse cx="560" cy="946" rx="170.0" ry="32.0" fill="#FDE8E8" stroke="#B71C1C" stroke-width="1.6"/>
+<ellipse cx="560" cy="1030" rx="170.0" ry="32.0" fill="#FDE8E8" stroke="#B71C1C" stroke-width="1.6"/>
+<ellipse cx="560" cy="1114" rx="170.0" ry="32.0" fill="#FDE8E8" stroke="#B71C1C" stroke-width="1.6"/>
+<ellipse cx="560" cy="1198" rx="170.0" ry="32.0" fill="#FDE8E8" stroke="#B71C1C" stroke-width="1.6"/>
+<ellipse cx="560" cy="1282" rx="170.0" ry="32.0" fill="#E3F0FA" stroke="#0B5C8A" stroke-width="1.6"/>
+<ellipse cx="985" cy="190" rx="145.0" ry="32.0" fill="#EEEEEE" stroke="#616161" stroke-width="1.6"/>
+<ellipse cx="985" cy="274" rx="145.0" ry="32.0" fill="#EEEEEE" stroke="#616161" stroke-width="1.6"/>
+<ellipse cx="985" cy="376" rx="145.0" ry="32.0" fill="#E3F0FA" stroke="#0B5C8A" stroke-width="1.6"/>
+<ellipse cx="985" cy="694" rx="145.0" ry="32.0" fill="#E3F0FA" stroke="#0B5C8A" stroke-width="1.6"/>
+<ellipse cx="985" cy="946" rx="145.0" ry="32.0" fill="#FDE8E8" stroke="#B71C1C" stroke-width="1.6"/>
+<ellipse cx="985" cy="1030" rx="145.0" ry="32.0" fill="#E3F0FA" stroke="#0B5C8A" stroke-width="1.6"/>
+<circle cx="140" cy="658.0" r="11" fill="#fff" stroke="#1F2328" stroke-width="2" fill="none"/>
+<line x1="140" y1="669.0" x2="140" y2="698.0" stroke="#1F2328" stroke-width="2" fill="none"/>
+<line x1="122" y1="679.0" x2="158" y2="679.0" stroke="#1F2328" stroke-width="2" fill="none"/>
+<polyline points="125,724.0 140,698.0 155,724.0" stroke="#1F2328" stroke-width="2" fill="none"/>
+<circle cx="1320" cy="954" r="11" fill="#fff" stroke="#1F2328" stroke-width="2" fill="none"/>
+<line x1="1320" y1="965" x2="1320" y2="994" stroke="#1F2328" stroke-width="2" fill="none"/>
+<line x1="1302" y1="975" x2="1338" y2="975" stroke="#1F2328" stroke-width="2" fill="none"/>
+<polyline points="1305,1020 1320,994 1335,1020" stroke="#1F2328" stroke-width="2" fill="none"/>
+<circle cx="1320" cy="1182" r="11" fill="#fff" stroke="#1F2328" stroke-width="2" fill="none"/>
+<line x1="1320" y1="1193" x2="1320" y2="1222" stroke="#1F2328" stroke-width="2" fill="none"/>
+<line x1="1302" y1="1203" x2="1338" y2="1203" stroke="#1F2328" stroke-width="2" fill="none"/>
+<polyline points="1305,1248 1320,1222 1335,1248" stroke="#1F2328" stroke-width="2" fill="none"/>
+<ellipse cx="278" cy="1378.0" rx="16" ry="9" fill="#FDE8E8" stroke="#B71C1C" stroke-width="1.5"/>
+<ellipse cx="278" cy="1402.0" rx="16" ry="9" fill="#E3F0FA" stroke="#0B5C8A" stroke-width="1.5"/>
+<ellipse cx="278" cy="1426.0" rx="16" ry="9" fill="#EEEEEE" stroke="#616161" stroke-width="1.5"/>
+<text x="560" y="100" text-anchor="middle" font-size="14.5" fill="#1F2328">Iniciar sesión</text>
+<text x="560" y="117" text-anchor="middle" font-size="11" font-weight="700" fill="#B71C1C">CU-03 · HU-07</text>
+<text x="560" y="184" text-anchor="middle" font-size="14.5" fill="#1F2328">Gestionar solicitudes de cuenta</text>
+<text x="560" y="201" text-anchor="middle" font-size="11" font-weight="700" fill="#B71C1C">CU-13 · HU-07</text>
+<text x="560" y="352" text-anchor="middle" font-size="14.5" fill="#1F2328">Gestionar clientes y plantas</text>
+<text x="560" y="369" text-anchor="middle" font-size="11" font-weight="700" fill="#B71C1C">CU-14 · HU-03</text>
+<text x="560" y="436" text-anchor="middle" font-size="14.5" fill="#1F2328">Atender solicitudes de suscripción</text>
+<text x="560" y="453" text-anchor="middle" font-size="11" font-weight="700" fill="#0B5C8A">CU-28</text>
+<text x="560" y="520" text-anchor="middle" font-size="14.5" fill="#1F2328">Atender cambios de datos</text>
+<text x="560" y="537" text-anchor="middle" font-size="11" font-weight="700" fill="#0B5C8A">CU-29</text>
+<text x="560" y="604" text-anchor="middle" font-size="14.5" fill="#1F2328">Gestionar trabajadores</text>
+<text x="560" y="621" text-anchor="middle" font-size="11" font-weight="700" fill="#B71C1C">CU-15 · HU-15</text>
+<text x="560" y="688" text-anchor="middle" font-size="14.5" fill="#1F2328">Programar y asignar mantención</text>
+<text x="560" y="705" text-anchor="middle" font-size="11" font-weight="700" fill="#B71C1C">CU-16 · HU-04, HU-17</text>
+<text x="560" y="772" text-anchor="middle" font-size="14.5" fill="#1F2328">Atender solicitudes de mantención</text>
+<text x="560" y="789" text-anchor="middle" font-size="11" font-weight="700" fill="#B71C1C">CU-17 · HU-11</text>
+<text x="560" y="848" text-anchor="middle" font-size="14.5" fill="#1F2328">Cerrar orden sin confirmación</text>
+<text x="560" y="864" text-anchor="middle" font-size="14.5" fill="#1F2328">del cliente</text>
+<text x="560" y="881" text-anchor="middle" font-size="11" font-weight="700" fill="#0B5C8A">CU-31</text>
+<text x="560" y="940" text-anchor="middle" font-size="14.5" fill="#1F2328">Consultar impagos</text>
+<text x="560" y="957" text-anchor="middle" font-size="11" font-weight="700" fill="#B71C1C">CU-18 · HU-01</text>
+<text x="560" y="1024" text-anchor="middle" font-size="14.5" fill="#1F2328">Listado mensual de pagos</text>
+<text x="560" y="1041" text-anchor="middle" font-size="11" font-weight="700" fill="#B71C1C">CU-19 · HU-06</text>
+<text x="560" y="1108" text-anchor="middle" font-size="14.5" fill="#1F2328">Generar cuotas y procesar cargos</text>
+<text x="560" y="1125" text-anchor="middle" font-size="11" font-weight="700" fill="#B71C1C">CU-20 · HU-13</text>
+<text x="560" y="1192" text-anchor="middle" font-size="14.5" fill="#1F2328">Administrar catálogo</text>
+<text x="560" y="1209" text-anchor="middle" font-size="11" font-weight="700" fill="#B71C1C">CU-21 · RNF-07</text>
+<text x="560" y="1276" text-anchor="middle" font-size="14.5" fill="#1F2328">Revisar avisos por correo</text>
+<text x="560" y="1293" text-anchor="middle" font-size="11" font-weight="700" fill="#0B5C8A">CU-33</text>
+<text x="985" y="184" text-anchor="middle" font-size="14.5" fill="#1F2328">Crear cliente y cuenta web</text>
+<text x="985" y="201" text-anchor="middle" font-size="11" font-weight="700" fill="#616161">HU-07</text>
+<text x="785.0" y="183.0" text-anchor="middle" font-size="12" font-style="italic" fill="#1F2328">«include»</text>
+<text x="985" y="260" text-anchor="middle" font-size="14.5" fill="#1F2328">Registrar planta y</text>
+<text x="985" y="276" text-anchor="middle" font-size="14.5" fill="#1F2328">ficha técnica</text>
+<text x="985" y="293" text-anchor="middle" font-size="11" font-weight="700" fill="#616161">HU-03</text>
+<text x="1033" y="236.0" text-anchor="middle" font-size="12" font-style="italic" fill="#1F2328">«extend»</text>
+<text x="985" y="362" text-anchor="middle" font-size="14.5" fill="#1F2328">Cancelar suscripción</text>
+<text x="985" y="378" text-anchor="middle" font-size="14.5" fill="#1F2328">por administración</text>
+<text x="985" y="395" text-anchor="middle" font-size="11" font-weight="700" fill="#0B5C8A">CU-32</text>
+<text x="785.0" y="360.0" text-anchor="middle" font-size="12" font-style="italic" fill="#1F2328">«extend»</text>
+<text x="606" y="740.0" text-anchor="middle" font-size="12" font-style="italic" fill="#1F2328">«extend»</text>
+<text x="985" y="688" text-anchor="middle" font-size="14.5" fill="#1F2328">Cancelar mantención</text>
+<text x="985" y="705" text-anchor="middle" font-size="11" font-weight="700" fill="#0B5C8A">CU-30</text>
+<text x="785.0" y="687.0" text-anchor="middle" font-size="12" font-style="italic" fill="#1F2328">«extend»</text>
+<text x="985" y="940" text-anchor="middle" font-size="14.5" fill="#1F2328">Registrar pago manual</text>
+<text x="985" y="957" text-anchor="middle" font-size="11" font-weight="700" fill="#B71C1C">CU-22 · HU-02</text>
+<text x="785.0" y="939.0" text-anchor="middle" font-size="12" font-style="italic" fill="#1F2328">«extend»</text>
+<text x="985" y="1024" text-anchor="middle" font-size="14.5" fill="#1F2328">Cobro automático diario</text>
+<text x="985" y="1041" text-anchor="middle" font-size="11" font-weight="700" fill="#0B5C8A">CU-34</text>
+<text x="837.0" y="1086.0" text-anchor="middle" font-size="12" font-style="italic" fill="#1F2328">«include»</text>
+<text x="264" y="54" font-size="15" font-weight="700" fill="#1F2328">Plataforma ENINTI · Administración</text>
+<text x="140" y="744.0" text-anchor="middle" font-size="15" font-weight="700" fill="#1F2328">Administrador</text>
+<text x="1320" y="1040" text-anchor="middle" font-size="15" font-weight="700" fill="#1F2328">Reloj del</text>
+<text x="1320" y="1057" text-anchor="middle" font-size="15" font-weight="700" fill="#1F2328">sistema</text>
+<text x="1320" y="1268" text-anchor="middle" font-size="15" font-weight="700" fill="#1F2328">Pasarela</text>
+<text x="1320" y="1285" text-anchor="middle" font-size="15" font-weight="700" fill="#1F2328">de pago</text>
+<text x="302" y="1382.5" font-size="13" fill="#1F2328">Caso de uso del Informe U2</text>
+<text x="302" y="1406.5" font-size="13" fill="#1F2328">Caso de uso agregado en la implementación</text>
+<text x="302" y="1430.5" font-size="13" fill="#1F2328">Paso incluido / extensión (sin número propio)</text>
+</svg>
