@@ -7,7 +7,7 @@
 // ============================================================================
 import { useEffect, useState } from 'react';
 import { pagosDelMes, generarCuotas, procesarCargos } from '../services/adminService.js';
-import { leerToken } from '../../../shared/utils/api.js';
+import { errorDeRespuesta, solicitar } from '../../../shared/utils/api.js';
 import Mensaje from '../../../shared/components/Mensaje.jsx';
 import { formatoPesos } from '../../../shared/utils/formato.js';
 import CobroAutomaticoPanel from '../components/CobroAutomaticoPanel.jsx';
@@ -38,17 +38,18 @@ export default function PagosMesPage() {
   async function descargarCsv() {
     setError(null);
     try {
-      const res = await fetch(`/api/admin/finanzas/pagos?periodo=${periodo}&formato=csv`, {
-        headers: { Authorization: `Bearer ${leerToken()}` },
-      });
-      if (!res.ok) throw new Error('No se pudo generar el archivo');
+      const res = await solicitar(`/admin/finanzas/pagos?periodo=${encodeURIComponent(periodo)}&formato=csv`);
+      if (!res.ok) throw await errorDeRespuesta(res);
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = `pagos-${periodo}.csv`;
+      document.body.append(a);
       a.click();
-      URL.revokeObjectURL(url);
+      a.remove();
+      // Liberar el enlace en el mismo instante puede cancelar la descarga en Firefox y Safari
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (err) { setError(err); }
   }
 

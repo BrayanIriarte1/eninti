@@ -6,7 +6,7 @@
 // Los textos que ves en pantalla están en el JSX de abajo; las reglas están en el backend.
 // ============================================================================
 import CambiarContrasena from './CambiarContrasena.jsx';
-import { useAuth } from '../context/AuthContext.jsx';
+import { useAuth } from '../context/sesion.js';
 
 // Seguridad de la cuenta para administración y técnicos (el cliente la tiene en «Mis datos»)
 export default function SeguridadPage() {

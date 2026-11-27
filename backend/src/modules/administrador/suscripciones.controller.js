@@ -3,7 +3,7 @@
 // Aquí NO va lógica de negocio ni SQL: si te piden cambiar una regla, ve al servicio.
 // req.usuario.id viene del token (middleware autenticar), nunca del navegador.
 import * as suscripciones from './suscripciones.service.js';
-import { parseId } from './plantas.controller.js';
+import { parseId } from '../../shared/utils/ids.js';
 
 // [CU-14, CU-32] PATCH /api/admin/suscripciones/:id (cuota, día de cobro o estado=cancelada)
 export async function actualizar(req, res) {

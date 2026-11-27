@@ -1,6 +1,6 @@
 import { Suspense, useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext.jsx';
+import { useAuth } from '../context/sesion.js';
 import Icono from '../components/Icono.jsx';
 import LogoEninti from '../components/LogoEninti.jsx';
 
@@ -51,8 +51,14 @@ const MENU = {
 const ROL = { administrador: 'Administración', trabajador: 'Técnico en terreno', cliente: 'Cliente' };
 const PANEL = { administrador: 'Panel de administración', trabajador: 'Panel del técnico', cliente: 'Portal del cliente' };
 
+// Pantallas de detalle que no tienen entrada propia en el menú: cuelgan de otra sección
+const SECCION_PADRE = { '/trabajador/ordenes': '/trabajador/agenda' };
+
 // Sección actual según la ruta: la del menú que mejor coincide (la más larga)
 function seccionActual(grupos, pathname) {
+  for (const [prefijo, padre] of Object.entries(SECCION_PADRE)) {
+    if (pathname.startsWith(`${prefijo}/`)) pathname = `${padre}/detalle`;
+  }
   let mejor = null;
   for (const g of grupos) {
     for (const [ruta, texto, icono] of g.items) {

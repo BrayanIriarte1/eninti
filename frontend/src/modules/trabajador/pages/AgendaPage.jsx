@@ -8,11 +8,13 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { miAgenda } from '../services/trabajadorService.js';
-import { enlaceMapa, EtiquetaOrden } from '../components/ordenUtils.jsx';
+import { EtiquetaOrden } from '../components/ordenUtils.jsx';
+import { enlaceMapa } from '../utils/mapa.js';
 import Mensaje from '../../../shared/components/Mensaje.jsx';
-import ArcoSolar, { saludo } from '../../../shared/components/ArcoSolar.jsx';
+import ArcoSolar from '../../../shared/components/ArcoSolar.jsx';
+import { saludo } from '../../../shared/utils/saludo.js';
 import Icono from '../../../shared/components/Icono.jsx';
-import { useAuth } from '../../../shared/context/AuthContext.jsx';
+import { useAuth } from '../../../shared/context/sesion.js';
 import { formatoFecha } from '../../../shared/utils/formato.js';
 
 // Dibuja la fecha de la visita (día y mes) en la tarjeta.

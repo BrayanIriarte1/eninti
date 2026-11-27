@@ -3,14 +3,7 @@
 // Aquí NO va lógica de negocio ni SQL: si te piden cambiar una regla, ve al servicio.
 // req.usuario.id viene del token (middleware autenticar), nunca del navegador.
 import * as trabajador from './trabajador.service.js';
-import { HttpError } from '../../shared/utils/httpError.js';
-
-// Convierte el :id de la URL en entero > 0; si no, responde 400.
-export function parseId(valor) {
-  const id = Number(valor);
-  if (!Number.isInteger(id) || id <= 0) throw new HttpError(400, 'Id inválido');
-  return id;
-}
+import { parseId } from '../../shared/utils/ids.js';
 
 // [CU-10] GET /api/trabajador/agenda (?historicas=true para las cerradas)
 export async function agenda(req, res) {

@@ -1,5 +1,5 @@
 import { Navigate, Outlet } from 'react-router-dom';
-import { useAuth, inicioPorRol } from '../context/AuthContext.jsx';
+import { useAuth, inicioPorRol } from '../context/sesion.js';
 
 // Protege rutas por autenticación y rol. Sin sesión redirige a /login;
 // con un rol no autorizado lleva al inicio del rol real.

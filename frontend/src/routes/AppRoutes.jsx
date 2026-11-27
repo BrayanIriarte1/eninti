@@ -3,7 +3,7 @@
 // OJO: esto es comodidad; la seguridad real la aplica el backend (permitirRoles en cada *.routes.js).
 import { lazy, Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
-import { useAuth, inicioPorRol } from '../shared/context/AuthContext.jsx';
+import { useAuth, inicioPorRol } from '../shared/context/sesion.js';
 import RutaProtegida from '../shared/components/RutaProtegida.jsx';
 import Layout from '../shared/layouts/Layout.jsx';
 

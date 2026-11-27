@@ -4,14 +4,7 @@
 // req.usuario.id viene del token (middleware autenticar), nunca del navegador.
 import * as plantas from './plantas.service.js';
 import * as suscripciones from './suscripciones.service.js';
-import { HttpError } from '../../shared/utils/httpError.js';
-
-// Convierte el :id de la URL en entero > 0; si no, responde 400. Lo importan los demás controladores del administrador.
-export function parseId(valor) {
-  const id = Number(valor);
-  if (!Number.isInteger(id) || id <= 0) throw new HttpError(400, 'Id inválido');
-  return id;
-}
+import { parseId } from '../../shared/utils/ids.js';
 
 // [CU-14] GET /api/admin/plantas (?id_cliente= &id_comuna=)
 export async function listar(req, res) {

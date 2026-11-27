@@ -9,7 +9,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { estadoCorreo, enviarCorreoPrueba } from '../services/adminService.js';
 import Mensaje from '../../../shared/components/Mensaje.jsx';
 import Icono from '../../../shared/components/Icono.jsx';
-import { useAuth } from '../../../shared/context/AuthContext.jsx';
+import { useAuth } from '../../../shared/context/sesion.js';
 
 const PROVEEDOR = { consola: 'Solo terminal (desarrollo)', brevo: 'Brevo', resend: 'Resend' };
 const MOTIVO = {

@@ -3,7 +3,7 @@
 // Aquí NO va lógica de negocio ni SQL: si te piden cambiar una regla, ve al servicio.
 // req.usuario.id viene del token (middleware autenticar), nunca del navegador.
 import * as trabajadores from './trabajadores.service.js';
-import { parseId } from './plantas.controller.js';
+import { parseId } from '../../shared/utils/ids.js';
 
 // [CU-15] GET /api/admin/trabajadores
 export async function listar(_req, res) {

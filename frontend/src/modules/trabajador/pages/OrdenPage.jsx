@@ -8,7 +8,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { obtenerOrden, cambiarEstado } from '../services/trabajadorService.js';
-import { enlaceMapa, EtiquetaOrden } from '../components/ordenUtils.jsx';
+import { EtiquetaOrden } from '../components/ordenUtils.jsx';
+import { enlaceMapa } from '../utils/mapa.js';
 import Mensaje from '../../../shared/components/Mensaje.jsx';
 import GaleriaFotos from '../../../shared/components/GaleriaFotos.jsx';
 import { formatoFecha } from '../../../shared/utils/formato.js';

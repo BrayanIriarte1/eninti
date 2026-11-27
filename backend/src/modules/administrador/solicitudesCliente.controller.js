@@ -3,14 +3,7 @@
 // Aquí NO va lógica de negocio ni SQL: si te piden cambiar una regla, ve al servicio.
 // req.usuario.id viene del token (middleware autenticar), nunca del navegador.
 import * as servicio from './solicitudesCliente.service.js';
-import { HttpError } from '../../shared/utils/httpError.js';
-
-// Convierte el :id de la URL en entero > 0; si no, responde 400.
-function parseId(valor) {
-  const id = Number(valor);
-  if (!Number.isInteger(id) || id <= 0) throw new HttpError(400, 'Id inválido');
-  return id;
-}
+import { parseId } from '../../shared/utils/ids.js';
 
 // [CU-28] GET /api/admin/solicitudes-suscripcion
 export async function listarSuscripciones(req, res) {
