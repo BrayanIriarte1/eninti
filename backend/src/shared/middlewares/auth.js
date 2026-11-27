@@ -5,8 +5,11 @@ import { HttpError } from '../utils/httpError.js';
 // Autenticación por JWT (8 h). Además de validar la firma se comprueba en la base
 // que el usuario siga activo: desactivar un trabajador invalida sus tokens vigentes (HU-15).
 export async function autenticar(req, _res, next) {
-  if (process.env.AUTH_BYPASS === 'true') {
-    req.usuario = { id: 0, rol: 'administrador', nombre: 'Bypass desarrollo' };
+  // Solo desarrollo: entra como el primer administrador activo, sin login.
+  // Se ignora en producción. Usa un usuario real (y no id 0) para que los registros
+  // que guardan quién hizo la acción (pagos manuales, historial) no fallen.
+  if (process.env.AUTH_BYPASS === 'true' && process.env.NODE_ENV !== 'production') {
+    req.usuario = await administradorDeDesarrollo();
     return next();
   }
 
@@ -29,6 +32,15 @@ export async function autenticar(req, _res, next) {
 
   req.usuario = { id: rows[0].id_usuario, rol: rows[0].rol, nombre: rows[0].nombre };
   next();
+}
+
+async function administradorDeDesarrollo() {
+  const { rows } = await query(
+    `SELECT id_usuario, nombre FROM usuario
+     WHERE rol = 'administrador' AND activo ORDER BY id_usuario LIMIT 1`,
+  );
+  if (!rows.length) throw new HttpError(500, 'AUTH_BYPASS necesita al menos un administrador activo en la base');
+  return { id: rows[0].id_usuario, rol: 'administrador', nombre: rows[0].nombre };
 }
 
 export const permitirRoles = (...roles) => (req, _res, next) => {

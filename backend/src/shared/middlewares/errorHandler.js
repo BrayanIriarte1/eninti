@@ -6,6 +6,7 @@ const PG_ERRORS = {
   '23503': [400, 'Referencia a un registro que no existe'],
   '23514': [400, 'Algún valor no cumple las reglas de la base de datos'],
   '22P02': [400, 'Formato de dato inválido'],
+  '22001': [400, 'Un texto supera el largo permitido'],
   '22007': [400, 'Formato de fecha inválido'],
   '22008': [400, 'Fecha fuera de rango'],
 };

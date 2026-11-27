@@ -48,7 +48,8 @@ export default function PagosMesPage() {
     try {
       const r = await fn();
       if (accion === 'cuotas') setAviso(`Período ${r.periodo}: ${r.cuotas_generadas} cuotas generadas, ${r.cuotas_vencidas} marcadas vencidas.`);
-      else setAviso(`Cargos procesados: ${r.aprobados} aprobados y ${r.rechazados} rechazados de ${r.intentos} intentos.`);
+      else setAviso(`Cargos procesados: ${r.aprobados} aprobados y ${r.rechazados} rechazados de ${r.intentos} intentos`
+        + (r.errores ? `; ${r.errores} con error (se reintentarán en el próximo cobro)` : '') + '.');
       await consultar();
     } catch (err) { setError(err); } finally { setOcupado(false); }
   }

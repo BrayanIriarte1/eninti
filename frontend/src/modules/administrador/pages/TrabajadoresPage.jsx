@@ -11,6 +11,7 @@ export default function TrabajadoresPage() {
   const [form, setForm] = useState(VACIO);
   const [error, setError] = useState(null);
   const [enviando, setEnviando] = useState(false);
+  const [aviso, setAviso] = useState(null);
 
   const cargar = useCallback(() => listarTrabajadores().then(setTrabajadores).catch(setError), []);
   useEffect(() => { cargar(); }, [cargar]);
@@ -35,8 +36,12 @@ export default function TrabajadoresPage() {
   async function alternar(t) {
     const verbo = t.activo ? 'desactivar' : 'reactivar';
     if (!window.confirm(`¿Seguro que quieres ${verbo} a ${t.nombre}?`)) return;
+    setAviso(null);
     try {
-      await actualizarTrabajador(t.id_usuario, { activo: !t.activo });
+      const actualizado = await actualizarTrabajador(t.id_usuario, { activo: !t.activo });
+      if (actualizado.ordenes_liberadas > 0) {
+        setAviso(`${t.nombre} tenía ${actualizado.ordenes_liberadas} orden(es) abierta(s): quedaron sin técnico. Reasígnalas en el Calendario.`);
+      }
       await cargar();
     } catch (err) {
       setError(err);
@@ -46,6 +51,7 @@ export default function TrabajadoresPage() {
   return (
     <section>
       <h1>Trabajadores</h1>
+      {aviso && <p className="mensaje-ok" role="status">{aviso}</p>}
 
       <article className="tarjeta" style={{ marginBottom: '1.5rem' }}>
         <h2>Nuevo trabajador</h2>

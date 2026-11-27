@@ -2,6 +2,7 @@ import { pool, query } from '../../config/db.js';
 import { HttpError } from '../../shared/utils/httpError.js';
 import * as pasarela from '../pagos/pasarela.service.js';
 import { aplicarReglasDeuda, recalcularEstado } from '../pagos/reglasDeuda.js';
+import { textoOpcional } from '../../shared/utils/texto.js';
 
 const PERIODO_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 
@@ -53,6 +54,7 @@ export async function registrarPagoManual(idCuota, { origen, monto, referencia }
   if (monto !== undefined && (!Number.isInteger(monto) || monto <= 0)) {
     throw new HttpError(400, 'monto debe ser un entero mayor a 0');
   }
+  const textoReferencia = textoOpcional(referencia, 'referencia', 100);
 
   const conexion = await pool.connect();
   try {
@@ -68,7 +70,7 @@ export async function registrarPagoManual(idCuota, { origen, monto, referencia }
       `INSERT INTO pago (id_cuota, registrado_por, origen, monto, referencia)
        VALUES ($1, $2, $3, $4, $5)
        RETURNING *`,
-      [idCuota, idAdmin, origen, monto ?? cuota.monto, referencia?.trim() || null],
+      [idCuota, idAdmin, origen, monto ?? cuota.monto, textoReferencia],
     );
     await conexion.query(`UPDATE cuota SET estado = 'pagada' WHERE id_cuota = $1`, [idCuota]);
     await recalcularEstado(conexion, cuota.id_suscripcion);
@@ -134,10 +136,34 @@ export async function generarCuotas({ periodo }) {
   }
 }
 
-// Cobro recurrente (HU-13): intenta cargar en la pasarela cada cuota abierta de los
-// clientes con medio de pago activo. Un rechazo no registra pago ni cambia la cuota.
-// También cobra la deuda vencida de suscripciones canceladas por morosidad.
+// Número fijo del candado de PostgreSQL que impide dos procesos de cobro a la vez
+const CANDADO_COBROS = 7311;
+
+// Cobro recurrente (HU-13): intenta cargar en la pasarela cada cuota ya vencida (o que
+// vence hoy) de los clientes con medio de pago activo. Un rechazo no registra pago ni
+// cambia la cuota. También cobra la deuda vencida de suscripciones canceladas por morosidad.
+// Ninguna cuota se cobra dos veces:
+//   · un candado (pg_try_advisory_lock) deja un solo proceso de cobro a la vez;
+//   · antes de cobrar, la cuota se vuelve a leer con FOR UPDATE y se omite si ya está pagada.
+// Un error en una cuota se informa en el detalle y no detiene el resto del lote.
 export async function procesarCargos() {
+  const candado = await pool.connect();
+  try {
+    const { rows: [{ obtenido }] } = await candado.query(
+      'SELECT pg_try_advisory_lock($1) AS obtenido', [CANDADO_COBROS],
+    );
+    if (!obtenido) throw new HttpError(409, 'Ya hay un proceso de cobro en curso. Espera a que termine');
+    try {
+      return await cobrarCuotasAbiertas();
+    } finally {
+      await candado.query('SELECT pg_advisory_unlock($1)', [CANDADO_COBROS]);
+    }
+  } finally {
+    candado.release();
+  }
+}
+
+async function cobrarCuotasAbiertas() {
   const { rows: pendientes } = await query(
     `SELECT cu.id_cuota, cu.monto, cu.periodo, cu.id_suscripcion,
             mp.id_medio_pago, mp.token_pasarela, mp.ultimos_4,
@@ -147,54 +173,58 @@ export async function procesarCargos() {
      JOIN planta p  ON p.id_planta = s.id_planta
      JOIN cliente c ON c.id_cliente = p.id_cliente
      JOIN medio_pago mp ON mp.id_cliente = c.id_cliente AND mp.estado = 'activo'
-     WHERE cu.estado IN ('pendiente', 'vencida')
+     WHERE cu.estado IN ('pendiente', 'vencida') AND cu.fecha_vencimiento <= CURRENT_DATE
      ORDER BY cu.fecha_vencimiento`,
   );
 
-  const resultado = { intentos: pendientes.length, aprobados: 0, rechazados: 0, detalle: [] };
+  const resultado = { intentos: pendientes.length, aprobados: 0, rechazados: 0, errores: 0, omitidos: 0, detalle: [] };
 
   for (const cuota of pendientes) {
-    const cargo = await pasarela.cobrar({
-      medioPago: cuota,
-      monto: cuota.monto,
-      descripcion: `Suscripción ENINTI ${cuota.periodo} · ${cuota.direccion}`,
-    });
-
-    if (cargo.aprobado) {
-      const conexion = await pool.connect();
-      try {
-        await conexion.query('BEGIN');
-        const { rowCount } = await conexion.query(
-          `UPDATE cuota SET estado = 'pagada' WHERE id_cuota = $1 AND estado IN ('pendiente', 'vencida')`,
-          [cuota.id_cuota],
-        );
-        if (rowCount) {
-          await conexion.query(
-            `INSERT INTO pago (id_cuota, id_medio_pago, origen, monto, referencia)
-             VALUES ($1, $2, 'pasarela', $3, $4)`,
-            [cuota.id_cuota, cuota.id_medio_pago, cuota.monto, cargo.referencia],
-          );
-          await recalcularEstado(conexion, cuota.id_suscripcion);
-        }
-        await conexion.query('COMMIT');
-        resultado.aprobados += 1;
-      } catch (err) {
+    const fila = { cuota: cuota.id_cuota, periodo: cuota.periodo, cliente: cuota.cliente, monto: cuota.monto, referencia: null };
+    const conexion = await pool.connect();
+    try {
+      await conexion.query('BEGIN');
+      // Relectura con bloqueo: si otro proceso (o un pago manual) ya la pagó, no se cobra
+      const { rows: vigente } = await conexion.query(
+        `SELECT 1 FROM cuota WHERE id_cuota = $1 AND estado IN ('pendiente', 'vencida') FOR UPDATE`,
+        [cuota.id_cuota],
+      );
+      if (!vigente.length) {
         await conexion.query('ROLLBACK');
-        throw err;
-      } finally {
-        conexion.release();
+        resultado.omitidos += 1;
+        resultado.detalle.push({ ...fila, resultado: 'omitido' });
+        continue;
       }
-    } else {
-      resultado.rechazados += 1;
+
+      const cargo = await pasarela.cobrar({
+        medioPago: cuota,
+        monto: cuota.monto,
+        descripcion: `Suscripción ENINTI ${cuota.periodo} · ${cuota.direccion}`,
+      });
+
+      if (cargo.aprobado) {
+        await conexion.query(`UPDATE cuota SET estado = 'pagada' WHERE id_cuota = $1`, [cuota.id_cuota]);
+        await conexion.query(
+          `INSERT INTO pago (id_cuota, id_medio_pago, origen, monto, referencia)
+           VALUES ($1, $2, 'pasarela', $3, $4)`,
+          [cuota.id_cuota, cuota.id_medio_pago, cuota.monto, cargo.referencia],
+        );
+        await recalcularEstado(conexion, cuota.id_suscripcion);
+        resultado.aprobados += 1;
+        fila.referencia = cargo.referencia;
+      } else {
+        resultado.rechazados += 1;
+      }
+      await conexion.query('COMMIT');
+      resultado.detalle.push({ ...fila, resultado: cargo.aprobado ? 'aprobado' : 'rechazado' });
+    } catch (err) {
+      await conexion.query('ROLLBACK').catch(() => {});
+      console.error(`Cobro de la cuota ${cuota.id_cuota}:`, err.message);
+      resultado.errores += 1;
+      resultado.detalle.push({ ...fila, resultado: 'error' });
+    } finally {
+      conexion.release();
     }
-    resultado.detalle.push({
-      cuota: cuota.id_cuota,
-      periodo: cuota.periodo,
-      cliente: cuota.cliente,
-      monto: cuota.monto,
-      resultado: cargo.aprobado ? 'aprobado' : 'rechazado',
-      referencia: cargo.aprobado ? cargo.referencia : null,
-    });
   }
 
   await aplicarReglasDeuda();

@@ -1,5 +1,6 @@
 import { pool, query } from '../../config/db.js';
 import { HttpError } from '../../shared/utils/httpError.js';
+import { textoOpcional } from '../../shared/utils/texto.js';
 import { validarTokenInscripcion } from './pasarela.service.js';
 
 // Confirmación de la pasarela simulada (HU-13). El token JWT emitido al iniciar la
@@ -14,6 +15,7 @@ export async function confirmarInscripcionSimulada(token, { resultado, marca, ul
     throw new HttpError(400, 'ultimos_4 debe ser 4 dígitos');
   }
 
+  const textoMarca = textoOpcional(marca, 'marca', 20);
   const tokenPasarela = `sim-tok-${datos.nonce}`;
 
   // Idempotencia: si la pasarela notifica dos veces, se devuelve el registro existente
@@ -37,7 +39,7 @@ export async function confirmarInscripcionSimulada(token, { resultado, marca, ul
       `INSERT INTO medio_pago (id_cliente, token_pasarela, marca, ultimos_4, estado)
        VALUES ($1, $2, $3, $4, $5)
        RETURNING *`,
-      [datos.idCliente, tokenPasarela, marca?.trim() || null, /^[0-9]{4}$/.test(ultimos_4 ?? '') ? ultimos_4 : null, estado],
+      [datos.idCliente, tokenPasarela, textoMarca, /^[0-9]{4}$/.test(ultimos_4 ?? '') ? ultimos_4 : null, estado],
     );
     await conexion.query('COMMIT');
     return rows[0];

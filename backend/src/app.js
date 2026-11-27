@@ -6,8 +6,14 @@ import { errorHandler } from './shared/middlewares/errorHandler.js';
 
 const app = express();
 
-// Límite amplio para las fotos de la orden (llegan comprimidas en base64 desde el navegador)
-app.use(express.json({ limit: '12mb' }));
+// Detrás de un proxy (Render, Nginx) indica cuántos saltos confiar para conocer la IP
+// real del cliente (aceptación de condiciones RF-19 y límite de solicitudes). Ej.: TRUST_PROXY=1
+if (process.env.TRUST_PROXY) app.set('trust proxy', Number(process.env.TRUST_PROXY) || process.env.TRUST_PROXY);
+
+// Límite amplio solo donde llegan las fotos de la orden (comprimidas en base64 desde el
+// navegador). El resto de la API acepta cuerpos pequeños.
+app.use('/api/trabajador', express.json({ limit: '12mb' }));
+app.use(express.json({ limit: '100kb' }));
 
 // Documentación interactiva de la API (Swagger UI) y su especificación OpenAPI
 app.get('/api/docs.json', (_req, res) => res.json(openapi));

@@ -1,5 +1,6 @@
 import * as finanzas from './finanzas.service.js';
 import { parseId } from './plantas.controller.js';
+import { celdaCsv, fechaHoraChile } from '../../shared/utils/csv.js';
 
 export async function impagos(_req, res) {
   res.json(await finanzas.impagos());
@@ -19,10 +20,9 @@ export async function pagosDelMes(req, res) {
   if (req.query.formato !== 'csv') return res.json(pagos);
 
   const columnas = ['fecha_pago', 'cliente', 'rut', 'monto', 'origen', 'referencia', 'periodo', 'direccion'];
-  const escapar = (v) => `"${String(v ?? '').replaceAll('"', '""')}"`;
   const lineas = [
     columnas.join(';'),
-    ...pagos.map((p) => columnas.map((c) => escapar(c === 'fecha_pago' ? new Date(p[c]).toLocaleString('es-CL') : p[c])).join(';')),
+    ...pagos.map((p) => columnas.map((c) => celdaCsv(c === 'fecha_pago' ? fechaHoraChile(p[c]) : p[c])).join(';')),
   ];
 
   res

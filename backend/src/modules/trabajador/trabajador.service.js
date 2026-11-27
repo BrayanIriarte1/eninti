@@ -1,5 +1,6 @@
 import { pool, query } from '../../config/db.js';
 import { HttpError } from '../../shared/utils/httpError.js';
+import { textoOpcional } from '../../shared/utils/texto.js';
 import { puedeTransitarTecnico } from '../../shared/utils/estadosOrden.js';
 import { decodificarFotos, guardarFotos, fotosDeOrden } from '../../shared/utils/fotos.js';
 
@@ -63,6 +64,8 @@ export async function cambiarEstado(id, idTrabajador, { estado, actividades, obs
     throw new HttpError(400, 'estado debe ser en_curso o por_confirmar');
   }
   const termina = estado === 'por_confirmar';
+  const textoObservaciones = textoOpcional(observaciones, 'observaciones', 2000);
+  const textoComentario = textoOpcional(comentario, 'comentario', 255);
   const textoActividades = typeof actividades === 'string' ? actividades.trim() : '';
   if (termina && !textoActividades) {
     throw new HttpError(400, 'Registra las actividades realizadas antes de enviar la orden al cliente');
@@ -93,7 +96,7 @@ export async function cambiarEstado(id, idTrabajador, { estado, actividades, obs
            actividades    = COALESCE($3, actividades),
            observaciones  = COALESCE($4, observaciones)
        WHERE id_mantencion = $1`,
-      [id, estado, textoActividades || null, observaciones?.trim() || null],
+      [id, estado, textoActividades || null, textoObservaciones],
     );
     if (termina) {
       // Si la orden fue reabierta, las fotos nuevas reemplazan a las anteriores
@@ -104,7 +107,7 @@ export async function cambiarEstado(id, idTrabajador, { estado, actividades, obs
       `INSERT INTO mantencion_historial (id_mantencion, id_usuario, estado_anterior, estado_nuevo, comentario)
        VALUES ($1, $2, $3, $4, $5)`,
       [id, idTrabajador, actual, estado,
-        comentario?.trim() || (termina ? `Trabajo terminado, ${imagenes.length} foto(s) enviadas al cliente` : null)],
+        textoComentario || (termina ? `Trabajo terminado, ${imagenes.length} foto(s) enviadas al cliente` : null)],
     );
     await conexion.query('COMMIT');
   } catch (err) {

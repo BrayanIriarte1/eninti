@@ -1,4 +1,4 @@
-import { query } from '../../config/db.js';
+import { pool, query } from '../../config/db.js';
 import { HttpError } from '../../shared/utils/httpError.js';
 import { hashPassword } from '../../shared/utils/password.js';
 import { telefonoValido } from '../../shared/utils/rut.js';
@@ -44,14 +44,50 @@ export async function crear(datos) {
 
 // Edita datos, restablece contraseña o activa/desactiva (HU-15).
 // Un trabajador desactivado no puede iniciar sesión y sus tokens vigentes quedan rechazados.
-export async function actualizar(id, datos) {
+// Sus órdenes abiertas (pendiente o en curso) quedan sin técnico para reasignarlas, con
+// constancia en el historial. Las que esperan al cliente (por_confirmar) no cambian.
+export async function actualizar(id, datos, idAdmin) {
   validar(datos, { parcial: true });
   const { nombre, email, password, telefono, activo } = datos;
   if (activo !== undefined && typeof activo !== 'boolean') {
     throw new HttpError(400, 'activo debe ser true o false');
   }
 
-  const { rows } = await query(
+  const conexion = await pool.connect();
+  try {
+    await conexion.query('BEGIN');
+    const trabajador = await actualizarUsuario(conexion, id, { nombre, email, password, telefono, activo });
+    const ordenesLiberadas = activo === false ? await liberarOrdenes(conexion, trabajador, idAdmin) : 0;
+    await conexion.query('COMMIT');
+    return { ...trabajador, ordenes_liberadas: ordenesLiberadas };
+  } catch (err) {
+    await conexion.query('ROLLBACK');
+    throw err;
+  } finally {
+    conexion.release();
+  }
+}
+
+async function liberarOrdenes(conexion, trabajador, idAdmin) {
+  const { rows } = await conexion.query(
+    `UPDATE mantencion SET id_trabajador = NULL
+     WHERE id_trabajador = $1 AND estado IN ('pendiente', 'en_curso')
+     RETURNING id_mantencion, estado`,
+    [trabajador.id_usuario],
+  );
+  for (const orden of rows) {
+    await conexion.query(
+      `INSERT INTO mantencion_historial (id_mantencion, id_usuario, estado_anterior, estado_nuevo, comentario)
+       VALUES ($1, $2, $3, $3, $4)`,
+      [orden.id_mantencion, idAdmin, orden.estado,
+        `Técnico ${trabajador.nombre} desactivado: la orden queda sin técnico asignado`.slice(0, 255)],
+    );
+  }
+  return rows.length;
+}
+
+async function actualizarUsuario(conexion, id, { nombre, email, password, telefono, activo }) {
+  const { rows } = await conexion.query(
     `UPDATE usuario
      SET nombre        = COALESCE($2, nombre),
          email         = COALESCE($3, email),

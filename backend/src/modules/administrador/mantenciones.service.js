@@ -1,5 +1,6 @@
 import { pool, query } from '../../config/db.js';
 import { HttpError } from '../../shared/utils/httpError.js';
+import { textoOpcional } from '../../shared/utils/texto.js';
 import { puedeTransitar } from '../../shared/utils/estadosOrden.js';
 import { fotosDeOrden } from '../../shared/utils/fotos.js';
 
@@ -130,6 +131,7 @@ export async function asignar(id, { id_trabajador }) {
 
 // Cancela una orden abierta dejando historial (HU-16)
 export async function cancelar(id, idAdmin, comentario) {
+  const textoComentario = textoOpcional(comentario, 'comentario', 255);
   const conexion = await pool.connect();
   try {
     await conexion.query('BEGIN');
@@ -145,7 +147,7 @@ export async function cancelar(id, idAdmin, comentario) {
     await conexion.query(
       `INSERT INTO mantencion_historial (id_mantencion, id_usuario, estado_anterior, estado_nuevo, comentario)
        VALUES ($1, $2, $3, 'cancelada', $4)`,
-      [id, idAdmin, rows[0].estado, comentario?.trim() || null],
+      [id, idAdmin, rows[0].estado, textoComentario],
     );
     await conexion.query('COMMIT');
   } catch (err) {
