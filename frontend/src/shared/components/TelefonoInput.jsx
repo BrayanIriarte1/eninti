@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 // Códigos de país más usados (Chile primero). El número se guarda completo: +56912345678
-export const PAISES = [
+const PAISES = [
   { codigo: '+56', nombre: 'Chile', largo: 9, ejemplo: '912345678' },
   { codigo: '+54', nombre: 'Argentina', largo: 10 },
   { codigo: '+591', nombre: 'Bolivia', largo: 8 },

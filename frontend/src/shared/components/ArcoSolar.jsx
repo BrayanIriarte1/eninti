@@ -16,13 +16,6 @@ function posicion(hora) {
   return { x: 160 + 130 * Math.cos(angulo), y: 140 - 120 * Math.sin(angulo), dia, t };
 }
 
-export function saludo(fecha = new Date()) {
-  const h = fecha.getHours();
-  if (h < 12) return 'Buenos días';
-  if (h < 20) return 'Buenas tardes';
-  return 'Buenas noches';
-}
-
 // Encabezado de las pantallas de inicio: saludo, fecha y el arco del sol del día.
 // El sol se mueve a su posición al cargar y luego avanza con el reloj.
 export default function ArcoSolar({ titulo, children }) {

@@ -3,7 +3,7 @@
 // Aquí NO va lógica de negocio ni SQL: si te piden cambiar una regla, ve al servicio.
 // req.usuario.id viene del token (middleware autenticar), nunca del navegador.
 import * as mantenciones from './mantenciones.service.js';
-import { parseId } from './plantas.controller.js';
+import { parseId } from '../../shared/utils/ids.js';
 import { HttpError } from '../../shared/utils/httpError.js';
 
 const FECHA_RE = /^\d{4}-\d{2}-\d{2}$/;

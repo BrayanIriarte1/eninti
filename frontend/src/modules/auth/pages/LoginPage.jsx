@@ -7,7 +7,7 @@
 // ============================================================================
 import { useEffect, useRef, useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
-import { useAuth, inicioPorRol } from '../../../shared/context/AuthContext.jsx';
+import { useAuth, inicioPorRol } from '../../../shared/context/sesion.js';
 import Mensaje from '../../../shared/components/Mensaje.jsx';
 import LogoEninti from '../../../shared/components/LogoEninti.jsx';
 import FondoSolar from '../components/FondoSolar.jsx';

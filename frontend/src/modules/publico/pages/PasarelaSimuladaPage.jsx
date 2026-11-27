@@ -5,7 +5,7 @@
 // Patrón: useState (datos/error) → cargar() pide a la API → render. Tras guardar, se vuelve a cargar().
 // Los textos que ves en pantalla están en el JSX de abajo; las reglas están en el backend.
 // ============================================================================
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { confirmarPasarela } from '../services/publicoService.js';
 import Mensaje from '../../../shared/components/Mensaje.jsx';
@@ -21,6 +21,7 @@ export default function PasarelaSimuladaPage() {
   const [ultimos4, setUltimos4] = useState('4242');
   const [error, setError] = useState(null);
   const [enviando, setEnviando] = useState(false);
+  useEffect(() => { document.title = 'Pasarela de pago (simulada) · ENINTI'; }, []);
 
   // [CU-09] Aprueba o rechaza la inscripción de la tarjeta de prueba.
   async function confirmar(resultado) {

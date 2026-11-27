@@ -10,9 +10,10 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { miCuenta, cancelarSuscripcion, iniciarInscripcion, solicitarSuscripcion } from '../services/clienteService.js';
 import EstadoSuscripcion from '../../administrador/components/EstadoSuscripcion.jsx';
 import Mensaje from '../../../shared/components/Mensaje.jsx';
-import ArcoSolar, { saludo } from '../../../shared/components/ArcoSolar.jsx';
+import ArcoSolar from '../../../shared/components/ArcoSolar.jsx';
+import { saludo } from '../../../shared/utils/saludo.js';
 import Icono from '../../../shared/components/Icono.jsx';
-import { useAuth } from '../../../shared/context/AuthContext.jsx';
+import { useAuth } from '../../../shared/context/sesion.js';
 import { formatoPesos, formatoFecha } from '../../../shared/utils/formato.js';
 import AceptarCondiciones from '../components/AceptarCondiciones.jsx';
 

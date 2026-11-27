@@ -12,8 +12,9 @@ import {
   listarSolicitudesSuscripcion, listarCambiosDatos,
 } from '../services/adminService.js';
 import { formatoPesos } from '../../../shared/utils/formato.js';
-import { useAuth } from '../../../shared/context/AuthContext.jsx';
-import ArcoSolar, { saludo } from '../../../shared/components/ArcoSolar.jsx';
+import { useAuth } from '../../../shared/context/sesion.js';
+import ArcoSolar from '../../../shared/components/ArcoSolar.jsx';
+import { saludo } from '../../../shared/utils/saludo.js';
 import Icono from '../../../shared/components/Icono.jsx';
 
 const hace = (fecha) => {

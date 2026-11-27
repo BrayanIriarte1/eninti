@@ -5,7 +5,7 @@
 import * as cobroAutomatico from '../pagos/cobroAutomatico.js';
 import * as finanzas from './finanzas.service.js';
 import { ZONA_HORARIA } from '../../config/db.js';
-import { parseId } from './plantas.controller.js';
+import { parseId } from '../../shared/utils/ids.js';
 
 // [CU-18] GET /api/admin/finanzas/impagos
 export async function impagos(_req, res) {
