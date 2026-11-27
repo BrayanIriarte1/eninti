@@ -7,6 +7,12 @@ con lo que hace el prototipo en `main`. Tiene tres partes:
 2. [Casos de uso nuevos](#2-casos-de-uso-nuevos-cu-23-a-cu-35) que el prototipo ya implementa y faltan en los diagramas (CU-23 a CU-35).
 3. [Diagramas en PlantUML](#3-diagramas-en-plantuml) listos para regenerar las imágenes.
 
+**Imágenes listas para la presentación:** `docs/diagramas/casos_de_uso_1_visitante_cliente_trabajador.png` y `docs/diagramas/casos_de_uso_2_administrador.png` (también en SVG). Se generan con `python3 docs/diagramas/generar_casos_de_uso.py docs/diagramas`.
+
+![Visitante, Cliente y Trabajador](diagramas/casos_de_uso_1_visitante_cliente_trabajador.png)
+
+![Administrador](diagramas/casos_de_uso_2_administrador.png)
+
 Para encontrar el código de cualquier caso de uso, busca su número en todo el
 proyecto (VS Code: `Ctrl+Shift+F` → `CU-09`). Cada función lleva su etiqueta.
 
