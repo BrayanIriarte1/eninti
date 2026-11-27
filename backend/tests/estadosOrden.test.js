@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { TRANSICIONES, puedeTransitar } from '../src/shared/utils/estadosOrden.js';
+import { TRANSICIONES, puedeTransitar, puedeTransitarTecnico } from '../src/shared/utils/estadosOrden.js';
 
 // HU-16: pendiente → en_curso → por_confirmar → finalizada, sin saltos inválidos
 test('una orden pendiente puede iniciarse o cancelarse', () => {
@@ -24,6 +24,13 @@ test('el cliente confirma o reabre la orden', () => {
   assert.equal(puedeTransitar('por_confirmar', 'finalizada'), true);
   assert.equal(puedeTransitar('por_confirmar', 'en_curso'), true);
   assert.equal(puedeTransitar('por_confirmar', 'cancelada'), false);
+});
+
+test('el técnico no puede reabrir ni cerrar una orden por confirmar', () => {
+  assert.equal(puedeTransitarTecnico('por_confirmar', 'en_curso'), false);
+  assert.equal(puedeTransitarTecnico('por_confirmar', 'finalizada'), false);
+  assert.equal(puedeTransitarTecnico('en_curso', 'por_confirmar'), true);
+  assert.equal(puedeTransitarTecnico('pendiente', 'en_curso'), true);
 });
 
 test('los estados finales no admiten transiciones', () => {

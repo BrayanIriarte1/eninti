@@ -139,7 +139,7 @@ export default function OrdenPage() {
               </label>
               <label>
                 Observaciones <span className="opcional">(opcional)</span>
-                <textarea value={observaciones} onChange={(e) => setObservaciones(e.target.value)} rows={2} />
+                <textarea value={observaciones} onChange={(e) => setObservaciones(e.target.value)} rows={2} maxLength={2000} />
               </label>
 
               <div className="campo-fotos">

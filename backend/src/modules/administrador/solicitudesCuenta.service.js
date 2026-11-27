@@ -39,27 +39,42 @@ export async function crear(datos) {
   if (mensaje.length > 500) errores.push('mensaje admite hasta 500 caracteres');
   if (errores.length) throw new HttpError(400, 'Datos de la solicitud inválidos', errores);
 
-  // Si el RUT ya tiene cuenta web, no se acepta otra solicitud: debe iniciar sesión
-  const { rows: existente } = await query('SELECT id_usuario FROM cliente WHERE rut = $1', [rut]);
-  if (existente[0]?.id_usuario) {
-    throw new HttpError(409, 'Este RUT ya tiene una cuenta. Inicia sesión o contacta al administrador');
-  }
-
+  // El candado por RUT evita que una solicitud nueva se cuele mientras el
+  // administrador aprueba otra del mismo RUT (ver aprobar)
+  const conexion = await pool.connect();
   try {
-    const { rows } = await query(
+    await conexion.query('BEGIN');
+    await bloquearRut(conexion, rut);
+
+    // Si el RUT ya tiene cuenta web, no se acepta otra solicitud: debe iniciar sesión
+    const { rows: existente } = await conexion.query('SELECT id_usuario FROM cliente WHERE rut = $1', [rut]);
+    if (existente[0]?.id_usuario) {
+      throw new HttpError(409, 'Este RUT ya tiene una cuenta. Inicia sesión o contacta al administrador');
+    }
+
+    const { rows } = await conexion.query(
       `INSERT INTO solicitud_cuenta
          (nombre, rut, email, telefono, direccion_planta, id_comuna, potencia_kw, tiene_baterias, mensaje)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        RETURNING id_solicitud_cuenta, estado, fecha_solicitud`,
       [nombre, rut, email, telefono, direccion, id_comuna, potencia_kw ?? null, tiene_baterias ?? null, mensaje || null],
     );
+    await conexion.query('COMMIT');
     return rows[0];
   } catch (err) {
+    await conexion.query('ROLLBACK');
     if (err.code === '23505') {
       throw new HttpError(409, 'Ya existe una solicitud pendiente para este RUT. El administrador te contactará');
     }
     throw err;
+  } finally {
+    conexion.release();
   }
+}
+
+// Serializa, dentro de la transacción, las operaciones sobre un mismo RUT
+function bloquearRut(conexion, rut) {
+  return conexion.query("SELECT pg_advisory_xact_lock(hashtext('solicitud_cuenta:' || $1))", [rut]);
 }
 
 // [CU-13]
@@ -90,6 +105,9 @@ export async function aprobar(id, idAdmin, { email, password } = {}) {
   const conexion = await pool.connect();
   try {
     await conexion.query('BEGIN');
+    // Primero el candado del RUT y luego la fila, en el mismo orden que crear(), sin interbloqueos
+    const { rows: previa } = await conexion.query('SELECT rut FROM solicitud_cuenta WHERE id_solicitud_cuenta = $1', [id]);
+    if (previa[0]) await bloquearRut(conexion, previa[0].rut);
     const { rows } = await conexion.query(
       'SELECT * FROM solicitud_cuenta WHERE id_solicitud_cuenta = $1 FOR UPDATE',
       [id],

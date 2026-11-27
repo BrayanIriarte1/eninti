@@ -13,3 +13,6 @@ export const TRANSICIONES = {
 };
 
 export const puedeTransitar = (desde, hacia) => TRANSICIONES[desde]?.includes(hacia) ?? false;
+
+// El técnico no decide sobre una orden por confirmar: solo el cliente la confirma o la reabre
+export const puedeTransitarTecnico = (desde, hacia) => desde !== 'por_confirmar' && puedeTransitar(desde, hacia);

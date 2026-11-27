@@ -3,7 +3,8 @@
 // Los cambios de estado se validan con shared/utils/estadosOrden.js y quedan en mantencion_historial.
 import { pool, query } from '../../config/db.js';
 import { HttpError } from '../../shared/utils/httpError.js';
-import { puedeTransitar } from '../../shared/utils/estadosOrden.js';
+import { textoOpcional } from '../../shared/utils/texto.js';
+import { puedeTransitarTecnico } from '../../shared/utils/estadosOrden.js';
 import { decodificarFotos, guardarFotos, fotosDeOrden } from '../../shared/utils/fotos.js';
 
 const SELECT_ORDEN = `
@@ -74,10 +75,9 @@ export async function cambiarEstado(id, idTrabajador, { estado, actividades, obs
       throw new HttpError(400, `${campo} debe ser texto`);
     }
   }
-  if (typeof comentario === 'string' && comentario.length > 255) {
-    throw new HttpError(400, 'El comentario admite hasta 255 caracteres');
-  }
   const termina = estado === 'por_confirmar';
+  const textoObservaciones = textoOpcional(observaciones, 'observaciones', 2000);
+  const textoComentario = textoOpcional(comentario, 'comentario', 255);
   const textoActividades = typeof actividades === 'string' ? actividades.trim() : '';
   if (termina && !textoActividades) {
     throw new HttpError(400, 'Registra las actividades realizadas antes de enviar la orden al cliente');
@@ -94,7 +94,10 @@ export async function cambiarEstado(id, idTrabajador, { estado, actividades, obs
     if (!rows.length) throw new HttpError(404, 'Orden no encontrada o no asignada a ti');
 
     const actual = rows[0].estado;
-    if (!puedeTransitar(actual, estado)) {
+    if (actual === 'por_confirmar') {
+      throw new HttpError(409, 'La orden espera la confirmación del cliente');
+    }
+    if (!puedeTransitarTecnico(actual, estado)) {
       throw new HttpError(409, `No se puede pasar de ${actual} a ${estado}`);
     }
 
@@ -105,7 +108,7 @@ export async function cambiarEstado(id, idTrabajador, { estado, actividades, obs
            actividades    = COALESCE($3, actividades),
            observaciones  = COALESCE($4, observaciones)
        WHERE id_mantencion = $1`,
-      [id, estado, textoActividades || null, observaciones?.trim() || null],
+      [id, estado, textoActividades || null, textoObservaciones],
     );
     if (termina) {
       // Si la orden fue reabierta, las fotos nuevas reemplazan a las anteriores
@@ -116,7 +119,7 @@ export async function cambiarEstado(id, idTrabajador, { estado, actividades, obs
       `INSERT INTO mantencion_historial (id_mantencion, id_usuario, estado_anterior, estado_nuevo, comentario)
        VALUES ($1, $2, $3, $4, $5)`,
       [id, idTrabajador, actual, estado,
-        comentario?.trim() || (termina ? `Trabajo terminado, ${imagenes.length} foto(s) enviadas al cliente` : null)],
+        textoComentario || (termina ? `Trabajo terminado, ${imagenes.length} foto(s) enviadas al cliente` : null)],
     );
     await conexion.query('COMMIT');
   } catch (err) {
