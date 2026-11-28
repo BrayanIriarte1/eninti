@@ -77,7 +77,7 @@ class Diagrama:
         self.add('textos', f'<text x="{x0+14}" y="{y0+24}" font-size="15" font-weight="700" fill="{TEXTO}">{escape(nombre)}</text>')
 
     def leyenda(self, x, y):
-        items = [(ROSA, ROJO, 'Caso de uso del Informe U2'), (CELESTE, AZUL, 'Caso de uso agregado en la implementación'),
+        items = [(ROSA, ROJO, 'Caso de uso del Informe U2'), (CELESTE, AZUL, 'Caso de uso agregado en la implementación (CU-23 a CU-37)'),
                  (GRIS_FONDO, GRIS, 'Paso incluido / extensión (sin número propio)')]
         for i, (f, b, t) in enumerate(items):
             yy = y + i * 24
@@ -115,6 +115,7 @@ def diagrama_usuarios():
         None,
         ('cu03', 'Iniciar sesión', 'CU-03 · HU-07', 'original', 'usr'),
         ('cu26', 'Cambiar contraseña', 'CU-26', 'nuevo', 'usr'),
+        ('cu37', 'Revisar notificaciones', 'CU-37', 'nuevo', 'usr'),
         None,
         ('cu04', 'Consultar estado de cuenta', 'CU-04 · HU-08', 'original', 'cli'),
         ('cu05', 'Consultar mantenciones', 'CU-05 · HU-09', 'original', 'cli'),
@@ -124,6 +125,7 @@ def diagrama_usuarios():
         ('cu09', 'Inscribir medio de pago', 'CU-09 · HU-13', 'original', 'cli'),
         ('cu24', 'Solicitar suscripción', 'CU-24', 'nuevo', 'cli'),
         ('cu25', 'Solicitar cambio de datos', 'CU-25', 'nuevo', 'cli'),
+        ('cu36', 'Solicitar nueva planta', 'CU-36', 'nuevo', 'cli'),
         None,
         ('cu10', 'Consultar agenda', 'CU-10 · HU-14', 'original', 'tra'),
         ('cu11', 'Gestionar orden de trabajo', 'CU-11 · HU-16', 'original', 'tra'),
@@ -201,6 +203,7 @@ def diagrama_admin():
         ('cu14', 'Gestionar clientes y plantas', 'CU-14 · HU-03', 'original'),
         ('cu28', 'Atender solicitudes de suscripción', 'CU-28', 'nuevo'),
         ('cu29', 'Atender cambios de datos', 'CU-29', 'nuevo'),
+        ('cu36', 'Atender solicitudes de nueva planta', 'CU-36', 'nuevo'),
         ('cu15', 'Gestionar trabajadores', 'CU-15 · HU-15', 'original'),
         ('cu16', 'Programar y asignar mantención', 'CU-16 · HU-04, HU-17', 'original'),
         ('cu17', 'Atender solicitudes de mantención', 'CU-17 · HU-11', 'original'),
@@ -210,6 +213,7 @@ def diagrama_admin():
         ('cu20', 'Generar cuotas y procesar cargos', 'CU-20 · HU-13', 'original'),
         ('cu21', 'Administrar catálogo', 'CU-21 · RNF-07', 'original'),
         ('cu33', 'Revisar avisos por correo', 'CU-33', 'nuevo'),
+        ('cu37', 'Revisar notificaciones', 'CU-37', 'nuevo'),
     ]
     y = top + 76
     claves = []

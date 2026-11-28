@@ -1,0 +1,278 @@
+<meta charset="utf-8">
+<title>Diálogo del video ENINTI</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: guion de grabación en una columna; cada escena = acotaciones (pantalla, código, base de datos) + parlamentos con el nombre a la izquierda. */
+:root {
+  --bg: #f3f6f9; --panel: #ffffff; --fg: #16212c; --muted: #566573; --line: #d6dee6;
+  --navy: #0b3d5c; --accent: #0b5c8a; --sun: #f2b705; --sun-soft: #fff4cc;
+  --jer: #0b5c8a; --jer-soft: #e3f0fa;
+  --bra: #a3241f; --bra-soft: #fbe7e6;
+  --rac: #1c6b45; --rac-soft: #e2f3ea;
+  --code-bg: #0f2433; --code-fg: #e4eef5;
+  --f-display: "Manrope", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Inter", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0c1620; --panel: #13212d; --fg: #e6edf3; --muted: #9fb0bf; --line: #24384a;
+    --navy: #9cd2f3; --accent: #6cbbe9; --sun: #f5c22e; --sun-soft: #3a3010;
+    --jer: #7cc4ef; --jer-soft: #14304a; --bra: #ff9d97; --bra-soft: #3a1c1b; --rac: #7fd8a8; --rac-soft: #15342a;
+    --code-bg: #07121b; --code-fg: #d8e6f0; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0c1620; --panel: #13212d; --fg: #e6edf3; --muted: #9fb0bf; --line: #24384a;
+  --navy: #9cd2f3; --accent: #6cbbe9; --sun: #f5c22e; --sun-soft: #3a3010;
+  --jer: #7cc4ef; --jer-soft: #14304a; --bra: #ff9d97; --bra-soft: #3a1c1b; --rac: #7fd8a8; --rac-soft: #15342a;
+  --code-bg: #07121b; --code-fg: #d8e6f0; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.6 var(--f-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 0 4rem; }
+.envoltura { max-width: 980px; margin: 0 auto; display: grid; gap: 2rem; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.2; }
+h1 { font-size: clamp(1.8rem, 4vw, 2.5rem); font-weight: 800; color: var(--navy); }
+h2 { font-size: 1.35rem; font-weight: 800; color: var(--navy); }
+h3 { font-size: 1.05rem; font-weight: 700; }
+p { margin: 0; }
+code { font-family: var(--f-mono); font-size: .86em; background: var(--bg); border: 1px solid var(--line); border-radius: 5px; padding: 0 .3em; overflow-wrap: anywhere; }
+
+.cabecera { padding-top: 2.2rem; display: grid; gap: .9rem; }
+.cabecera > p { color: var(--muted); max-width: 70ch; }
+.elenco { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: .8rem; }
+.persona { border-radius: 12px; padding: .9rem 1rem; display: grid; gap: .2rem; border: 1px solid var(--line); background: var(--panel); }
+.persona strong { font: 800 1.05rem/1.2 var(--f-display); }
+.persona span { color: var(--muted); font-size: .9rem; }
+.persona.jer strong { color: var(--jer); } .persona.bra strong { color: var(--bra); } .persona.rac strong { color: var(--rac); }
+
+.caja { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1.1rem 1.25rem; display: grid; gap: .7rem; min-width: 0; }
+.caja ul { margin: 0; padding-left: 1.2rem; display: grid; gap: .35rem; }
+pre.cmd { margin: .3rem 0 0; background: var(--code-bg); color: var(--code-fg); padding: .7rem .9rem; border-radius: 8px; overflow-x: auto; font: .84rem/1.5 var(--f-mono); }
+.tabla-envoltura { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: .93rem; }
+th, td { text-align: left; padding: .5rem .65rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 .74rem/1.2 var(--f-body); letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
+
+/* Escenas */
+.escena { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 1.2rem 1.3rem 1.35rem; display: grid; gap: 1rem; }
+.escena-cab { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: .4rem 1rem; }
+.escena-cab .min { font: 700 .82rem/1 var(--f-body); color: var(--muted); font-variant-numeric: tabular-nums; }
+.cus { display: flex; flex-wrap: wrap; gap: .35rem; }
+.cu { font: 700 .72rem/1 var(--f-mono); padding: .3rem .45rem; border-radius: 6px; background: var(--bra-soft); color: var(--bra); }
+.cu.nuevo { background: var(--jer-soft); color: var(--jer); }
+
+.dialogo { display: grid; gap: .75rem; }
+.linea { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: .9rem; align-items: start; }
+.quien { font: 800 .8rem/1.6 var(--f-display); letter-spacing: .05em; text-transform: uppercase; text-align: right; padding-top: .1rem; }
+.linea.jer .quien { color: var(--jer); } .linea.bra .quien { color: var(--bra); } .linea.rac .quien { color: var(--rac); }
+.linea.todos .quien { color: var(--muted); }
+.dice { font-size: 1.02rem; }
+.accion { margin-left: calc(92px + .9rem); display: block; padding: .6rem .85rem; border-radius: 8px; background: var(--bg); border: 1px dashed var(--line); font-size: .92rem; color: var(--fg); }
+.accion b { display: block; margin-bottom: .35rem; font: 700 .7rem/1 var(--f-body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.accion.codigo { border-style: solid; border-color: transparent; background: var(--code-bg); color: var(--code-fg); }
+.accion.codigo b { color: #9fc2da; }
+.accion.codigo code { background: transparent; border-color: #2a4458; color: var(--code-fg); }
+.accion.bd { border-style: solid; border-color: transparent; background: var(--sun-soft); }
+.dato { font-family: var(--f-mono); font-size: .88em; font-weight: 500; background: var(--panel); border: 1px solid var(--line); border-radius: 5px; padding: 0 .3em; overflow-wrap: anywhere; }
+.nota-pie { color: var(--muted); font-size: .88rem; }
+
+.caja > *, .caja li, .dialogo > *, .accion > *, .escena > * { min-width: 0; }
+.accion { min-width: 0; overflow-wrap: anywhere; }
+@media (max-width: 640px) {
+  .linea { grid-template-columns: 1fr; gap: .1rem; }
+  .quien { text-align: left; }
+  .accion { margin-left: 0; }
+}
+</style>
+
+<div class="envoltura">
+
+<header class="cabecera">
+  <h1>Diálogo para el video · Plataforma ENINTI</h1>
+  <p>Guion de grabación de unos 20 minutos. Cada integrante presenta un perfil de la aplicación y, al terminar su parte, muestra dónde está el código de sus casos de uso y qué quedó guardado en la base de datos. La historia sigue a una clienta nueva, Valentina Rojas, desde que pide su cuenta hasta que paga su primera cuota. Todo el recorrido se ensayó con la versión actual de <code>main</code> (29 pasos, sin errores).</p>
+  <div class="elenco">
+    <div class="persona jer"><strong>Jeremy</strong><span>Visitante y cliente (Valentina)</span></div>
+    <div class="persona bra"><strong>Branyan</strong><span>Administrador de ENINTI</span></div>
+    <div class="persona rac"><strong>Rachel</strong><span>Técnica en terreno (cuenta de Pedro Ramírez)</span></div>
+  </div>
+</header>
+
+<section class="caja" aria-labelledby="t-antes">
+  <h2 id="t-antes">Antes de grabar</h2>
+  <ul>
+    <li>Base de datos limpia (si ensayaron, Valentina ya existe):
+      <pre class="cmd">psql -U postgres -c "DROP DATABASE eninti WITH (FORCE);" -c "CREATE DATABASE eninti;"
+npm run db:init --prefix backend
+npm run dev</pre></li>
+    <li>Tres ventanas listas: el navegador en <code>localhost:5174</code>, VS Code con el proyecto y pgAdmin (o <code>psql -U postgres eninti</code>) conectado a la base <code>eninti</code>.</li>
+    <li>Una foto cualquiera en el escritorio para la parte de Rachel.</li>
+    <li>Para cambiar de perfil siempre se pulsa <strong>Salir</strong> (abajo a la izquierda).</li>
+    <li>En VS Code, <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> con el número del caso de uso (por ejemplo <code>CU-09</code>) lleva a todo su código.</li>
+  </ul>
+  <div class="tabla-envoltura"><table>
+    <thead><tr><th>Perfil</th><th>Correo</th><th>Contraseña</th></tr></thead>
+    <tbody>
+      <tr><td>Administrador (Branyan)</td><td><span class="dato">admin@eninti.test</span></td><td><span class="dato">Admin.2026</span></td></tr>
+      <tr><td>Técnico (Rachel)</td><td><span class="dato">pedro.ramirez@eninti.test</span></td><td><span class="dato">Trabajador.2026</span></td></tr>
+      <tr><td>Clienta nueva (Jeremy)</td><td><span class="dato">valentina.rojas@ejemplo.cl</span></td><td><span class="dato">Cliente.2026</span> (la crea Branyan en la escena 2)</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- ============================================================ ESCENA 0 -->
+<section class="escena" aria-labelledby="e0">
+  <div class="escena-cab"><h2 id="e0">Escena 0 · Presentación</h2><span class="min">0:00 – 1:30</span></div>
+  <div class="dialogo">
+    <div class="accion"><b>En pantalla</b>La portada de la aplicación en <code>localhost:5174</code>.</div>
+    <div class="linea jer"><span class="quien">Jeremy</span><p class="dice">Hola, somos Rachel Díaz, Branyan Espinoza y Jeremy Herrera. Les presentamos la plataforma web que construimos para ENINTI, una empresa de Calama que mantiene plantas solares fotovoltaicas. Hoy controlan las suscripciones y las visitas con planillas y mensajes; nuestra plataforma lo reúne todo en un solo lugar.</p></div>
+    <div class="linea bra"><span class="quien">Branyan</span><p class="dice">La aplicación tiene tres partes: el frontend en React, una API en Node con Express y una base de datos PostgreSQL. Cada uno de nosotros va a mostrar un perfil: yo el administrador, Rachel el técnico y Jeremy el cliente.</p></div>
+    <div class="accion"><b>En pantalla</b>Abrir <code>docs/diagramas/Diagramas_Casos_de_Uso_ENINTI.pdf</code>.</div>
+    <div class="linea rac"><span class="quien">Rachel</span><p class="dice">Estos son nuestros diagramas de casos de uso. En rojo están los del informe y en azul los que agregamos al implementar, como la confirmación de la orden por el cliente o la campana de notificaciones. Cada caso de uso tiene un número, y ese mismo número aparece en los comentarios del código, así que pueden seguir cada uno desde la pantalla hasta la base de datos.</p></div>
+  </div>
+</section>
+
+<!-- ============================================================ ESCENA 1 -->
+<section class="escena" aria-labelledby="e1">
+  <div class="escena-cab"><h2 id="e1">Escena 1 · Jeremy, visitante: cotiza y pide su cuenta</h2><span class="min">1:30 – 3:30</span></div>
+  <div class="cus"><span class="cu">CU-01 Cotizar</span><span class="cu">CU-02 Solicitar cuenta</span></div>
+  <div class="dialogo">
+    <div class="accion"><b>En pantalla</b>Menú <strong>Planes y servicios</strong> (cotizador).</div>
+    <div class="linea jer"><span class="quien">Jeremy</span><p class="dice">Parto como visitante, sin cuenta. En el cotizador veo el plan de mantención y los servicios con sus precios. Estos precios no están escritos en el código: vienen de una tabla, así que el administrador los cambia sin programar. Ese es el caso de uso CU-01.</p></div>
+    <div class="accion"><b>En pantalla</b><strong>Solicitar cuenta</strong> → nombre <span class="dato">Valentina Rojas Muñoz</span>, RUT <span class="dato">123456785</span> (sin puntos), correo <span class="dato">valentina.rojas@ejemplo.cl</span>, teléfono <span class="dato">944444444</span> → Continuar → dirección <span class="dato">Av. Balmaceda 2050</span>, comuna Calama, potencia <span class="dato">3.3</span> → Continuar → <strong>Enviar solicitud</strong>.</div>
+    <div class="linea jer"><span class="quien">Jeremy</span><p class="dice">Ahora soy Valentina y quiero contratar el plan. Lleno mis datos y los de mi planta en tres pasos. Fíjense que el RUT se valida con su dígito verificador. Importante: el cliente no crea su propia cuenta, solo envía una solicitud. Así nadie que conozca un RUT puede apropiarse de la cuenta de otra persona. Es el CU-02.</p></div>
+    <div class="accion codigo"><b>Código</b><code>publico/pages/SolicitarCuentaPage.jsx</code> → <code>publico.routes.js</code> (<code>POST /api/publico/solicitudes-cuenta</code>) → <code>administrador/solicitudesCuenta.service.js · crear()</code>, que usa <code>rutValido()</code> de <code>shared/utils/rut.js</code>.</div>
+    <div class="linea jer"><span class="quien">Jeremy</span><p class="dice">En el código, el formulario llama a la ruta pública y el servicio valida el RUT con el módulo 11 antes de guardar la solicitud.</p></div>
+  </div>
+</section>
+
+<!-- ============================================================ ESCENA 2 -->
+<section class="escena" aria-labelledby="e2">
+  <div class="escena-cab"><h2 id="e2">Escena 2 · Branyan, administrador: crea la cuenta, la planta y la suscripción</h2><span class="min">3:30 – 6:30</span></div>
+  <div class="cus"><span class="cu">CU-03 Iniciar sesión</span><span class="cu nuevo">CU-37 Notificaciones</span><span class="cu">CU-13 Solicitudes de cuenta</span><span class="cu">CU-14 Clientes y plantas</span></div>
+  <div class="dialogo">
+    <div class="accion"><b>En pantalla</b>Iniciar sesión con <span class="dato">admin@eninti.test</span> / <span class="dato">Admin.2026</span>. Abrir la <strong>campana</strong>.</div>
+    <div class="linea bra"><span class="quien">Branyan</span><p class="dice">Entro como administrador, CU-03. La sesión dura ocho horas y, si alguien falla la contraseña cinco veces, el correo queda bloqueado quince minutos. En la campana ya me llegó el aviso: «Valentina Rojas Muñoz solicita una cuenta». Esa campana es el CU-37 y la tienen los tres perfiles.</p></div>
+    <div class="accion"><b>En pantalla</b><strong>Nuevas cuentas</strong> → tarjeta de Valentina → <strong>Crear cuenta</strong> → contraseña inicial <span class="dato">Cliente.2026</span> → <strong>Crear cliente y cuenta</strong>.</div>
+    <div class="linea bra"><span class="quien">Branyan</span><p class="dice">Reviso la solicitud y creo su cuenta con una contraseña inicial, CU-13. Por dentro esto es una transacción: se crean la ficha del cliente y su usuario juntos; si algo falla, no queda nada a medias.</p></div>
+    <div class="accion"><b>En pantalla</b><strong>Registrar ahora su planta →</strong> (llega con cliente, comuna, dirección y potencia ya puestos). Fecha de instalación <strong>10-06-2024</strong>, inversor <span class="dato">Huawei SUN2000-3KTL</span>, paneles <span class="dato">6 × JA Solar 550 W</span> → guardar. En la ficha, panel <strong>Suscripción mensual</strong>: cuota <span class="dato">15000</span>, día de cobro <strong>1</strong> → <strong>Crear suscripción</strong>.</div>
+    <div class="linea bra"><span class="quien">Branyan</span><p class="dice">Ahora registro su planta con la ficha técnica y le creo la suscripción de quince mil pesos mensuales, CU-14. La base de datos no permite dos suscripciones vigentes en la misma planta, para que nunca se cobre dos veces.</p></div>
+    <div class="accion codigo"><b>Código</b><code>administrador/solicitudesCuenta.service.js · aprobar()</code> (<code>BEGIN … COMMIT</code>) y <code>clientes.service.js · crearCuentaCliente()</code>. Contraseñas: <code>shared/utils/password.js · hashPassword()</code> (scrypt con sal). Login: <code>auth/auth.service.js</code> (<code>MAX_INTENTOS</code>, <code>BLOQUEO_MS</code>).</div>
+    <div class="accion bd"><b>Base de datos</b><code>SELECT email, rol, password_hash FROM usuario;</code> · regla en <code>database/schema/001_esquema.sql</code>: índice <code>uq_suscripcion_vigente</code>.</div>
+    <div class="linea bra"><span class="quien">Branyan</span><p class="dice">Aquí en la base se ve que la contraseña nunca se guarda en texto: solo un hash. Y esta es la regla de una suscripción vigente por planta, escrita directamente en el esquema.</p></div>
+  </div>
+</section>
+
+<!-- ============================================================ ESCENA 3 -->
+<section class="escena" aria-labelledby="e3">
+  <div class="escena-cab"><h2 id="e3">Escena 3 · Jeremy, cliente: su cuenta, la tarjeta y sus solicitudes</h2><span class="min">6:30 – 10:00</span></div>
+  <div class="cus"><span class="cu">CU-04 Estado de cuenta</span><span class="cu">CU-09 Inscribir medio de pago</span><span class="cu">RF-19 Aceptar condiciones</span><span class="cu">CU-06 Ficha de planta</span><span class="cu nuevo">CU-36 Nueva planta</span><span class="cu">CU-07 Solicitar mantención</span></div>
+  <div class="dialogo">
+    <div class="accion"><b>En pantalla</b><strong>Salir</strong> → entrar con <span class="dato">valentina.rojas@ejemplo.cl</span> / <span class="dato">Cliente.2026</span>.</div>
+    <div class="linea jer"><span class="quien">Jeremy</span><p class="dice">Ya tengo cuenta. En «Mi cuenta» veo mi suscripción al día, cuántos meses he pagado y mi deuda, que es cero. Ese es el CU-04.</p></div>
+    <div class="accion"><b>En pantalla</b><strong>Inscribir medio de pago</strong> → mostrar las condiciones con el botón bloqueado → marcar «He leído y acepto» → <strong>Aceptar y continuar</strong> → Visa, últimos 4 <span class="dato">4242</span> → <strong>Inscribir tarjeta</strong>.</div>
+    <div class="linea jer"><span class="quien">Jeremy</span><p class="dice">Para el cobro automático inscribo mi tarjeta, CU-09. Antes de ir a la pasarela tengo que leer las condiciones del servicio: el botón está bloqueado hasta que marco la casilla. Eso es el «include» Aceptar condiciones del diagrama. La pasarela es de prueba y vuelvo con mi tarjeta inscrita.</p></div>
+    <div class="accion codigo"><b>Código</b>Buscar <code>CU-09</code>: <code>cliente/components/AceptarCondiciones.jsx</code> → <code>CuentaPage.jsx · inscribir()</code> → <code>cliente.routes.js</code> → <code>cliente.controller.js</code> → <code>cliente.service.js · iniciarInscripcion()</code>.</div>
+    <div class="accion bd"><b>Base de datos</b><code>SELECT * FROM aceptacion_condiciones;</code> · <code>SELECT marca, ultimos_4, estado, token_pasarela FROM medio_pago;</code></div>
+    <div class="linea jer"><span class="quien">Jeremy</span><p class="dice">Si busco «CU-09» en el proyecto, veo todo el camino: la pantalla, la ruta, el controlador y el servicio. En la base quedó la aceptación con fecha, versión e IP, como pide la ley de datos personales. Y de la tarjeta solo guardamos un token de la pasarela y los últimos cuatro dígitos, nunca el número completo.</p></div>
+    <div class="accion"><b>En pantalla</b><strong>Mis plantas</strong> → <strong>Solicitar nueva planta</strong> → comuna Calama, dirección <span class="dato">Parcela 7, camino a Chiu Chiu</span>, potencia <span class="dato">5</span>, baterías No → <strong>Enviar solicitud</strong>.</div>
+    <div class="linea jer"><span class="quien">Jeremy</span><p class="dice">En «Mis plantas» veo la ficha técnica de mi planta, CU-06. Además instalé una segunda planta en una parcela, así que pido que la registren. Esto es el CU-36, nuevo en esta versión: la solicitud queda pendiente para el administrador.</p></div>
+    <div class="accion"><b>En pantalla</b><strong>Solicitudes</strong> → planta Av. Balmaceda 2050, motivo <span class="dato">El inversor muestra un error y la planta bajó su generación</span> → <strong>Enviar solicitud</strong>.</div>
+    <div class="linea jer"><span class="quien">Jeremy</span><p class="dice">Y por último, mi inversor marca un error, así que pido una mantención, CU-07. Branyan, te dejo trabajo.</p></div>
+  </div>
+</section>
+
+<!-- ============================================================ ESCENA 4 -->
+<section class="escena" aria-labelledby="e4">
+  <div class="escena-cab"><h2 id="e4">Escena 4 · Branyan: aprueba la planta y programa la visita</h2><span class="min">10:00 – 12:30</span></div>
+  <div class="cus"><span class="cu nuevo">CU-37 Notificaciones</span><span class="cu nuevo">CU-36 Nueva planta</span><span class="cu">CU-17 Atender solicitudes</span><span class="cu">CU-16 Programar y asignar</span></div>
+  <div class="dialogo">
+    <div class="accion"><b>En pantalla</b><strong>Salir</strong> → entrar como administrador → abrir la <strong>campana</strong>.</div>
+    <div class="linea bra"><span class="quien">Branyan</span><p class="dice">Volví como administrador y la campana me muestra tres avisos nuevos: la cuenta de Valentina, su nueva planta y su solicitud de mantención.</p></div>
+    <div class="accion"><b>En pantalla</b><strong>Nuevas plantas</strong> → tarjeta Parcela 7 → <strong>Completar ficha y crear planta</strong> → inversor <span class="dato">Growatt MIN 5000TL-X</span>, paneles <span class="dato">10 × Longi 550 W</span>, fecha de instalación <strong>15-10-2026</strong> → <strong>Crear planta</strong>.</div>
+    <div class="linea bra"><span class="quien">Branyan</span><p class="dice">Apruebo la nueva planta completando su ficha técnica. La planta se crea a nombre de Valentina y ella recibe el aviso.</p></div>
+    <div class="accion"><b>En pantalla</b><strong>Solicitudes</strong> (menú Mantención) → solicitud de Valentina → <strong>Programar</strong> → fecha de <strong>hoy</strong>, tipo Correctiva, trabajador <strong>Pedro Ramírez Castro</strong> → <strong>Programar</strong>. Luego abrir <strong>Calendario</strong>.</div>
+    <div class="linea bra"><span class="quien">Branyan</span><p class="dice">Ahora atiendo la solicitud de mantención, CU-17, y la programo para hoy asignándola a Pedro, CU-16. En el calendario aparece agrupada por comuna. Solo se puede asignar a un técnico activo, y eso no lo controla solo la API: también lo exige un trigger en la base de datos.</p></div>
+    <div class="accion codigo"><b>Código</b><code>administrador/solicitudesCliente.service.js · aprobarPlanta()</code> · <code>mantenciones.service.js · crear()</code> y <code>validarTrabajadorActivo()</code> · trigger <code>fn_validar_trabajador_mantencion</code> en <code>database/schema/005_integridad_y_avisos.sql</code>.</div>
+    <div class="accion bd"><b>Base de datos</b><code>SELECT direccion, estado FROM solicitud_planta;</code> · <code>SELECT u.email, n.titulo FROM notificacion n JOIN usuario u USING (id_usuario) ORDER BY n.fecha DESC;</code></div>
+    <div class="linea bra"><span class="quien">Branyan</span><p class="dice">En la base, la solicitud de planta quedó aprobada, y cada aviso de la campana es una fila en la tabla de notificaciones, con su destinatario. Rachel, Pedro ya tiene una visita.</p></div>
+  </div>
+</section>
+
+<!-- ============================================================ ESCENA 5 -->
+<section class="escena" aria-labelledby="e5">
+  <div class="escena-cab"><h2 id="e5">Escena 5 · Rachel, técnica: atiende la visita</h2><span class="min">12:30 – 15:30</span></div>
+  <div class="cus"><span class="cu nuevo">CU-37 Notificaciones</span><span class="cu">CU-10 Consultar agenda</span><span class="cu">CU-11 Gestionar orden</span><span class="cu">CU-12 Registrar actividades</span></div>
+  <div class="dialogo">
+    <div class="accion"><b>En pantalla</b><strong>Salir</strong> → entrar con <span class="dato">pedro.ramirez@eninti.test</span> / <span class="dato">Trabajador.2026</span>. Abrir la <strong>campana</strong>. (Si pueden, mostrar esta parte en el celular).</div>
+    <div class="linea rac"><span class="quien">Rachel</span><p class="dice">Yo soy Pedro, el técnico. La campana me avisa: «Te asignaron una visita». En mi agenda, CU-10, veo solo mis visitas, ordenadas por fecha y con un botón para abrir el mapa. La pantalla está pensada para el celular, porque el técnico trabaja en terreno.</p></div>
+    <div class="accion"><b>En pantalla</b>Tarjeta Av. Balmaceda 2050 → <strong>Ver detalle</strong> → <strong>Iniciar atención</strong>.</div>
+    <div class="linea rac"><span class="quien">Rachel</span><p class="dice">Abro la orden, CU-11. Tengo la ficha técnica de la planta, el teléfono del cliente y el motivo de la visita. Si la planta tuviera baterías, aquí saldría un aviso de seguridad. Inicio la atención y la orden pasa a «en curso».</p></div>
+    <div class="accion"><b>En pantalla</b>Actividades <span class="dato">Revisión del inversor, reinicio y reapriete de conexiones DC. Limpieza de módulos.</span> → adjuntar la foto → enviar al cliente.</div>
+    <div class="linea rac"><span class="quien">Rachel</span><p class="dice">Al terminar registro lo que hice y adjunto una foto, CU-12. Sin actividades o sin foto no me deja enviar. La orden no queda finalizada todavía: queda «esperando al cliente», porque es Valentina quien confirma si el problema se resolvió.</p></div>
+    <div class="accion codigo"><b>Código</b><code>trabajador/trabajador.routes.js</code> (<code>permitirRoles('trabajador')</code>) → <code>trabajador.service.js · agenda()</code> (filtra por el <code>id_trabajador</code> del token) y <code>cambiarEstado()</code> → <code>shared/utils/estadosOrden.js · TRANSICIONES</code>.</div>
+    <div class="linea rac"><span class="quien">Rachel</span><p class="dice">En el código, todas las rutas del técnico exigen ese rol. La agenda filtra por el técnico que inició sesión, así que no puedo ver órdenes de otro: si lo intento, la API responde 404. Y los estados siguen esta máquina de estados: de pendiente a en curso, luego a por confirmar y a finalizada. Un salto inválido responde 409.</p></div>
+    <div class="accion bd"><b>Base de datos</b><code>SELECT estado_anterior, estado_nuevo, comentario, fecha_cambio FROM mantencion_historial ORDER BY fecha_cambio DESC LIMIT 5;</code></div>
+    <div class="linea rac"><span class="quien">Rachel</span><p class="dice">Cada cambio de estado queda en el historial, con quién lo hizo y a qué hora. Jeremy, te toca confirmar.</p></div>
+  </div>
+</section>
+
+<!-- ============================================================ ESCENA 6 -->
+<section class="escena" aria-labelledby="e6">
+  <div class="escena-cab"><h2 id="e6">Escena 6 · Jeremy, cliente: confirma el trabajo</h2><span class="min">15:30 – 16:45</span></div>
+  <div class="cus"><span class="cu nuevo">CU-37 Notificaciones</span><span class="cu nuevo">CU-23 Confirmar cierre</span><span class="cu">CU-05 Consultar mantenciones</span></div>
+  <div class="dialogo">
+    <div class="accion"><b>En pantalla</b><strong>Salir</strong> → entrar como Valentina → abrir la <strong>campana</strong> → <strong>Mantenciones</strong>.</div>
+    <div class="linea jer"><span class="quien">Jeremy</span><p class="dice">De vuelta como Valentina, la campana me dice que registraron mi nueva planta, que programaron la visita y que el técnico terminó el trabajo. En «Mantenciones» veo lo que hizo Pedro y su foto.</p></div>
+    <div class="accion"><b>En pantalla</b>Responder <strong>Sí</strong> a «quedaste satisfecho» y <strong>Sí</strong> a «se resolvió» → confirmar.</div>
+    <div class="linea jer"><span class="quien">Jeremy</span><p class="dice">Confirmo que quedé satisfecho y que el problema se resolvió, CU-23. Recién ahora la orden queda finalizada y aparece como mi última mantención, CU-05. Si hubiera dicho que el problema seguía, la orden volvería al técnico.</p></div>
+    <div class="accion codigo"><b>Código</b><code>cliente.service.js · confirmarOrden()</code>: solo la dueña de la planta puede confirmar, y solo una orden «por_confirmar».</div>
+  </div>
+</section>
+
+<!-- ============================================================ ESCENA 7 -->
+<section class="escena" aria-labelledby="e7">
+  <div class="escena-cab"><h2 id="e7">Escena 7 · Branyan, administrador: el dinero</h2><span class="min">16:45 – 19:30</span></div>
+  <div class="cus"><span class="cu nuevo">CU-34 Cobro automático</span><span class="cu">CU-20 Cuotas y cargos</span><span class="cu">CU-18 Impagos</span><span class="cu">CU-22 Pago manual</span><span class="cu">CU-19 Pagos del mes</span></div>
+  <div class="dialogo">
+    <div class="accion"><b>En pantalla</b><strong>Salir</strong> → entrar como administrador → <strong>Pagos del mes</strong> → <strong>Ejecutar ahora</strong>.</div>
+    <div class="linea bra"><span class="quien">Branyan</span><p class="dice">Para cerrar, el dinero. Todos los días el sistema genera las cuotas del mes y cobra las que vencen; eso es el CU-34. Lo ejecuto ahora para mostrarlo: una cuota nueva y un cobro aprobado. Es la cuota de Valentina, cobrada a la tarjeta que inscribió Jeremy.</p></div>
+    <div class="accion"><b>En pantalla</b><strong>Impagos</strong> → fila de Luis Pérez → <strong>Ver cuotas</strong> → <strong>Transferencia</strong> → N° de operación <span class="dato">OP-778899</span> → <strong>Registrar pago de $18.000</strong>.</div>
+    <div class="linea bra"><span class="quien">Branyan</span><p class="dice">En impagos, CU-18, aparecen los clientes con deuda. Luis debe un mes y su suscripción sigue activa, pero con deuda. Carmen debía más de un mes y su suscripción se canceló por morosidad. Luis me pagó por transferencia, así que lo registro a mano con el número de operación, CU-22, y sale de la lista.</p></div>
+    <div class="accion"><b>En pantalla</b><strong>Pagos del mes</strong> → mostrar el cobro de Valentina y la transferencia de Luis → <strong>Descargar CSV</strong>.</div>
+    <div class="linea bra"><span class="quien">Branyan</span><p class="dice">En el listado del mes, CU-19, están los dos pagos: uno por la pasarela y otro por transferencia, con quién lo registró. El contador lo descarga en CSV para emitir las boletas.</p></div>
+    <div class="accion codigo"><b>Código</b><code>administrador/finanzas.service.js · registrarPagoManual()</code> (<code>SELECT … FOR UPDATE</code>) · <code>pagos/reglasDeuda.js · aplicarReglasDeuda()</code> · <code>pagos/cobroAutomatico.js · ejecutarCobroDiario()</code>.</div>
+    <div class="accion bd"><b>Base de datos</b><code>SELECT id_cuota, origen, monto, referencia, registrado_por FROM pago ORDER BY fecha_pago DESC LIMIT 3;</code></div>
+    <div class="linea bra"><span class="quien">Branyan</span><p class="dice">El pago manual bloquea la cuota mientras se registra, así que nadie puede pagarla dos veces: el segundo intento responde 409. Las reglas de deuda están en este archivo, y en la tabla de pagos queda el origen de cada pago y quién registró los manuales.</p></div>
+  </div>
+</section>
+
+<!-- ============================================================ ESCENA 8 -->
+<section class="escena" aria-labelledby="e8">
+  <div class="escena-cab"><h2 id="e8">Escena 8 · Dónde está todo y cierre</h2><span class="min">19:30 – 21:00</span></div>
+  <div class="dialogo">
+    <div class="accion codigo"><b>Código</b>Mostrar en VS Code: <code>database/schema/</code> (001 a 010), <code>database/seeds/</code>, <code>backend/src/config/db.js</code> (<code>DATABASE_URL</code>) y la carpeta <code>backend/src/modules/</code>.</div>
+    <div class="linea bra"><span class="quien">Branyan</span><p class="dice">Para que se entienda dónde está cada cosa: la base de datos se llama <em>eninti</em> y corre en PostgreSQL. Su estructura está en la carpeta <code>database/schema</code>, en archivos numerados del uno al diez; los datos de prueba, en <code>seeds</code>. La API se conecta con la dirección que está en la variable <code>DATABASE_URL</code>, en <code>config/db.js</code>. Hoy son 23 tablas.</p></div>
+    <div class="linea rac"><span class="quien">Rachel</span><p class="dice">El backend está ordenado por perfil: auth, cliente, trabajador, administrador, pagos y público. Cada módulo tiene rutas, controlador y servicio, y la seguridad se aplica en el backend: ocultar un botón no protege nada, cada ruta vuelve a revisar el rol y a quién pertenece cada dato.</p></div>
+    <div class="accion"><b>En pantalla</b>Volver a los diagramas de casos de uso.</div>
+    <div class="linea jer"><span class="quien">Jeremy</span><p class="dice">En resumen, implementamos los 22 casos de uso del informe y otros 15 que aparecieron al construir la plataforma. Vimos el recorrido completo de una clienta, desde que pide su cuenta hasta que paga su primera cuota, pasando por los tres perfiles.</p></div>
+    <div class="linea todos"><span class="quien">Los tres</span><p class="dice">Gracias por su atención.</p></div>
+  </div>
+</section>
+
+<section class="caja" aria-labelledby="t-falla">
+  <h2 id="t-falla">Si algo sale mal durante la grabación</h2>
+  <ul>
+    <li><strong>Al ir a iniciar sesión entra directo a otro panel:</strong> quedó una sesión abierta; pulsar Salir.</li>
+    <li><strong>La solicitud de cuenta dice que el RUT ya existe:</strong> la base no se limpió. Ejecutar los comandos de «Antes de grabar» y empezar de nuevo.</li>
+    <li><strong>El RUT aparece cortado:</strong> escribirlo sin puntos (<span class="dato">123456785</span>).</li>
+    <li><strong>«Ejecutar ahora» no cobra nada:</strong> revisar que la suscripción tenga día de cobro 1 y la tarjeta esté inscrita; probar «Operaciones manuales» → «Reintentar cargos ahora».</li>
+    <li><strong>Se equivocaron en una escena:</strong> no hace falta repetir todo; corten y vuelvan a grabar solo esa escena, porque cada una parte donde terminó la anterior.</li>
+  </ul>
+  <p class="nota-pie">Duración estimada: 20 a 21 minutos. Si deben acortar, la escena 8 puede reducirse a la intervención de Jeremy.</p>
+</section>
+
+</div>
