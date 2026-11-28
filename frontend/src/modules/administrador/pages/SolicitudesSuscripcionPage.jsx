@@ -61,7 +61,7 @@ function Resolver({ solicitud, onListo }) {
       <Mensaje error={error} />
       {modo === 'aprobar' && (
         <div className="fila" style={{ marginTop: 0 }}>
-          <label>Cuota mensual<input type="number" min="1" step="1" value={monto} onChange={(e) => setMonto(e.target.value)} required /></label>
+          <label>Cuota mensual<input type="number" min="1000" step="1" value={monto} onChange={(e) => setMonto(e.target.value)} required /></label>
           <label>Día de cobro<input type="number" min="1" max="28" value={dia} onChange={(e) => setDia(e.target.value)} required /></label>
           <label>Inicio<input type="date" value={inicio} onChange={(e) => setInicio(e.target.value)} required /></label>
         </div>

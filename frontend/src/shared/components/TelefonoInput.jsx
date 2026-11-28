@@ -53,6 +53,7 @@ export default function TelefonoInput({ name = 'telefono', value, onChange, requ
         type="tel"
         inputMode="numeric"
         autoComplete="tel-national"
+        aria-label="Número de teléfono"
         value={numero}
         onChange={(e) => emitir(codigo, e.target.value.replace(/\D/g, '').slice(0, 13))}
         required={required}

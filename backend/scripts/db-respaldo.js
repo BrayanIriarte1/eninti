@@ -2,10 +2,11 @@
 // Uso: npm run db:respaldo   → crea respaldos/eninti-AAAA-MM-DD_HHMM.sql en la raíz del repositorio.
 // Requiere pg_dump instalado (viene con PostgreSQL) y DATABASE_URL en .env.
 // Los archivos de respaldo contienen datos y hashes: están excluidos de Git (.gitignore).
-// Para restaurar en una base vacía:  psql "<DATABASE_URL>" -f respaldos/<archivo>.sql
+// Para probar o restaurar un respaldo: npm run db:restaurar -- --verificar (ver db-restaurar.js)
 import { spawn } from 'node:child_process';
 import { mkdir, readdir, rm, stat } from 'node:fs/promises';
 import { join } from 'node:path';
+import { herramientaPg } from './pg-herramientas.js';
 
 const RETENCION_DIAS = 14;
 const carpeta = join(import.meta.dirname, '..', '..', 'respaldos');
@@ -15,13 +16,19 @@ if (!process.env.DATABASE_URL) {
   process.exit(1);
 }
 
+const pgDump = herramientaPg('pg_dump');
+if (!pgDump) {
+  console.error('No se encontró pg_dump. Instala PostgreSQL o define PG_BIN con la carpeta bin.');
+  process.exit(1);
+}
+
 await mkdir(carpeta, { recursive: true });
 const sello = new Date().toLocaleString('sv-SE', { timeZone: process.env.APP_TZ ?? 'America/Santiago' })
   .replace(' ', '_').replace(/:/g, '').slice(0, 15);
 const archivo = join(carpeta, `eninti-${sello}.sql`);
 
 const codigo = await new Promise((resolve) => {
-  const proceso = spawn('pg_dump', ['--no-owner', '--no-privileges', '--file', archivo, process.env.DATABASE_URL], {
+  const proceso = spawn(pgDump, ['--no-owner', '--no-privileges', '--file', archivo, process.env.DATABASE_URL], {
     stdio: 'inherit',
   });
   proceso.on('error', (err) => {

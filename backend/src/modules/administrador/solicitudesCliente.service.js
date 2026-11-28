@@ -4,6 +4,7 @@ import { pool, query } from '../../config/db.js';
 import { HttpError } from '../../shared/utils/httpError.js';
 import { insertarPlanta } from './plantas.service.js';
 import { avisar } from '../notificaciones/notificaciones.service.js';
+import { esCuotaMensual, MENSAJE_CUOTA } from '../../shared/utils/cuota.js';
 
 const ESTADOS = ['pendiente', 'aprobada', 'rechazada'];
 const texto = (v) => (typeof v === 'string' ? v.trim() : '');
@@ -63,7 +64,7 @@ export async function listarSuscripciones(estado) {
 // [CU-28] Crea la suscripción con la cuota, día de cobro y fecha que fija el administrador.
 export async function aprobarSuscripcion(id, idAdmin, { monto_mensual, dia_cobro, fecha_inicio, respuesta }) {
   const errores = [];
-  if (!Number.isInteger(monto_mensual) || monto_mensual <= 0) errores.push('monto_mensual debe ser un entero mayor a 0');
+  if (!esCuotaMensual(monto_mensual)) errores.push(MENSAJE_CUOTA);
   if (dia_cobro !== undefined && !(Number.isInteger(dia_cobro) && dia_cobro >= 1 && dia_cobro <= 28)) {
     errores.push('dia_cobro debe estar entre 1 y 28');
   }
@@ -227,7 +228,7 @@ function validarPlan(plan) {
   if (plan === undefined || plan === null) return null;
   const errores = [];
   if (typeof plan !== 'object') throw new HttpError(400, 'suscripcion debe ser un objeto');
-  if (!Number.isInteger(plan.monto_mensual) || plan.monto_mensual <= 0) errores.push('La cuota mensual debe ser un entero mayor a 0');
+  if (!esCuotaMensual(plan.monto_mensual)) errores.push(MENSAJE_CUOTA);
   if (plan.dia_cobro !== undefined && !(Number.isInteger(plan.dia_cobro) && plan.dia_cobro >= 1 && plan.dia_cobro <= 28)) {
     errores.push('El día de cobro debe estar entre 1 y 28');
   }

@@ -110,7 +110,7 @@ function Resolver({ solicitud, comunas, precioPlan, onListo }) {
           {conPlan && (
             <div className="fila" style={{ marginTop: 0 }}>
               <label>Cuota mensual
-                <input type="number" min="1" step="1" value={plan.monto_mensual} placeholder={precioPlan ? String(precioPlan) : ''}
+                <input type="number" min="1000" step="1" value={plan.monto_mensual} placeholder={precioPlan ? String(precioPlan) : ''}
                   onChange={(e) => setPlan((p) => ({ ...p, monto_mensual: e.target.value }))} required={!precioPlan} />
               </label>
               <label>Día de cobro

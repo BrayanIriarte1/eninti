@@ -53,9 +53,9 @@ export default function SuscripcionPanel({ plantaId, suscripciones, onCambio }) 
   const campoMonto = (
     <input
       type="number"
-      min="1"
+      min="1000"
       step="1"
-      placeholder="Monto en pesos"
+      placeholder="Monto en pesos (mínimo $1.000)"
       value={monto}
       onChange={(e) => setMonto(e.target.value)}
       required
