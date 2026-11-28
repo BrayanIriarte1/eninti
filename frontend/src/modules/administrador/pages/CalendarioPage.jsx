@@ -117,7 +117,7 @@ export default function CalendarioPage() {
                   <td data-label="Estado"><EtiquetaOrden estado={m.estado} /></td>
                   <td data-label="Trabajador">
                     {['pendiente', 'en_curso'].includes(m.estado) ? (
-                      <select value={m.id_trabajador ?? ''} onChange={(e) => asignar(m.id_mantencion, e.target.value)}>
+                      <select aria-label={`Trabajador de la visita del ${formatoFecha(m.fecha_programada)}`} value={m.id_trabajador ?? ''} onChange={(e) => asignar(m.id_mantencion, e.target.value)}>
                         <option value="">Sin asignar</option>
                         {trabajadores.map((t) => <option key={t.id_usuario} value={t.id_usuario}>{t.nombre}</option>)}
                       </select>

@@ -30,13 +30,14 @@ solicitudes pendientes y mantenciones sin asignar.
 | Sección | Qué permite | HU |
 |---|---|---|
 | Plantas | Crear/editar la ficha técnica y gestionar la suscripción de cada planta | HU-03 |
-| Clientes | Alta y edición de la ficha administrativa del cliente | HU-03 |
+| Clientes | Alta y edición de la ficha administrativa; la columna **Cuenta web** muestra el correo y el último acceso, o el correo con que el cliente pidió su cuenta (se usa al pulsar *Crear cuenta*) | HU-03, HU-07 |
 | Trabajadores | Crear, editar y desactivar cuentas de trabajador | HU-15 |
 | Calendario | Ver mantenciones por comuna, asignar trabajador, ver las fotos del trabajo y cerrar una orden sin el cliente | HU-04, HU-17 |
 | Solicitudes | Programar como mantención o rechazar las solicitudes del cliente | HU-11 |
 | Suscripciones | Aceptar (fijando cuota y día de cobro) o rechazar las solicitudes de suscripción, viendo la deuda del cliente | HU-12 |
+| Nuevas plantas | Aprobar con la ficha técnica (y, si el cliente ya contrató el plan, crear su suscripción en el mismo paso) o rechazar con motivo las plantas que piden los clientes | CU-36 |
 | Cambios de datos | Aprobar o rechazar los cambios de correo o teléfono que piden los clientes | HU-07 |
-| Impagos | Ver morosos por antigüedad, contactar y registrar pagos manuales | HU-01, HU-02 |
+| Impagos | Ver morosos por antigüedad, contactar y registrar pagos manuales; indica si el cliente tiene cuenta web y tarjeta o paga por transferencia/efectivo | HU-01, HU-02 |
 | Pagos del mes | Listado mensual, exportar CSV, generar cuotas y procesar cargos | HU-06 |
 | Catálogo | Administrar planes y servicios del cotizador | RNF-07 |
 
@@ -52,12 +53,13 @@ por transferencia o efectivo se registran desde *Impagos → Ver cuotas*.
 | Sin cuotas vencidas | **Al día** |
 | Alguna cuota vencida hace menos de un mes | **Activa con deuda**: sigue vigente y se puede pagar |
 | Se paga toda la deuda | Vuelve de inmediato a **Al día** |
-| La deuda más antigua supera un mes | **Cancelada por morosidad**; las cuotas futuras se anulan y la deuda queda por cobrar |
+| La deuda más antigua supera un mes **y** el cliente no tiene tarjeta activa, o el cobro de esa cuota ya fue rechazado | **Cancelada por morosidad**; las cuotas futuras se anulan y la deuda queda por cobrar |
+| La deuda supera un mes pero el cliente tiene tarjeta activa y aún no se intenta el cobro (o está en espera) | Sigue **activa con deuda** hasta que el cobro se resuelva |
 
 Las reglas se aplican al iniciar la API, cada hora, al generar cuotas, al procesar
 cargos y al registrar un pago. **Solo el administrador otorga suscripciones:** si el
 cliente cancela o queda cancelado por deuda, debe enviar una solicitud desde *Mi cuenta*
-y el administrador la acepta (con la cuota acordada) o la rechaza explicando el motivo.
+y el administrador la acepta (con la cuota acordada, mínimo $1.000) o la rechaza explicando el motivo.
 
 ## Perfil Trabajador
 
@@ -83,10 +85,26 @@ el historial. Si el cliente no puede confirmar, el administrador puede cerrarla 
 | Sección | Qué permite | HU |
 |---|---|---|
 | Mi cuenta | Deuda, meses pagados, historial, inscribir medio de pago, cancelar y pedir una nueva suscripción | HU-08, HU-12, HU-13 |
-| Mis plantas | Consultar la ficha técnica de cada planta propia | HU-10 |
+| Mis plantas | Consultar la ficha técnica y el estado del plan de cada planta, y **solicitar una nueva planta** (máximo 3 pendientes) | HU-10, CU-36 |
 | Mantenciones | Confirmar los trabajos terminados (con fotos), última y próxima mantención | HU-09 |
 | Solicitudes | Pedir una mantención y seguir su estado | HU-11 |
 | Mis datos | Ver sus datos y pedir cambiar correo o teléfono (con motivo); se aplica cuando el administrador aprueba | HU-07 |
+
+## Campana de notificaciones (los tres perfiles)
+
+Arriba a la derecha de cada panel hay una **campana** con el número de avisos sin leer
+(CU-37). Se actualiza sola cada 30 segundos y al volver a la pestaña. Al pulsar un aviso
+queda leído y lleva a la pantalla correspondiente; *Marcar todas como leídas* las limpia.
+
+| Perfil | Recibe avisos de |
+|---|---|
+| Administrador | Solicitudes nuevas (cuenta, mantención, suscripción, planta, cambio de datos), cancelaciones de suscripción, técnico que inicia o termina una visita, cliente que confirma o reclama, cobros rechazados |
+| Cliente | Respuestas a sus solicitudes, mantención programada o cancelada, trabajo terminado por confirmar, cobro rechazado |
+| Técnico | Visita asignada, cancelada o reabierta por reclamo del cliente |
+
+Los avisos leídos de más de 90 días se borran solos.
+
+## Cuentas de cliente
 
 El cliente **no crea su propia cuenta** (HU-07). Si aún no tiene acceso, en el login
 pulsa **Contacta al administrador** (`/solicitar-cuenta`) y envía sus datos y los de su
@@ -143,6 +161,7 @@ encabezado `Authorization: Bearer <token>` obtenido en el login.
 | GET | `/cliente/ordenes/por-confirmar` | HU-05 |
 | POST | `/cliente/ordenes/:id/confirmar` | HU-05, HU-16 |
 | GET | `/cliente/datos` · POST `/cliente/datos/solicitudes` | HU-07 |
+| GET/POST | `/cliente/solicitudes-planta` | CU-36 |
 
 ### Trabajador (`rol = trabajador`)
 | Método | Ruta | HU |
@@ -166,12 +185,20 @@ encabezado `Authorization: Bearer <token>` obtenido en el login.
 | GET/POST | `/admin/solicitudes-suscripcion`, `/:id/aprobar`, `/:id/rechazar` | HU-12 |
 | GET/POST | `/admin/solicitudes-datos`, `/:id/aprobar`, `/:id/rechazar` | HU-07 |
 | GET/POST | `/admin/solicitudes`, `/admin/solicitudes/:id/rechazar` | HU-11 |
+| GET/POST | `/admin/solicitudes-planta`, `/:id/aprobar` (con `suscripcion` opcional), `/:id/rechazar` | CU-36 |
 | GET | `/admin/finanzas/impagos` | HU-01 |
 | POST | `/admin/cuotas/:id/pagos` | HU-02 |
 | GET | `/admin/finanzas/pagos?periodo=YYYY-MM&formato=csv` | HU-06 |
 | POST | `/admin/finanzas/generar-cuotas` | motor de cuotas |
 | POST | `/admin/finanzas/procesar-cargos` | cobro recurrente |
 | GET/POST/PATCH | `/admin/catalogo`, `/admin/catalogo/:id` | RNF-07 |
+
+### Notificaciones (cualquier perfil con sesión)
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/notificaciones` | Últimos 30 avisos propios y cantidad sin leer (CU-37) |
+| POST | `/notificaciones/:id/leer` | Marca un aviso propio como leído (uno ajeno responde 404) |
+| POST | `/notificaciones/leer-todas` | Marca todos los avisos propios como leídos |
 
 ---
 

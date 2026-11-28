@@ -10,3 +10,6 @@ build/
 *.dump
 *.backup
 /respaldos/
+
+# Resultados locales de scripts/medir-calidad.mjs
+medicion-calidad.json

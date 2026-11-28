@@ -147,11 +147,19 @@ los últimos dígitos **`0000`** fuerzan un rechazo para probar ese caso.
 ## Pruebas automáticas y linter
 
 ```bash
-npm test        # tests del backend (node --test) y del frontend (Vitest)
+npm test        # 55 pruebas unitarias: 41 del backend (node --test) y 14 del frontend (Vitest)
 npm run lint    # ESLint del frontend, con las reglas de los hooks de React
+npm run test:integracion --prefix backend   # 31 pruebas de la API completa contra PostgreSQL
 ```
 
 También se pueden correr por separado con `npm test --prefix backend` o `npm test --prefix frontend`.
+
+Las **pruebas de integración** levantan la API y crean una base desechable por archivo
+(`eninti_prueba_*`), la inicializan con los datos de prueba, ejecutan los escenarios y la
+borran: nunca tocan tu base de desarrollo. Necesitan PostgreSQL local y el `.env` del backend.
+Cubren las historias de usuario principales, controles de seguridad, la solicitud de nueva planta (CU-36), la campana
+de notificaciones (CU-37) y la regla de morosidad. Los resultados y las mediciones de calidad
+están en [docs/pruebas/MATRIZ_DE_PRUEBAS.md](docs/pruebas/MATRIZ_DE_PRUEBAS.md).
 
 ## Estructura
 
@@ -170,8 +178,11 @@ ENINTI/
 - [docs/GUIA_OTRO_PC_Y_GITHUB.md](docs/GUIA_OTRO_PC_Y_GITHUB.md) — abrir el proyecto en otro PC y flujo de Git/GitHub (clonar, ramas, commit, push, Pull Request).
 - [docs/RENDER.md](docs/RENDER.md) — publicar el proyecto en Render con la base en Neon.
 - [docs/MANUAL.md](docs/MANUAL.md) — manual de uso por perfil y resumen de la API.
+- [docs/CASOS_DE_USO_ACTUALIZADOS.md](docs/CASOS_DE_USO_ACTUALIZADOS.md) — casos de uso CU-01 a CU-37 con diagramas PlantUML.
+- [docs/pruebas/MATRIZ_DE_PRUEBAS.md](docs/pruebas/MATRIZ_DE_PRUEBAS.md) — verificación de cada historia y de los requerimientos no funcionales.
+- [docs/actas/GUION_UAT.md](docs/actas/GUION_UAT.md) y [docs/actas/ACTA_DE_ACEPTACION.md](docs/actas/ACTA_DE_ACEPTACION.md) — prueba de aceptación con ENINTI.
 - **Documentación interactiva de la API (Swagger UI):** con los servidores arriba, abre
-  http://localhost:5174/api/docs (o http://localhost:3001/api/docs). Documenta los 51 endpoints, con
+  http://localhost:5174/api/docs (o http://localhost:3001/api/docs). Documenta 81 operaciones de las 82 rutas de la API, con
   ejemplos listos para ejecutar con **Try it out**. La especificación OpenAPI está en
   [`backend/src/docs/openapi.js`](backend/src/docs/openapi.js) y se descarga en `/api/docs.json`.
 
@@ -196,4 +207,8 @@ Un solo dominio sirve la API (`/api`), la documentación (`/api/docs`) y el fron
 Variables opcionales: `FLOW_MODE=sandbox` + `FLOW_API_KEY` / `FLOW_SECRET_KEY` (pasarela real de pruebas),
 `MAIL_MODE=brevo|resend` + `MAIL_API_KEY` / `MAIL_FROM` (correos de aviso).
 
-Respaldo: `npm run db:respaldo --prefix backend` (requiere `pg_dump`) crea `respaldos/eninti-<fecha>.sql` y conserva 14 días.
+Respaldo: `npm run db:respaldo --prefix backend` crea `respaldos/eninti-<fecha>.sql` y conserva 14 días.
+Prueba de restauración: `npm run db:restaurar --prefix backend -- --verificar` restaura el último respaldo en una base
+temporal, compara las filas de cada tabla y la borra. Para restaurar de verdad (solo sobre una base vacía):
+`npm run db:restaurar --prefix backend -- respaldos/<archivo>.sql --destino <URL>`.
+Ambos buscan `pg_dump`/`psql` en el PATH o en `C:Program FilesPostgreSQL<versión>in` (o en `PG_BIN`).

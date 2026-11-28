@@ -4,10 +4,10 @@ import { query } from '../../config/db.js';
 import { HttpError } from '../../shared/utils/httpError.js';
 import { cerrarSuscripciones } from '../pagos/reglasDeuda.js';
 import { enTransaccion } from '../../shared/utils/transaccion.js';
+import { esCuotaMensual, MENSAJE_CUOTA } from '../../shared/utils/cuota.js';
 
 // 'al_dia' y 'con_deuda' los calculan las reglas de deuda; el administrador solo puede cancelar
 const ESTADOS = ['cancelada'];
-const esMonto = (v) => Number.isInteger(v) && v > 0;
 const esDiaCobro = (v) => Number.isInteger(v) && v >= 1 && v <= 28;
 
 // [CU-14]
@@ -27,7 +27,7 @@ export async function listarPorPlanta(idPlanta) {
 
 // [CU-14] Una planta solo puede tener una vigente (índice único en BD → 409).
 export async function crear(idPlanta, { monto_mensual, fecha_inicio, dia_cobro }) {
-  if (!esMonto(monto_mensual)) throw new HttpError(400, 'monto_mensual debe ser un entero mayor a 0');
+  if (!esCuotaMensual(monto_mensual)) throw new HttpError(400, MENSAJE_CUOTA);
   if (dia_cobro !== undefined && !esDiaCobro(dia_cobro)) {
     throw new HttpError(400, 'dia_cobro debe estar entre 1 y 28');
   }
@@ -58,8 +58,8 @@ export async function actualizar(id, { monto_mensual, dia_cobro, estado }, idAdm
   if (monto_mensual === undefined && dia_cobro === undefined && estado === undefined) {
     throw new HttpError(400, 'Indica monto_mensual, dia_cobro o estado');
   }
-  if (monto_mensual !== undefined && !esMonto(monto_mensual)) {
-    throw new HttpError(400, 'monto_mensual debe ser un entero mayor a 0');
+  if (monto_mensual !== undefined && !esCuotaMensual(monto_mensual)) {
+    throw new HttpError(400, MENSAJE_CUOTA);
   }
   if (dia_cobro !== undefined && !esDiaCobro(dia_cobro)) {
     throw new HttpError(400, 'dia_cobro debe estar entre 1 y 28');
