@@ -9,7 +9,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { misDatos, solicitarCambioDatos } from '../services/clienteService.js';
 import Mensaje from '../../../shared/components/Mensaje.jsx';
 import TelefonoInput from '../../../shared/components/TelefonoInput.jsx';
-import { formatoFecha } from '../../../shared/utils/formato.js';
+import { fechaDeMarca } from '../../../shared/utils/formato.js';
 import CambiarContrasena from '../../../shared/components/CambiarContrasena.jsx';
 
 const ESTADO = {
@@ -82,7 +82,7 @@ export default function MisDatosPage() {
           {aviso && <p className="mensaje-ok" role="status">{aviso}</p>}
           {pendiente ? (
             <p className="aviso-seguridad">
-              Tienes una solicitud en revisión desde el {formatoFecha(pendiente.fecha_solicitud.slice(0, 10))}.
+              Tienes una solicitud en revisión desde el {fechaDeMarca(pendiente.fecha_solicitud)}.
               Podrás enviar otra cuando la administración la responda.
             </p>
           ) : (
@@ -121,7 +121,7 @@ export default function MisDatosPage() {
             <tbody>
               {datos.solicitudes.map((s) => (
                 <tr key={s.id_solicitud_cambio}>
-                  <td data-label="Fecha">{formatoFecha(s.fecha_solicitud.slice(0, 10))}</td>
+                  <td data-label="Fecha">{fechaDeMarca(s.fecha_solicitud)}</td>
                   <td data-label="Cambio pedido">
                     {[s.email_nuevo && `Correo: ${s.email_nuevo}`, s.telefono_nuevo && `Teléfono: ${s.telefono_nuevo}`].filter(Boolean).join(' · ')}
                   </td>

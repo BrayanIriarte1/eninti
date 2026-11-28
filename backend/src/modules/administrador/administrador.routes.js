@@ -39,6 +39,11 @@ router.get('/solicitudes-datos', solicitudesCliente.listarCambiosDatos); // CU-2
 router.post('/solicitudes-datos/:id/aprobar', solicitudesCliente.aprobarCambioDatos); // CU-29
 router.post('/solicitudes-datos/:id/rechazar', solicitudesCliente.rechazarCambioDatos); // CU-29
 
+// Solicitudes de nueva planta de clientes con cuenta
+router.get('/solicitudes-planta', solicitudesCliente.listarPlantas); // CU-36
+router.post('/solicitudes-planta/:id/aprobar', solicitudesCliente.aprobarPlanta); // CU-36
+router.post('/solicitudes-planta/:id/rechazar', solicitudesCliente.rechazarPlanta); // CU-36
+
 // Plantas y ficha técnica (HU-03)
 router.get('/plantas', plantas.listar); // CU-14
 router.post('/plantas', plantas.crear); // CU-14

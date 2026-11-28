@@ -52,15 +52,13 @@ export default function CotizadorPage() {
   const navigate = useNavigate();
   const [items, setItems] = useState(null);
   const [error, setError] = useState(false);
+  // La cotización parte vacía: solo contiene lo que el visitante agrega (no se preselecciona un plan)
   const [plan, setPlan] = useState(null);
   const [elegidos, setElegidos] = useState(() => new Set());
 
   useEffect(() => {
     catalogoPublico()
-      .then((datos) => {
-        setItems(datos);
-        setPlan(datos.find((i) => i.tipo === 'plan')?.id_item ?? null);
-      })
+      .then(setItems)
       .catch(() => setError(true));
   }, []);
 

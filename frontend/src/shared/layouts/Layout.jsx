@@ -14,6 +14,7 @@ const MENU = {
       ['/admin/clientes', 'Clientes', 'clientes'],
       ['/admin/solicitudes-cuenta', 'Nuevas cuentas', 'nuevaCuenta'],
       ['/admin/solicitudes-suscripcion', 'Suscripciones', 'suscripcion'],
+      ['/admin/solicitudes-planta', 'Nuevas plantas', 'nuevaPlanta'],
       ['/admin/cambios-datos', 'Cambios de datos', 'datos'],
     ] },
     { grupo: 'Mantención', items: [

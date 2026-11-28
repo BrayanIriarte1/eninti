@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import { digitoVerificador, formatearRut, rutValido } from './rut.js';
-import { formatoFecha, formatoPesos } from './formato.js';
+import { fechaDeMarca, formatoFecha, formatoPesos } from './formato.js';
 import { contrasenaValida, REQUISITOS } from './contrasena.js';
 import { enlaceCorreo, enlaceTelefono, enlaceWhatsapp } from './contacto.js';
 
@@ -33,6 +33,13 @@ describe('formatos', () => {
   test('fecha DD-MM-YYYY sin desfase de zona horaria', () => {
     expect(formatoFecha('2026-11-05')).toBe('05-11-2026');
     expect(formatoFecha(null)).toBe('—');
+  });
+
+  test('marca de tiempo en UTC se muestra con la fecha de Chile', () => {
+    // 22:30 del 27-11 en Chile (UTC-3) = 01:30 UTC del 28-11
+    expect(fechaDeMarca('2026-11-28T01:30:00.000Z')).toBe('27-11-2026');
+    expect(fechaDeMarca('2026-07-15T12:00:00Z')).toBe('15-07-2026'); // invierno (UTC-4)
+    expect(fechaDeMarca(null)).toBe('—');
   });
 });
 

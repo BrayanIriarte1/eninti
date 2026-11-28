@@ -4,7 +4,7 @@ Este documento pone al día el **Informe U2** (Ilustraciones 3 y 4 y Tabla 6, p�
 con lo que hace el prototipo en `main`. Tiene tres partes:
 
 1. [Correcciones a los casos de uso existentes](#1-correcciones-a-los-casos-de-uso-existentes) (incluye CU-09 y CU-12).
-2. [Casos de uso nuevos](#2-casos-de-uso-nuevos-cu-23-a-cu-35) que el prototipo ya implementa y faltan en los diagramas (CU-23 a CU-35).
+2. [Casos de uso nuevos](#2-casos-de-uso-nuevos-cu-23-a-cu-36) que el prototipo ya implementa y faltan en los diagramas (CU-23 a CU-36).
 3. [Diagramas en PlantUML](#3-diagramas-en-plantuml) listos para regenerar las imágenes.
 
 Para encontrar el código de cualquier caso de uso, busca su número en todo el
@@ -35,7 +35,7 @@ tablas; se agregaron `solicitud_suscripcion`, `solicitud_cambio_datos`,
 
 ---
 
-## 2. Casos de uso nuevos (CU-23 a CU-35)
+## 2. Casos de uso nuevos (CU-23 a CU-36)
 
 | Caso de uso | Actor | Precondiciones | Postcondiciones | Código |
 |---|---|---|---|---|
@@ -52,6 +52,7 @@ tablas; se agregaron `solicitud_suscripcion`, `solicitud_cambio_datos`,
 | **CU-33 Revisar avisos por correo** | Administrador | Sesión de administrador. | Se ve el proveedor configurado, la bitácora de avisos (enviados/fallidos) y se puede enviar un correo de prueba. | `notificaciones/correo.service.js`, `correo.controller.js` · `CorreosPage.jsx` |
 | **CU-34 Cobro automático diario** | Reloj del sistema (actor temporal), Pasarela de pago | `COBRO_AUTOMATICO` activo; aún no se ejecutó hoy y ya pasó la hora de cobro. | Se generan las cuotas del mes (CU-20), se cobran las que vencen, se aplican las reglas de deuda y se registra la ejecución en `ejecucion_tarea`. Un cobro que la pasarela deja «pendiente» no se reintenta hasta que el administrador lo descarta. | `pagos/cobroAutomatico.js · ejecutarCobroDiario` · `CobroAutomaticoPanel.jsx` |
 | **CU-35 Contactar a ENINTI** | Visitante | — | El visitante elige un motivo y abre WhatsApp o correo con el mensaje ya escrito, o va a solicitar cuenta (CU-02). | `publico/pages/ContactoPage.jsx` |
+| **CU-36 Solicitar nueva planta** | Cliente (solicita) y Administrador (resuelve) | Cliente con cuenta; comuna y dirección válidas; la dirección no es una planta suya ni tiene otra solicitud pendiente; como máximo 3 solicitudes pendientes. Para aprobar: inversor, paneles y fecha de instalación (mismas reglas que CU-14). | Solicitud `pendiente` visible para el administrador. Aprobada → se crea la planta a nombre del cliente con su ficha técnica, en la misma transacción; rechazada → motivo visible para el cliente. Después el cliente puede pedir su suscripción (CU-24). | `cliente.service.js · solicitarPlanta` · `solicitudesCliente.service.js · aprobarPlanta, rechazarPlanta` · `MisPlantasPage.jsx` · `SolicitudesPlantaPage.jsx` |
 
 **Avisos por correo automáticos** (parte de otros CU, no son CU propios):
 suscripción confirmada (CU-09), mantención programada (CU-16/CU-17), asignación al
@@ -95,6 +96,7 @@ rectangle "Plataforma ENINTI" {
   usecase "Cancelar suscripción\nCU-08 · HU-12" as CU08
   usecase "Solicitar suscripción\nCU-24" as CU24 <<nuevo>>
   usecase "Solicitar cambio de datos\nCU-25" as CU25 <<nuevo>>
+  usecase "Solicitar nueva planta\nCU-36" as CU36 <<nuevo>>
   usecase "Inscribir medio de pago\nCU-09 · HU-13" as CU09
   usecase "Aceptar condiciones\nRF-19" as RF19
   usecase "Consultar agenda\nCU-10 · HU-14" as CU10
@@ -117,6 +119,7 @@ Cliente --> CU09
 Cliente --> CU23
 Cliente --> CU24
 Cliente --> CU25
+Cliente --> CU36
 CU09 ..> RF19 : <<include>>
 CU09 --> Pasarela
 CU05 <.. CU23 : <<extend>>
@@ -147,6 +150,7 @@ rectangle "Plataforma ENINTI · Administración" {
   usecase "Cancelar suscripción\npor administración\nCU-32" as CU32 <<nuevo>>
   usecase "Atender solicitudes\nde suscripción\nCU-28" as CU28 <<nuevo>>
   usecase "Atender cambios de datos\nCU-29" as CU29 <<nuevo>>
+  usecase "Atender solicitudes\nde nueva planta\nCU-36" as CU36A <<nuevo>>
   usecase "Gestionar trabajadores\nCU-15 · HU-15" as CU15
   usecase "Programar y asignar mantención\nCU-16 · HU-04, HU-17" as CU16
   usecase "Atender solicitudes de mantención\nCU-17 · HU-11" as CU17
@@ -169,6 +173,8 @@ Administrador --> CU14
 CU14 <.. CU32 : <<extend>>
 Administrador --> CU28
 Administrador --> CU29
+Administrador --> CU36A
+CU36A ..> PLANTA : <<include>>
 Administrador --> CU15
 Administrador --> CU16
 CU16 <.. CU17 : <<extend>>

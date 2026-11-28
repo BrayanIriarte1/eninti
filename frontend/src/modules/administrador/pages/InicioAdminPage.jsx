@@ -9,7 +9,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   listarImpagos, listarSolicitudes, listarMantenciones, listarSolicitudesCuenta,
-  listarSolicitudesSuscripcion, listarCambiosDatos,
+  listarSolicitudesSuscripcion, listarCambiosDatos, listarSolicitudesPlanta,
 } from '../services/adminService.js';
 import { formatoPesos } from '../../../shared/utils/formato.js';
 import { useAuth } from '../../../shared/context/sesion.js';
@@ -33,6 +33,7 @@ export default function InicioAdminPage() {
   const [sinAsignar, setSinAsignar] = useState(0);
   const [suscripciones, setSuscripciones] = useState([]);
   const [cambios, setCambios] = useState([]);
+  const [nuevasPlantas, setNuevasPlantas] = useState([]);
   const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
@@ -42,12 +43,13 @@ export default function InicioAdminPage() {
       listarSolicitudesCuenta('pendiente').then(setCuentas),
       listarSolicitudesSuscripcion('pendiente').then(setSuscripciones),
       listarCambiosDatos('pendiente').then(setCambios),
+      listarSolicitudesPlanta('pendiente').then(setNuevasPlantas),
       listarMantenciones().then((m) => setSinAsignar(m.filter((x) => !x.id_trabajador && ['pendiente', 'en_curso'].includes(x.estado)).length)),
     ]).finally(() => setCargando(false));
   }, []);
 
   const deudaTotal = impagos.reduce((t, i) => t + i.monto_total, 0);
-  const porAtender = cuentas.length + solicitudes.length + sinAsignar + suscripciones.length + cambios.length;
+  const porAtender = cuentas.length + solicitudes.length + sinAsignar + suscripciones.length + cambios.length + nuevasPlantas.length;
 
   const tarjetas = [
     { valor: impagos.length, texto: 'Clientes con deuda', sub: deudaTotal > 0 ? `${formatoPesos(deudaTotal)} por cobrar` : null, ruta: '/admin/impagos', alerta: impagos.length > 0, icono: 'impagos' },
@@ -65,6 +67,10 @@ export default function InicioAdminPage() {
       clave: `u${s.id_solicitud_suscripcion}`, ruta: '/admin/solicitudes-suscripcion', icono: 'suscripcion', tono: 'aviso',
       titulo: `${s.cliente} pide una suscripción`,
       detalle: `${s.direccion}${s.deuda_cliente > 0 ? ` · debe ${formatoPesos(s.deuda_cliente)}` : ''} · ${hace(s.fecha_solicitud)}`,
+    })),
+    ...nuevasPlantas.map((p) => ({
+      clave: `p${p.id_solicitud_planta}`, ruta: '/admin/solicitudes-planta', icono: 'nuevaPlanta', tono: 'aviso',
+      titulo: `${p.cliente} pide registrar una nueva planta`, detalle: `${p.direccion}, ${p.comuna} · ${hace(p.fecha_solicitud)}`,
     })),
     ...cambios.map((c) => ({
       clave: `d${c.id_solicitud_cambio}`, ruta: '/admin/cambios-datos', icono: 'datos', tono: '',

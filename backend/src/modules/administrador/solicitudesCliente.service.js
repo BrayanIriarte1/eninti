@@ -1,7 +1,8 @@
 // CAPA SERVICIO · Solicitudes del cliente que resuelve el administrador:
-// suscripción nueva (CU-28) y cambio de correo/teléfono (CU-29).
+// suscripción nueva (CU-28), cambio de correo/teléfono (CU-29) y nueva planta (CU-36).
 import { pool, query } from '../../config/db.js';
 import { HttpError } from '../../shared/utils/httpError.js';
+import { insertarPlanta } from './plantas.service.js';
 
 const ESTADOS = ['pendiente', 'aprobada', 'rechazada'];
 const texto = (v) => (typeof v === 'string' ? v.trim() : '');
@@ -180,6 +181,77 @@ export async function rechazarCambioDatos(id, idAdmin, { respuesta }) {
      SET estado = 'rechazada', fecha_resolucion = now(), resuelta_por = $2, respuesta = $3
      WHERE id_solicitud_cambio = $1 AND estado = 'pendiente' RETURNING *`,
     [id, idAdmin, motivo.slice(0, 300)],
+  );
+  if (!rows.length) throw new HttpError(409, 'La solicitud no existe o ya fue resuelta');
+  return rows[0];
+}
+
+// ============================================================ Solicitudes de nueva planta (CU-36)
+
+// [CU-36] Bandeja: datos que envió el cliente y cuántas plantas tiene ya registradas
+export async function listarPlantas(estado) {
+  validarEstado(estado);
+  const { rows } = await query(
+    `SELECT sp.*, co.nombre AS comuna, c.nombre AS cliente, c.rut, c.telefono,
+            (SELECT count(*)::int FROM planta p WHERE p.id_cliente = sp.id_cliente) AS plantas_del_cliente,
+            u.nombre AS resuelta_por_nombre
+     FROM solicitud_planta sp
+     JOIN cliente c ON c.id_cliente = sp.id_cliente
+     JOIN comuna co ON co.id_comuna = sp.id_comuna
+     LEFT JOIN usuario u ON u.id_usuario = sp.resuelta_por
+     WHERE ($1::text IS NULL OR sp.estado = $1)
+     ORDER BY (sp.estado <> 'pendiente'), sp.fecha_solicitud DESC`,
+    [estado || null],
+  );
+  return rows;
+}
+
+// [CU-36] Aprobar = completar la ficha técnica y crear la planta (mismas validaciones que CU-14).
+// Comuna, dirección y potencia toman lo que envió el cliente si el administrador no las cambia.
+export async function aprobarPlanta(id, idAdmin, datos = {}) {
+  if (texto(datos.respuesta).length > 500) throw new HttpError(400, 'La respuesta admite hasta 500 caracteres');
+  return enTransaccion(async (conexion) => {
+    const { rows } = await conexion.query(
+      'SELECT * FROM solicitud_planta WHERE id_solicitud_planta = $1 FOR UPDATE',
+      [id],
+    );
+    if (!rows.length) throw new HttpError(404, 'Solicitud no encontrada');
+    const solicitud = rows[0];
+    if (solicitud.estado !== 'pendiente') throw new HttpError(409, `La solicitud ya está ${solicitud.estado}`);
+
+    const ficha = {
+      id_cliente: solicitud.id_cliente,
+      id_comuna: datos.id_comuna ?? solicitud.id_comuna,
+      direccion: datos.direccion ?? solicitud.direccion,
+      potencia_kw: datos.potencia_kw ?? solicitud.potencia_kw,
+      inversor: datos.inversor,
+      paneles: datos.paneles,
+      baterias: datos.baterias ?? null,
+      fecha_instalacion: datos.fecha_instalacion,
+    };
+    // Los campos que nadie completó se omiten para que la validación diga «es obligatorio»
+    for (const k of Object.keys(ficha)) if (ficha[k] === undefined || (ficha[k] === null && k !== 'baterias')) delete ficha[k];
+    const idPlanta = await insertarPlanta(conexion, ficha);
+    const { rows: [resuelta] } = await conexion.query(
+      `UPDATE solicitud_planta
+       SET estado = 'aprobada', fecha_resolucion = now(), resuelta_por = $2, respuesta = $3, id_planta = $4
+       WHERE id_solicitud_planta = $1 RETURNING *`,
+      [id, idAdmin, texto(datos.respuesta) || null, idPlanta],
+    );
+    return resuelta;
+  });
+}
+
+// [CU-36] El motivo es obligatorio y lo ve el cliente.
+export async function rechazarPlanta(id, idAdmin, { respuesta } = {}) {
+  const motivo = texto(respuesta);
+  if (!motivo) throw new HttpError(400, 'Indica al cliente el motivo del rechazo');
+  if (motivo.length > 500) throw new HttpError(400, 'La respuesta admite hasta 500 caracteres');
+  const { rows } = await query(
+    `UPDATE solicitud_planta
+     SET estado = 'rechazada', fecha_resolucion = now(), resuelta_por = $2, respuesta = $3
+     WHERE id_solicitud_planta = $1 AND estado = 'pendiente' RETURNING *`,
+    [id, idAdmin, motivo],
   );
   if (!rows.length) throw new HttpError(409, 'La solicitud no existe o ya fue resuelta');
   return rows[0];

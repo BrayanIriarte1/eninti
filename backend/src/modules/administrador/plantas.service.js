@@ -82,17 +82,23 @@ export async function obtener(id) {
   return rows[0];
 }
 
-// [CU-14]
-export async function crear(datos) {
+// [CU-14, CU-36] Valida la ficha y crea la planta con la conexión recibida (puede ser una
+// transacción: la aprobación de una solicitud de planta la usa así). Devuelve el id creado.
+export async function insertarPlanta(conexion, datos) {
   const planta = validar(datos, { parcial: false });
   const campos = Object.keys(planta);
-  const { rows } = await query(
+  const { rows } = await conexion.query(
     `INSERT INTO planta (${campos.join(', ')})
      VALUES (${campos.map((_, i) => `$${i + 1}`).join(', ')})
      RETURNING id_planta`,
     Object.values(planta),
   );
-  return obtener(rows[0].id_planta);
+  return rows[0].id_planta;
+}
+
+// [CU-14]
+export async function crear(datos) {
+  return obtener(await insertarPlanta({ query }, datos));
 }
 
 // [CU-14]

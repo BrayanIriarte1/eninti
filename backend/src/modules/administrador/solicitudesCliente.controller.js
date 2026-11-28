@@ -34,3 +34,18 @@ export async function aprobarCambioDatos(req, res) {
 export async function rechazarCambioDatos(req, res) {
   res.json(await servicio.rechazarCambioDatos(parseId(req.params.id), req.usuario.id, req.body ?? {}));
 }
+
+// [CU-36] GET /api/admin/solicitudes-planta
+export async function listarPlantas(req, res) {
+  res.json(await servicio.listarPlantas(req.query.estado));
+}
+
+// [CU-36] POST /api/admin/solicitudes-planta/:id/aprobar (body: ficha técnica + respuesta)
+export async function aprobarPlanta(req, res) {
+  res.json(await servicio.aprobarPlanta(parseId(req.params.id), req.usuario.id, req.body ?? {}));
+}
+
+// [CU-36] POST /api/admin/solicitudes-planta/:id/rechazar
+export async function rechazarPlanta(req, res) {
+  res.json(await servicio.rechazarPlanta(parseId(req.params.id), req.usuario.id, req.body ?? {}));
+}

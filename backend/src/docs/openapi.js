@@ -573,6 +573,16 @@ El token dura **8 horas**. Tras **5 contraseñas incorrectas** con el mismo corr
         responses: { 201: ok('Solicitud creada', { type: 'object' }), 400: r400, ...comunes, 404: r404, 409: r409 },
       },
     },
+    '/cliente/solicitudes-planta': {
+      get: { tags: ['Cliente'], summary: 'Mis solicitudes de nueva planta, con la respuesta del administrador (CU-36)', security: protegido, responses: { 200: ok('Solicitudes', { type: 'array', items: { type: 'object' } }), ...comunes } },
+      post: {
+        tags: ['Cliente'], summary: 'Solicitar el registro de una nueva planta; la aprueba el administrador (CU-36)', security: protegido,
+        description: 'Comuna y dirección obligatorias; potencia y baterías opcionales. Responde **409** si la dirección ya es una planta del cliente, si ya hay una solicitud pendiente para esa dirección o si el cliente tiene 3 solicitudes pendientes.',
+        requestBody: cuerpo({ type: 'object', required: ['id_comuna', 'direccion'], properties: { id_comuna: entero, direccion: { type: 'string', minLength: 5, maxLength: 200 }, potencia_kw: { type: 'number', exclusiveMinimum: 0, maximum: 9999.99 }, tiene_baterias: { type: 'boolean', nullable: true }, mensaje: { type: 'string', maxLength: 500 } } },
+          { id_comuna: 2, direccion: 'Parcela 7, Chiu Chiu', potencia_kw: 4.5, tiene_baterias: true, mensaje: 'Instalada en octubre' }),
+        responses: { 201: ok('Solicitud creada', { type: 'object' }), 400: r400, ...comunes, 409: r409 },
+      },
+    },
     '/cliente/datos': {
       get: { tags: ['Cliente'], summary: 'Mis datos y mis solicitudes de cambio', security: protegido, responses: { 200: ok('Datos del cliente', { type: 'object' }), ...comunes } },
     },
@@ -599,6 +609,21 @@ El token dura **8 horas**. Tras **5 contraseñas incorrectas** con el mismo corr
     },
     '/admin/solicitudes-suscripcion/{id}/rechazar': {
       post: { tags: ['Admin · Solicitudes'], summary: 'Rechazar con motivo visible para el cliente', security: protegido, parameters: [idPath()], requestBody: cuerpo({ type: 'object', required: ['respuesta'], properties: { respuesta: texto } }), responses: { 200: ok('Solicitud rechazada', { type: 'object' }), 400: r400, ...comunes, 409: r409 } },
+    },
+    '/admin/solicitudes-planta': {
+      get: { tags: ['Admin · Solicitudes'], summary: 'Solicitudes de nueva planta (con cuántas plantas tiene ya el cliente) (CU-36)', security: protegido, parameters: [query('estado', 'pendiente, aprobada o rechazada')], responses: { 200: ok('Solicitudes', { type: 'array', items: { type: 'object' } }), 400: r400, ...comunes } },
+    },
+    '/admin/solicitudes-planta/{id}/aprobar': {
+      post: {
+        tags: ['Admin · Solicitudes'], summary: 'Aprobar: completar la ficha técnica y crear la planta (CU-36)', security: protegido, parameters: [idPath()],
+        description: 'Comuna, dirección y potencia toman lo que envió el cliente si no se indican. Inversor, paneles y fecha de instalación son obligatorios. La planta y la aprobación se guardan en una sola transacción.',
+        requestBody: cuerpo({ type: 'object', required: ['inversor', 'paneles', 'fecha_instalacion'], properties: { id_comuna: entero, direccion: texto, potencia_kw: { type: 'number' }, inversor: texto, paneles: texto, baterias: { type: 'string', nullable: true }, fecha_instalacion: fecha, respuesta: { type: 'string', maxLength: 500 } } },
+          { inversor: 'Huawei SUN2000-5KTL', paneles: '10 x 450 W', baterias: null, fecha_instalacion: '2026-10-15', respuesta: 'Planta registrada' }),
+        responses: { 200: ok('Solicitud aprobada (incluye id_planta)', { type: 'object' }), 400: r400, ...comunes, 404: r404, 409: r409 },
+      },
+    },
+    '/admin/solicitudes-planta/{id}/rechazar': {
+      post: { tags: ['Admin · Solicitudes'], summary: 'Rechazar con motivo visible para el cliente (CU-36)', security: protegido, parameters: [idPath()], requestBody: cuerpo({ type: 'object', required: ['respuesta'], properties: { respuesta: texto } }), responses: { 200: ok('Solicitud rechazada', { type: 'object' }), 400: r400, ...comunes, 409: r409 } },
     },
     '/admin/solicitudes-datos': {
       get: { tags: ['Admin · Solicitudes'], summary: 'Solicitudes de cambio de correo o teléfono', security: protegido, parameters: [query('estado', 'pendiente, aprobada o rechazada')], responses: { 200: ok('Solicitudes', { type: 'array', items: { type: 'object' } }), 400: r400, ...comunes } },

@@ -35,3 +35,8 @@ export const solicitarSuscripcion = (datos) => api('/cliente/solicitudes-suscrip
 export const misDatos = () => api('/cliente/datos');
 // [CU-25]
 export const solicitarCambioDatos = (datos) => api('/cliente/datos/solicitudes', { method: 'POST', body: datos });
+
+// [CU-36] Solicitud de nueva planta (la aprueba el administrador)
+export const misSolicitudesPlanta = () => api('/cliente/solicitudes-planta');
+// [CU-36]
+export const solicitarPlanta = (datos) => api('/cliente/solicitudes-planta', { method: 'POST', body: datos });

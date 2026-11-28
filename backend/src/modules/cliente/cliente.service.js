@@ -9,6 +9,7 @@ import { puedeTransitar } from '../../shared/utils/estadosOrden.js';
 import { enTransaccion } from '../../shared/utils/transaccion.js';
 import { fotosDeOrden } from '../../shared/utils/fotos.js';
 import { telefonoValido } from '../../shared/utils/rut.js';
+import { mismaDireccion, validarSolicitudPlanta } from '../../shared/utils/solicitudPlanta.js';
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const texto = (v) => (typeof v === 'string' ? v.trim() : '');
@@ -32,7 +33,15 @@ export async function misPlantas(idUsuario) {
               'id_suscripcion', s.id_suscripcion, 'estado', s.estado,
               'monto_mensual', s.monto_mensual, 'fecha_inicio', s.fecha_inicio,
               'dia_cobro', s.dia_cobro, 'mantenciones_anuales', s.mantenciones_anuales
-            ) END AS suscripcion
+            ) END AS suscripcion,
+            -- Sin suscripción vigente: la última cancelada (para explicar por qué) y si ya pidió una nueva (CU-24)
+            CASE WHEN s.id_suscripcion IS NULL THEN (
+              SELECT json_build_object('fecha_cancelacion', sc.fecha_cancelacion, 'motivo_cancelacion', sc.motivo_cancelacion)
+              FROM suscripcion sc WHERE sc.id_planta = p.id_planta AND sc.estado = 'cancelada'
+              ORDER BY sc.fecha_cancelacion DESC, sc.id_suscripcion DESC LIMIT 1
+            ) END AS ultima_cancelada,
+            EXISTS (SELECT 1 FROM solicitud_suscripcion ss
+                    WHERE ss.id_planta = p.id_planta AND ss.estado = 'pendiente') AS suscripcion_solicitada
      FROM planta p
      JOIN comuna co ON co.id_comuna = p.id_comuna
      LEFT JOIN suscripcion s ON s.id_planta = p.id_planta AND s.estado <> 'cancelada'
@@ -361,6 +370,58 @@ export async function solicitarSuscripcion(idUsuario, { id_planta, mensaje }) {
     if (err.code === '23505') throw new HttpError(409, 'Ya enviaste una solicitud para esta planta. El administrador te responderá');
     throw err;
   }
+}
+
+// ------------------------------------------------------------ Solicitud de nueva planta
+
+export const MAX_SOLICITUDES_PLANTA_PENDIENTES = 3;
+
+// [CU-36]
+// El cliente con cuenta pide registrar otra instalación; el administrador la revisa,
+// completa la ficha técnica y crea la planta (o la rechaza con un motivo).
+export async function solicitarPlanta(idUsuario, datos) {
+  const solicitud = validarSolicitudPlanta(datos);
+  const cliente = await fichaCliente(idUsuario);
+
+  const { rows: plantas } = await query('SELECT direccion FROM planta WHERE id_cliente = $1', [cliente.id_cliente]);
+  if (plantas.some((p) => mismaDireccion(p.direccion, solicitud.direccion))) {
+    throw new HttpError(409, 'Ya tienes una planta registrada en esa dirección');
+  }
+  const { rows: [{ pendientes }] } = await query(
+    `SELECT count(*)::int AS pendientes FROM solicitud_planta WHERE id_cliente = $1 AND estado = 'pendiente'`,
+    [cliente.id_cliente],
+  );
+  if (pendientes >= MAX_SOLICITUDES_PLANTA_PENDIENTES) {
+    throw new HttpError(409, `Tienes ${pendientes} solicitudes de planta pendientes. Espera la respuesta del administrador antes de enviar otra`);
+  }
+
+  try {
+    const { rows } = await query(
+      `INSERT INTO solicitud_planta (id_cliente, id_comuna, direccion, potencia_kw, tiene_baterias, mensaje)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+      [cliente.id_cliente, solicitud.id_comuna, solicitud.direccion, solicitud.potencia_kw, solicitud.tiene_baterias, solicitud.mensaje],
+    );
+    return rows[0];
+  } catch (err) {
+    if (err.code === '23505') throw new HttpError(409, 'Ya enviaste una solicitud para esa dirección. El administrador te responderá');
+    if (err.code === '23503') throw new HttpError(400, 'La comuna elegida no existe');
+    throw err;
+  }
+}
+
+// [CU-36] Historial de solicitudes de planta del cliente, con la respuesta del administrador
+export async function misSolicitudesPlanta(idUsuario) {
+  const cliente = await fichaCliente(idUsuario);
+  const { rows } = await query(
+    `SELECT sp.id_solicitud_planta, sp.direccion, co.nombre AS comuna, sp.potencia_kw, sp.tiene_baterias,
+            sp.mensaje, sp.estado, sp.respuesta, sp.fecha_solicitud, sp.fecha_resolucion, sp.id_planta
+     FROM solicitud_planta sp
+     JOIN comuna co ON co.id_comuna = sp.id_comuna
+     WHERE sp.id_cliente = $1
+     ORDER BY (sp.estado <> 'pendiente'), sp.fecha_solicitud DESC`,
+    [cliente.id_cliente],
+  );
+  return rows;
 }
 
 // ------------------------------------------------------------ Cambio de datos

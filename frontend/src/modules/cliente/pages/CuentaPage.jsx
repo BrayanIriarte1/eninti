@@ -14,7 +14,7 @@ import ArcoSolar from '../../../shared/components/ArcoSolar.jsx';
 import { saludo } from '../../../shared/utils/saludo.js';
 import Icono from '../../../shared/components/Icono.jsx';
 import { useAuth } from '../../../shared/context/sesion.js';
-import { formatoPesos, formatoFecha } from '../../../shared/utils/formato.js';
+import { formatoPesos, formatoFecha, fechaDeMarca } from '../../../shared/utils/formato.js';
 import AceptarCondiciones from '../components/AceptarCondiciones.jsx';
 
 const MOTIVO_CANCELACION = {
@@ -232,7 +232,7 @@ export default function CuentaPage() {
 
               {pendiente && (
                 <p className="mensaje-ok" style={{ margin: 0 }}>
-                  Enviaste una solicitud el {formatoFecha(solicitud.fecha_solicitud.slice(0, 10))}. La administración te responderá.
+                  Enviaste una solicitud el {fechaDeMarca(solicitud.fecha_solicitud)}. La administración te responderá.
                 </p>
               )}
               {solicitud?.estado === 'rechazada' && (

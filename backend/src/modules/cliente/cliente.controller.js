@@ -60,6 +60,16 @@ export async function solicitarSuscripcion(req, res) {
   res.status(201).json(await cliente.solicitarSuscripcion(req.usuario.id, req.body ?? {}));
 }
 
+// [CU-36] GET /api/cliente/solicitudes-planta
+export async function misSolicitudesPlanta(req, res) {
+  res.json(await cliente.misSolicitudesPlanta(req.usuario.id));
+}
+
+// [CU-36] POST /api/cliente/solicitudes-planta → 201
+export async function solicitarPlanta(req, res) {
+  res.status(201).json(await cliente.solicitarPlanta(req.usuario.id, req.body ?? {}));
+}
+
 // [CU-25] GET /api/cliente/datos
 export async function misDatos(req, res) {
   res.json(await cliente.misDatos(req.usuario.id));
