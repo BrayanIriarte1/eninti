@@ -3,6 +3,7 @@
 import { pool, query } from '../../config/db.js';
 import { HttpError } from '../../shared/utils/httpError.js';
 import { insertarPlanta } from './plantas.service.js';
+import { avisar } from '../notificaciones/notificaciones.service.js';
 
 const ESTADOS = ['pendiente', 'aprobada', 'rechazada'];
 const texto = (v) => (typeof v === 'string' ? v.trim() : '');
@@ -72,7 +73,7 @@ export async function aprobarSuscripcion(id, idAdmin, { monto_mensual, dia_cobro
   if (texto(respuesta).length > 500) errores.push('La respuesta admite hasta 500 caracteres');
   if (errores.length) throw new HttpError(400, 'Datos de la suscripción inválidos', errores);
 
-  return enTransaccion(async (conexion) => {
+  const resultado = await enTransaccion(async (conexion) => {
     const { rows } = await conexion.query(
       'SELECT * FROM solicitud_suscripcion WHERE id_solicitud_suscripcion = $1 FOR UPDATE',
       [id],
@@ -100,6 +101,11 @@ export async function aprobarSuscripcion(id, idAdmin, { monto_mensual, dia_cobro
     );
     return { solicitud, suscripcion };
   });
+  await avisarCliente({ planta: resultado.solicitud.id_planta }, {
+    tipo: 'suscripcion_aprobada', titulo: 'Aprobamos tu suscripción',
+    detalle: resultado.solicitud.respuesta ?? 'Ya puedes inscribir tu tarjeta en Mi cuenta', ruta: '/cliente/cuenta',
+  });
+  return resultado;
 }
 
 // [CU-28] La respuesta queda visible para el cliente.
@@ -114,6 +120,9 @@ export async function rechazarSuscripcion(id, idAdmin, { respuesta }) {
     [id, idAdmin, motivo],
   );
   if (!rows.length) throw new HttpError(409, 'La solicitud no existe o ya fue resuelta');
+  await avisarCliente({ planta: rows[0].id_planta }, {
+    tipo: 'suscripcion_rechazada', titulo: 'Tu solicitud de suscripción no fue aceptada', detalle: motivo, ruta: '/cliente/cuenta',
+  });
   return rows[0];
 }
 
@@ -139,7 +148,7 @@ export async function listarCambiosDatos(estado) {
 // [CU-29]
 // Aplica el nuevo correo (cuenta web) y el nuevo teléfono (ficha y cuenta) en una transacción
 export async function aprobarCambioDatos(id, idAdmin, { respuesta }) {
-  return enTransaccion(async (conexion) => {
+  const resuelta = await enTransaccion(async (conexion) => {
     const { rows } = await conexion.query(
       `SELECT sc.*, c.id_usuario FROM solicitud_cambio_datos sc
        JOIN cliente c ON c.id_cliente = sc.id_cliente
@@ -170,6 +179,10 @@ export async function aprobarCambioDatos(id, idAdmin, { respuesta }) {
     );
     return resuelta;
   });
+  await avisarCliente({ cliente: resuelta.id_cliente }, {
+    tipo: 'datos_aprobados', titulo: 'Actualizamos tus datos de contacto', detalle: resuelta.respuesta, ruta: '/cliente/datos',
+  });
+  return resuelta;
 }
 
 // [CU-29] La respuesta (motivo) es obligatoria y la ve el cliente.
@@ -183,6 +196,9 @@ export async function rechazarCambioDatos(id, idAdmin, { respuesta }) {
     [id, idAdmin, motivo.slice(0, 300)],
   );
   if (!rows.length) throw new HttpError(409, 'La solicitud no existe o ya fue resuelta');
+  await avisarCliente({ cliente: rows[0].id_cliente }, {
+    tipo: 'datos_rechazados', titulo: 'Tu cambio de datos no fue aceptado', detalle: rows[0].respuesta, ruta: '/cliente/datos',
+  });
   return rows[0];
 }
 
@@ -206,11 +222,28 @@ export async function listarPlantas(estado) {
   return rows;
 }
 
+// Plan contratado al aprobar una planta: mismas reglas que al aprobar una suscripción (CU-28)
+function validarPlan(plan) {
+  if (plan === undefined || plan === null) return null;
+  const errores = [];
+  if (typeof plan !== 'object') throw new HttpError(400, 'suscripcion debe ser un objeto');
+  if (!Number.isInteger(plan.monto_mensual) || plan.monto_mensual <= 0) errores.push('La cuota mensual debe ser un entero mayor a 0');
+  if (plan.dia_cobro !== undefined && !(Number.isInteger(plan.dia_cobro) && plan.dia_cobro >= 1 && plan.dia_cobro <= 28)) {
+    errores.push('El día de cobro debe estar entre 1 y 28');
+  }
+  if (plan.fecha_inicio !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(plan.fecha_inicio)) errores.push('La fecha de inicio debe tener formato YYYY-MM-DD');
+  if (errores.length) throw new HttpError(400, 'Datos de la suscripción inválidos', errores);
+  return plan;
+}
+
 // [CU-36] Aprobar = completar la ficha técnica y crear la planta (mismas validaciones que CU-14).
 // Comuna, dirección y potencia toman lo que envió el cliente si el administrador no las cambia.
+// Si el cliente ya contrató el plan, `suscripcion` crea también su suscripción (CU-28) en la
+// misma transacción. Nunca es automática: requiere el acuerdo del cliente (Ley 19.496 y 21.719).
 export async function aprobarPlanta(id, idAdmin, datos = {}) {
   if (texto(datos.respuesta).length > 500) throw new HttpError(400, 'La respuesta admite hasta 500 caracteres');
-  return enTransaccion(async (conexion) => {
+  const plan = validarPlan(datos.suscripcion);
+  const aprobada = await enTransaccion(async (conexion) => {
     const { rows } = await conexion.query(
       'SELECT * FROM solicitud_planta WHERE id_solicitud_planta = $1 FOR UPDATE',
       [id],
@@ -232,14 +265,28 @@ export async function aprobarPlanta(id, idAdmin, datos = {}) {
     // Los campos que nadie completó se omiten para que la validación diga «es obligatorio»
     for (const k of Object.keys(ficha)) if (ficha[k] === undefined || (ficha[k] === null && k !== 'baterias')) delete ficha[k];
     const idPlanta = await insertarPlanta(conexion, ficha);
+    let suscripcion = null;
+    if (plan) {
+      ({ rows: [suscripcion] } = await conexion.query(
+        `INSERT INTO suscripcion (id_planta, monto_mensual, fecha_inicio, dia_cobro)
+         VALUES ($1, $2, COALESCE($3::date, CURRENT_DATE), COALESCE($4::smallint, 1))
+         RETURNING *`,
+        [idPlanta, plan.monto_mensual, plan.fecha_inicio ?? null, plan.dia_cobro ?? null],
+      ));
+    }
     const { rows: [resuelta] } = await conexion.query(
       `UPDATE solicitud_planta
        SET estado = 'aprobada', fecha_resolucion = now(), resuelta_por = $2, respuesta = $3, id_planta = $4
        WHERE id_solicitud_planta = $1 RETURNING *`,
       [id, idAdmin, texto(datos.respuesta) || null, idPlanta],
     );
-    return resuelta;
+    return { ...resuelta, suscripcion };
   });
+  await avisarCliente({ cliente: aprobada.id_cliente }, {
+    tipo: 'planta_aprobada', titulo: 'Registramos tu nueva planta',
+    detalle: aprobada.respuesta ?? `${aprobada.direccion}${aprobada.suscripcion ? ', con su plan de mantención' : ''}`, ruta: '/cliente/plantas',
+  });
+  return aprobada;
 }
 
 // [CU-36] El motivo es obligatorio y lo ve el cliente.
@@ -254,5 +301,16 @@ export async function rechazarPlanta(id, idAdmin, { respuesta } = {}) {
     [id, idAdmin, motivo],
   );
   if (!rows.length) throw new HttpError(409, 'La solicitud no existe o ya fue resuelta');
+  await avisarCliente({ cliente: rows[0].id_cliente }, {
+    tipo: 'planta_rechazada', titulo: 'Tu solicitud de nueva planta no fue aceptada', detalle: motivo, ruta: '/cliente/plantas',
+  });
   return rows[0];
+}
+
+// [CU-37] Aviso en la campana del cliente dueño de la planta o de la ficha (si tiene cuenta web)
+async function avisarCliente({ planta, cliente }, aviso) {
+  const { rows } = planta
+    ? await query('SELECT c.id_usuario FROM planta p JOIN cliente c USING (id_cliente) WHERE p.id_planta = $1', [planta])
+    : await query('SELECT id_usuario FROM cliente WHERE id_cliente = $1', [cliente]);
+  await avisar(rows[0]?.id_usuario, aviso);
 }

@@ -68,7 +68,7 @@ export default function ImpagosPage() {
           <tbody>
             {impagos.map((i) => (
               <tr key={i.id_suscripcion}>
-                <td data-label="Cliente">{i.cliente}<br /><span className="texto-suave">{i.rut}</span>{i.estado_suscripcion === 'cancelada' && <><br /><span className="etiqueta neutro">Cancelada por deuda</span></>}</td>
+                <td data-label="Cliente">{i.cliente}<br /><span className="texto-suave">{i.rut}</span>{i.estado_suscripcion === 'cancelada' && <><br /><span className="etiqueta neutro">Cancelada por deuda</span></>}<br /><span className="texto-suave" style={{ fontSize: '.8rem' }}>{i.tiene_cuenta ? (i.tiene_tarjeta ? 'Con cuenta web y tarjeta' : 'Con cuenta web, sin tarjeta') : 'Sin cuenta web: paga por transferencia o efectivo'}</span></td>
                 <td data-label="Planta">{i.direccion}</td>
                 <td data-label="Comuna">{i.comuna}</td>
                 <td data-label="Meses">{i.meses_adeudados}</td>

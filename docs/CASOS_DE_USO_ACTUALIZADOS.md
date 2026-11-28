@@ -4,7 +4,7 @@ Este documento pone al día el **Informe U2** (Ilustraciones 3 y 4 y Tabla 6, p�
 con lo que hace el prototipo en `main`. Tiene tres partes:
 
 1. [Correcciones a los casos de uso existentes](#1-correcciones-a-los-casos-de-uso-existentes) (incluye CU-09 y CU-12).
-2. [Casos de uso nuevos](#2-casos-de-uso-nuevos-cu-23-a-cu-36) que el prototipo ya implementa y faltan en los diagramas (CU-23 a CU-36).
+2. [Casos de uso nuevos](#2-casos-de-uso-nuevos-cu-23-a-cu-37) que el prototipo ya implementa y faltan en los diagramas (CU-23 a CU-37).
 3. [Diagramas en PlantUML](#3-diagramas-en-plantuml) listos para regenerar las imágenes.
 
 Para encontrar el código de cualquier caso de uso, busca su número en todo el
@@ -23,19 +23,19 @@ CU-10, CU-13 a CU-17, CU-19 a CU-21) coinciden con el prototipo.
 | **CU-11 Gestionar orden de trabajo** (HU-16 / RF-24, RF-25) | Estados pendiente → en curso → finalizada. | **Precondiciones:** la orden está asignada al trabajador y está `pendiente` o `en_curso`. **Postcondiciones:** transición válida registrada en el historial (quién, cuándo, de qué estado a cuál); un salto inválido responde 409. Estados: `pendiente → en_curso → por_confirmar → finalizada`; `pendiente/en_curso → cancelada`; `por_confirmar → en_curso` si el cliente reclama. |
 | **CU-12 Registrar actividades y finalizar** «extend» de CU-11 (HU-05 / RF-07) | **Postcondición:** "Orden finalizada con fecha de ejecución y actividades; visible para cliente y administrador." | **Nombre sugerido:** *Registrar actividades y enviar al cliente*. **Precondiciones:** orden `en_curso`; actividades ingresadas y entre 1 y 4 fotos del trabajo (máx. 3 MB c/u). **Postcondiciones:** la orden queda **`por_confirmar`** con fecha de ejecución, actividades, observaciones y fotos; el historial registra el cambio. La orden recién queda **`finalizada`** cuando el cliente confirma (CU-23) o el administrador la cierra (CU-31). |
 | **CU-08 Cancelar suscripción** (HU-12 / RF-16) | "Suscripción cancelada con fecha; no se generan nuevas cuotas." | Se agrega: queda registrado el **motivo** (`cliente`); se anulan las cuotas aún no vencidas y se cancelan las mantenciones **preventivas** pendientes de esa planta. La deuda vencida se mantiene por cobrar. Para volver a tener plan, el cliente usa CU-24. |
-| **CU-18 Consultar impagos** (HU-01 / RF-01) | "Listado de morosos…" | El estado de la suscripción con deuda se llama **`con_deuda`** (no `morosa`). Regla: cuota vencida → `con_deuda` (sigue activa); deuda más antigua > 1 mes → `cancelada` por `morosidad`. El listado incluye la deuda de suscripciones canceladas por morosidad. |
+| **CU-18 Consultar impagos** (HU-01 / RF-01) | "Listado de morosos…" | El estado de la suscripción con deuda se llama **`con_deuda`** (no `morosa`). Regla: cuota vencida → `con_deuda` (sigue activa); deuda más antigua > 1 mes → `cancelada` por `morosidad`, **pero solo si el cliente no tiene tarjeta activa o el cobro de esa cuota ya se intentó y fue rechazado** (así un cliente con tarjeta no pierde el plan antes de que el cobro automático lo intente). El listado indica si el cliente tiene cuenta web y tarjeta, o si paga por transferencia/efectivo. El listado incluye la deuda de suscripciones canceladas por morosidad. |
 | **CU-20 Generar cuotas y procesar cargos** (HU-13) | Lo ejecuta el administrador. | Se agrega: también lo ejecuta **automáticamente una vez al día** (CU-34). Cada intento queda en `intento_cargo`; un rechazo no cambia la cuota. |
 | **CU-22 Registrar pago manual** «extend» de CU-18 (HU-02 / RF-05) | — | Se agrega: el monto debe ser el **total** de la cuota (no hay abonos); una transferencia exige el N° de operación. |
 | **CU-14 Gestionar clientes y plantas** (HU-03 / RF-02) | — | Se agrega «extend» **Gestionar suscripción de la planta**: crear, cambiar cuota o día de cobro (1 a 28) y **cancelar por administración** (motivo `administrador`). Cambiar el dueño de una planta se rechaza si tiene suscripción vigente, cuotas impagas o visitas abiertas. |
 
-**Nota sobre el modelo de datos:** el informe dice "catorce entidades". Hoy son 21
+**Nota sobre el modelo de datos:** el informe dice "catorce entidades". Hoy son 23
 tablas; se agregaron `solicitud_suscripcion`, `solicitud_cambio_datos`,
 `mantencion_foto`, `aviso_correo`, `recuperacion_contrasena`, `intento_cargo` y
-`ejecucion_tarea` (migraciones `004` a `008`).
+`ejecucion_tarea` (migraciones `004` a `008`), `solicitud_planta` (`009`) y `notificacion` (`010`).
 
 ---
 
-## 2. Casos de uso nuevos (CU-23 a CU-36)
+## 2. Casos de uso nuevos (CU-23 a CU-37)
 
 | Caso de uso | Actor | Precondiciones | Postcondiciones | Código |
 |---|---|---|---|---|
@@ -52,7 +52,8 @@ tablas; se agregaron `solicitud_suscripcion`, `solicitud_cambio_datos`,
 | **CU-33 Revisar avisos por correo** | Administrador | Sesión de administrador. | Se ve el proveedor configurado, la bitácora de avisos (enviados/fallidos) y se puede enviar un correo de prueba. | `notificaciones/correo.service.js`, `correo.controller.js` · `CorreosPage.jsx` |
 | **CU-34 Cobro automático diario** | Reloj del sistema (actor temporal), Pasarela de pago | `COBRO_AUTOMATICO` activo; aún no se ejecutó hoy y ya pasó la hora de cobro. | Se generan las cuotas del mes (CU-20), se cobran las que vencen, se aplican las reglas de deuda y se registra la ejecución en `ejecucion_tarea`. Un cobro que la pasarela deja «pendiente» no se reintenta hasta que el administrador lo descarta. | `pagos/cobroAutomatico.js · ejecutarCobroDiario` · `CobroAutomaticoPanel.jsx` |
 | **CU-35 Contactar a ENINTI** | Visitante | — | El visitante elige un motivo y abre WhatsApp o correo con el mensaje ya escrito, o va a solicitar cuenta (CU-02). | `publico/pages/ContactoPage.jsx` |
-| **CU-36 Solicitar nueva planta** | Cliente (solicita) y Administrador (resuelve) | Cliente con cuenta; comuna y dirección válidas; la dirección no es una planta suya ni tiene otra solicitud pendiente; como máximo 3 solicitudes pendientes. Para aprobar: inversor, paneles y fecha de instalación (mismas reglas que CU-14). | Solicitud `pendiente` visible para el administrador. Aprobada → se crea la planta a nombre del cliente con su ficha técnica, en la misma transacción; rechazada → motivo visible para el cliente. Después el cliente puede pedir su suscripción (CU-24). | `cliente.service.js · solicitarPlanta` · `solicitudesCliente.service.js · aprobarPlanta, rechazarPlanta` · `MisPlantasPage.jsx` · `SolicitudesPlantaPage.jsx` |
+| **CU-36 Solicitar nueva planta** | Cliente (solicita) y Administrador (resuelve) | Cliente con cuenta; comuna y dirección válidas; la dirección no es una planta suya ni tiene otra solicitud pendiente; como máximo 3 solicitudes pendientes. Para aprobar: inversor, paneles y fecha de instalación (mismas reglas que CU-14). | Solicitud `pendiente` visible para el administrador. Aprobada → se crea la planta a nombre del cliente con su ficha técnica, en la misma transacción; rechazada → motivo visible para el cliente. Si el cliente ya contrató el plan, el administrador puede crear la suscripción en la misma aprobación (cuota, día de cobro e inicio); si no, el cliente la pide después (CU-24). No se activa sola: el cobro requiere el consentimiento del cliente (CU-09). | `cliente.service.js · solicitarPlanta` · `solicitudesCliente.service.js · aprobarPlanta, rechazarPlanta` · `MisPlantasPage.jsx` · `SolicitudesPlantaPage.jsx` |
+| **CU-37 Revisar notificaciones (campana)** | Usuario registrado (los tres roles) | Sesión activa. | Ve sus últimos 30 avisos con los no leídos destacados; al abrir uno queda leído y lo lleva a la pantalla correspondiente; puede marcar todos como leídos. Cada usuario solo ve los suyos (uno ajeno responde 404). Los avisos leídos de más de 90 días se borran solos. Eventos: **administrador** ← solicitudes de cuenta, mantención, suscripción, planta y cambio de datos; cancelación de suscripción; técnico que inicia o termina una visita; cliente que confirma o reclama; cobros rechazados. **Cliente** ← solicitudes aprobadas o rechazadas, mantención programada o cancelada, trabajo terminado por confirmar, cobro rechazado. **Técnico** ← visita asignada, cancelada o reabierta por reclamo. | `notificaciones/notificaciones.service.js · avisar, listar, marcarLeida, marcarTodas` · `shared/components/Campana.jsx` |
 
 **Avisos por correo automáticos** (parte de otros CU, no son CU propios):
 suscripción confirmada (CU-09), mantención programada (CU-16/CU-17), asignación al
@@ -97,6 +98,7 @@ rectangle "Plataforma ENINTI" {
   usecase "Solicitar suscripción\nCU-24" as CU24 <<nuevo>>
   usecase "Solicitar cambio de datos\nCU-25" as CU25 <<nuevo>>
   usecase "Solicitar nueva planta\nCU-36" as CU36 <<nuevo>>
+  usecase "Revisar notificaciones\nCU-37" as CU37 <<nuevo>>
   usecase "Inscribir medio de pago\nCU-09 · HU-13" as CU09
   usecase "Aceptar condiciones\nRF-19" as RF19
   usecase "Consultar agenda\nCU-10 · HU-14" as CU10
@@ -110,6 +112,7 @@ Visitante --> CU27
 Visitante --> CU35
 Usuario --> CU03
 Usuario --> CU26
+Usuario --> CU37
 Cliente --> CU04
 Cliente --> CU05
 Cliente --> CU06
@@ -151,6 +154,7 @@ rectangle "Plataforma ENINTI · Administración" {
   usecase "Atender solicitudes\nde suscripción\nCU-28" as CU28 <<nuevo>>
   usecase "Atender cambios de datos\nCU-29" as CU29 <<nuevo>>
   usecase "Atender solicitudes\nde nueva planta\nCU-36" as CU36A <<nuevo>>
+  usecase "Revisar notificaciones\nCU-37" as CU37A <<nuevo>>
   usecase "Gestionar trabajadores\nCU-15 · HU-15" as CU15
   usecase "Programar y asignar mantención\nCU-16 · HU-04, HU-17" as CU16
   usecase "Atender solicitudes de mantención\nCU-17 · HU-11" as CU17
@@ -175,6 +179,7 @@ Administrador --> CU28
 Administrador --> CU29
 Administrador --> CU36A
 CU36A ..> PLANTA : <<include>>
+Administrador --> CU37A
 Administrador --> CU15
 Administrador --> CU16
 CU16 <.. CU17 : <<extend>>

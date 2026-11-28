@@ -5,6 +5,7 @@ import { HttpError } from '../../shared/utils/httpError.js';
 import * as pasarela from '../pagos/pasarela.service.js';
 import { aplicarReglasDeuda, recalcularEstado } from '../pagos/reglasDeuda.js';
 import { avisarCobroRechazado, enSegundoPlano } from '../notificaciones/correo.service.js';
+import { avisar, usuarioDeCliente } from '../notificaciones/notificaciones.service.js';
 
 const PERIODO_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 
@@ -16,6 +17,8 @@ export async function impagos() {
   const { rows } = await query(
     `SELECT s.id_suscripcion, c.id_cliente, c.nombre AS cliente, c.rut, c.telefono,
             p.direccion, co.nombre AS comuna, s.estado AS estado_suscripcion, s.motivo_cancelacion,
+            c.id_usuario IS NOT NULL AS tiene_cuenta,
+            EXISTS (SELECT 1 FROM medio_pago mp WHERE mp.id_cliente = c.id_cliente AND mp.estado = 'activo') AS tiene_tarjeta,
             array_agg(cu.periodo ORDER BY cu.periodo) AS periodos,
             count(cu.id_cuota)::int AS meses_adeudados,
             sum(cu.monto)::int AS monto_total,
@@ -291,7 +294,20 @@ async function ejecutarCargos(origen) {
 
   await aplicarReglasDeuda();
   // Un solo aviso por cliente y ejecución, con el total que no se pudo cobrar
-  for (const [idCliente, monto] of rechazadosPorCliente) enSegundoPlano(avisarCobroRechazado(idCliente, monto));
+  for (const [idCliente, monto] of rechazadosPorCliente) {
+    enSegundoPlano(avisarCobroRechazado(idCliente, monto));
+    await avisar(await usuarioDeCliente(idCliente), {
+      tipo: 'cobro_rechazado', titulo: 'No pudimos cobrar tu cuota',
+      detalle: `La tarjeta fue rechazada por ${new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(monto)}. Revisa tu medio de pago`,
+      ruta: '/cliente/cuenta',
+    });
+  }
+  if (rechazadosPorCliente.size) {
+    await avisar('administradores', {
+      tipo: 'cobro_rechazado', titulo: `${rechazadosPorCliente.size} cliente(s) con cobro rechazado`,
+      detalle: `Cobro ${origen === 'automatico' ? 'automático' : 'manual'}: revisa los impagos`, ruta: '/admin/impagos',
+    });
+  }
   return resultado;
 }
 

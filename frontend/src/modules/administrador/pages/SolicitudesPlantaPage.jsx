@@ -7,7 +7,7 @@
 // ============================================================================
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { aprobarSolicitudPlanta, listarComunas, listarSolicitudesPlanta, rechazarSolicitudPlanta } from '../services/adminService.js';
+import { aprobarSolicitudPlanta, listarCatalogo, listarComunas, listarSolicitudesPlanta, rechazarSolicitudPlanta } from '../services/adminService.js';
 import Mensaje from '../../../shared/components/Mensaje.jsx';
 import Icono from '../../../shared/components/Icono.jsx';
 import { hoy, fechaDeMarca } from '../../../shared/utils/formato.js';
@@ -20,8 +20,11 @@ const ESTADO = {
 const BATERIAS = { true: 'Sí', false: 'No', null: 'No lo sabe' };
 
 // [CU-36] Aprobar (completa la ficha técnica y crea la planta) o rechazar con motivo
-function Resolver({ solicitud, comunas, onListo }) {
+function Resolver({ solicitud, comunas, precioPlan, onListo }) {
   const [modo, setModo] = useState(null); // 'aprobar' | 'rechazar'
+  // Plan contratado: opcional, solo si el cliente ya aceptó el plan (no es automático)
+  const [conPlan, setConPlan] = useState(false);
+  const [plan, setPlan] = useState({ monto_mensual: '', dia_cobro: '5' });
   const [ficha, setFicha] = useState({
     id_comuna: String(solicitud.id_comuna),
     direccion: solicitud.direccion,
@@ -51,6 +54,9 @@ function Resolver({ solicitud, comunas, onListo }) {
           baterias: ficha.baterias.trim() || null,
           fecha_instalacion: ficha.fecha_instalacion,
           respuesta: respuesta.trim() || undefined,
+          suscripcion: conPlan
+            ? { monto_mensual: Number(plan.monto_mensual || precioPlan), dia_cobro: Number(plan.dia_cobro) }
+            : undefined,
         });
       } else {
         await rechazarSolicitudPlanta(solicitud.id_solicitud_planta, respuesta.trim());
@@ -97,6 +103,22 @@ function Resolver({ solicitud, comunas, onListo }) {
             </label>
             <label>Fecha de instalación<input type="date" value={ficha.fecha_instalacion} onChange={cambiar('fecha_instalacion')} max={hoy()} required /></label>
           </div>
+          <label className="ver-contrasena">
+            <input type="checkbox" checked={conPlan} onChange={(e) => setConPlan(e.target.checked)} />
+            El cliente ya contrató el plan de mantención: crear también su suscripción
+          </label>
+          {conPlan && (
+            <div className="fila" style={{ marginTop: 0 }}>
+              <label>Cuota mensual
+                <input type="number" min="1" step="1" value={plan.monto_mensual} placeholder={precioPlan ? String(precioPlan) : ''}
+                  onChange={(e) => setPlan((p) => ({ ...p, monto_mensual: e.target.value }))} required={!precioPlan} />
+              </label>
+              <label>Día de cobro
+                <input type="number" min="1" max="28" value={plan.dia_cobro} onChange={(e) => setPlan((p) => ({ ...p, dia_cobro: e.target.value }))} required />
+              </label>
+            </div>
+          )}
+          {conPlan && <p className="texto-suave" style={{ margin: 0 }}>El cliente igual deberá aceptar las condiciones al inscribir su tarjeta en «Mi cuenta».</p>}
         </>
       )}
       <label>
@@ -119,6 +141,7 @@ export default function SolicitudesPlantaPage() {
   const [estado, setEstado] = useState('pendiente');
   const [solicitudes, setSolicitudes] = useState([]);
   const [comunas, setComunas] = useState([]);
+  const [precioPlan, setPrecioPlan] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
 
@@ -128,6 +151,12 @@ export default function SolicitudesPlantaPage() {
   }, [estado]);
   useEffect(() => { cargar(); }, [cargar]);
   useEffect(() => { listarComunas().then(setComunas).catch(setError); }, []);
+  // Precio sugerido para la suscripción: el plan activo más económico del catálogo
+  useEffect(() => {
+    listarCatalogo()
+      .then((c) => setPrecioPlan(c.filter((i) => i.tipo === 'plan' && i.activo).map((i) => i.precio).sort((a, b) => a - b)[0] ?? null))
+      .catch(() => {});
+  }, []);
 
   return (
     <section>
@@ -169,7 +198,7 @@ export default function SolicitudesPlantaPage() {
               {s.id_planta && <div><dt>Planta creada</dt><dd><Link to={`/admin/plantas/${s.id_planta}`}>Ver ficha</Link></dd></div>}
               {s.resuelta_por_nombre && <div><dt>Resuelta por</dt><dd>{s.resuelta_por_nombre}</dd></div>}
             </dl>
-            {s.estado === 'pendiente' && <Resolver solicitud={s} comunas={comunas} onListo={cargar} />}
+            {s.estado === 'pendiente' && <Resolver solicitud={s} comunas={comunas} precioPlan={precioPlan} onListo={cargar} />}
           </article>
         ))}
       </div>

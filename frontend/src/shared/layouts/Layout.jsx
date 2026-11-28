@@ -3,6 +3,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/sesion.js';
 import Icono from '../components/Icono.jsx';
 import LogoEninti from '../components/LogoEninti.jsx';
+import Campana from '../components/Campana.jsx';
 
 // Menú de navegación según el rol (RNF-10: cada perfil ve solo lo suyo).
 // Cada grupo lleva un título solo cuando el rol tiene varios grupos.
@@ -173,7 +174,10 @@ export default function Layout() {
             )}
             {detalle && <><Icono nombre="flecha" tamano={14} /><span aria-current="page">Detalle</span></>}
           </nav>
-          <span className="panel-fecha"><Icono nombre="calendario" tamano={16} />{hoy}</span>
+          <div className="panel-acciones">
+            <span className="panel-fecha"><Icono nombre="calendario" tamano={16} />{hoy}</span>
+            <Campana />
+          </div>
         </div>
         <Suspense fallback={<p className="cargando">Cargando…</p>}>
           <Outlet />

@@ -12,11 +12,19 @@ export async function listar() {
     `SELECT c.id_cliente, c.rut, c.nombre, c.telefono, c.direccion, c.id_comuna,
             co.nombre AS comuna,
             c.id_usuario IS NOT NULL AS tiene_cuenta,
+            -- Cuenta web: con qué correo entra el cliente y si está habilitada
+            u.email AS email_cuenta, u.activo AS cuenta_activa, u.ultimo_acceso,
+            -- Sin cuenta: el correo que escribió en su solicitud (para crearla sin preguntar de nuevo)
+            CASE WHEN c.id_usuario IS NULL THEN (
+              SELECT sc.email FROM solicitud_cuenta sc
+              WHERE sc.rut = c.rut ORDER BY sc.fecha_solicitud DESC LIMIT 1
+            ) END AS email_solicitud,
             count(p.id_planta)::int AS plantas
      FROM cliente c
      LEFT JOIN comuna co ON co.id_comuna = c.id_comuna
+     LEFT JOIN usuario u ON u.id_usuario = c.id_usuario
      LEFT JOIN planta p  ON p.id_cliente = c.id_cliente
-     GROUP BY c.id_cliente, co.nombre
+     GROUP BY c.id_cliente, co.nombre, u.id_usuario
      ORDER BY c.nombre`,
   );
   return rows;

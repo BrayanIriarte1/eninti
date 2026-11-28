@@ -5,6 +5,7 @@ import { textoOpcional } from '../../shared/utils/texto.js';
 import { puedeTransitar } from '../../shared/utils/estadosOrden.js';
 import { fotosDeOrden } from '../../shared/utils/fotos.js';
 import { avisarAsignacionTrabajador, avisarMantencionProgramada, enSegundoPlano } from '../notificaciones/correo.service.js';
+import { avisar, datosOrden } from '../notificaciones/notificaciones.service.js';
 
 const SELECT_MANTENCION = `
   SELECT m.id_mantencion, m.tipo, m.estado, m.fecha_programada, m.fecha_ejecucion,
@@ -114,6 +115,7 @@ export async function crear({ id_planta, tipo, fecha_programada, id_trabajador, 
     // Avisos por correo después de confirmar la transacción (HU-11, HU-17)
     enSegundoPlano(avisarMantencionProgramada(creada[0].id_mantencion));
     if (id_trabajador) enSegundoPlano(avisarAsignacionTrabajador(creada[0].id_mantencion));
+    await notificarOrden(creada[0].id_mantencion, { cliente: 'programada', trabajador: id_trabajador ? 'asignada' : null });
     return obtener(creada[0].id_mantencion);
   } catch (err) {
     await conexion.query('ROLLBACK');
@@ -142,6 +144,7 @@ export async function asignar(id, { id_trabajador }) {
     if (!rows.length) throw new HttpError(409, 'La mantención no existe o ya está cerrada');
     await conexion.query('COMMIT');
     enSegundoPlano(avisarAsignacionTrabajador(id)); // HU-17
+    await notificarOrden(id, { trabajador: 'asignada' });
   } catch (err) {
     await conexion.query('ROLLBACK');
     throw err;
@@ -187,6 +190,7 @@ export async function cancelar(id, idAdmin, comentario) {
   } finally {
     conexion.release();
   }
+  await notificarOrden(id, { cliente: 'cancelada', trabajador: 'cancelada', motivo: textoComentario });
   return obtener(id);
 }
 
@@ -222,6 +226,14 @@ export async function rechazarSolicitud(id) {
     [id],
   );
   if (!rows.length) throw new HttpError(409, 'La solicitud no existe o ya fue atendida');
+  const { rows: [planta] } = await query(
+    'SELECT p.direccion, c.id_usuario FROM planta p JOIN cliente c USING (id_cliente) WHERE p.id_planta = $1',
+    [rows[0].id_planta],
+  );
+  await avisar(planta?.id_usuario, {
+    tipo: 'solicitud_rechazada', titulo: 'Tu solicitud de mantención no fue aceptada',
+    detalle: `${planta?.direccion}. Contáctanos si necesitas más información`, ruta: '/cliente/solicitudes',
+  });
   return rows[0];
 }
 
@@ -269,4 +281,30 @@ export async function cerrarSinCliente(id, idAdmin, comentario) {
     conexion.release();
   }
   return obtener(id);
+}
+
+// [CU-37] Avisos de la campana sobre una orden: al cliente (programada o cancelada) y al técnico
+// (asignada o cancelada). Se llaman después de confirmar la transacción.
+async function notificarOrden(idMantencion, { cliente, trabajador, motivo }) {
+  const o = await datosOrden(idMantencion);
+  if (!o) return;
+  const fecha = o.fecha_programada?.split('-').reverse().join('-');
+  const conMotivo = motivo ? `: ${motivo}` : '';
+  if (cliente === 'programada') {
+    await avisar(o.id_usuario_cliente, {
+      tipo: 'mantencion_programada', titulo: `Programamos una mantención ${o.tipo} para tu planta`,
+      detalle: `${o.direccion}, el ${fecha}`, ruta: '/cliente/mantenciones',
+    });
+  }
+  if (cliente === 'cancelada') {
+    await avisar(o.id_usuario_cliente, {
+      tipo: 'mantencion_cancelada', titulo: 'Se canceló una visita a tu planta',
+      detalle: `${o.direccion} (${fecha})${conMotivo}`, ruta: '/cliente/mantenciones',
+    });
+  }
+  if (trabajador && o.id_trabajador) {
+    await avisar(o.id_trabajador, trabajador === 'asignada'
+      ? { tipo: 'orden_asignada', titulo: 'Te asignaron una visita', detalle: `${o.direccion}, ${o.comuna} · ${fecha}`, ruta: `/trabajador/ordenes/${idMantencion}` }
+      : { tipo: 'orden_cancelada', titulo: 'Se canceló una de tus visitas', detalle: `${o.direccion} (${fecha})${conMotivo}`, ruta: '/trabajador/agenda' });
+  }
 }

@@ -66,6 +66,7 @@ El token dura **8 horas**. Tras **5 contraseñas incorrectas** con el mismo corr
   servers: [{ url: '/api', description: 'Servidor actual' }],
   tags: [
     { name: 'Sistema', description: 'Estado del servicio' },
+    { name: 'Notificaciones', description: 'Campana de avisos de cada usuario (CU-37): solicitudes, avance de las visitas y respuestas' },
     { name: 'Autenticación', description: 'Inicio de sesión, cambio y recuperación de contraseña (HU-07). No hay autorregistro: la cuenta del cliente la crea el administrador' },
     { name: 'Público', description: 'Sin sesión: cotizador, solicitud de cuenta y retorno de la pasarela simulada' },
     { name: 'Cliente', description: 'Perfil **cliente**: cuenta, plantas, mantenciones y solicitudes (HU-08 a HU-13)' },
@@ -101,6 +102,15 @@ El token dura **8 horas**. Tras **5 contraseñas incorrectas** con el mismo corr
           429: { description: 'Demasiados intentos fallidos', content: json(ref('Error')) },
         },
       },
+    },
+    '/notificaciones': {
+      get: { tags: ['Notificaciones'], summary: 'Mis últimas 30 notificaciones y cuántas no he leído', security: protegido, responses: { 200: ok('Notificaciones', { type: 'object', properties: { no_leidas: entero, notificaciones: { type: 'array', items: { type: 'object' } } } }), ...comunes } },
+    },
+    '/notificaciones/leer-todas': {
+      post: { tags: ['Notificaciones'], summary: 'Marcar todas mis notificaciones como leídas', security: protegido, responses: { 200: ok('Cantidad marcada', { type: 'object' }), ...comunes } },
+    },
+    '/notificaciones/{id}/leer': {
+      post: { tags: ['Notificaciones'], summary: 'Marcar una notificación propia como leída (una ajena responde 404)', security: protegido, parameters: [idPath()], responses: { 200: ok('Marcada', { type: 'object' }), 400: r400, ...comunes, 404: r404 } },
     },
     '/auth/me': {
       get: {

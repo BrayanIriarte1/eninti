@@ -6,6 +6,7 @@ import trabajador from '../modules/trabajador/trabajador.routes.js';
 import pagos from '../modules/pagos/pagos.routes.js';
 import publico from '../modules/publico/publico.routes.js';
 import tareas from '../modules/pagos/tareas.routes.js';
+import notificaciones from '../modules/notificaciones/notificaciones.routes.js';
 
 const router = Router();
 
@@ -17,5 +18,6 @@ router.use('/cliente', cliente);
 router.use('/trabajador', trabajador);
 router.use('/admin', administrador);
 router.use('/pagos', pagos);
+router.use('/notificaciones', notificaciones);
 
 export default router;

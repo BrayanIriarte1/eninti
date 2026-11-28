@@ -6,6 +6,7 @@ import { HttpError } from '../../shared/utils/httpError.js';
 import { textoOpcional } from '../../shared/utils/texto.js';
 import { puedeTransitarTecnico } from '../../shared/utils/estadosOrden.js';
 import { decodificarFotos, guardarFotos, fotosDeOrden } from '../../shared/utils/fotos.js';
+import { avisar, datosOrden } from '../notificaciones/notificaciones.service.js';
 
 const SELECT_ORDEN = `
   SELECT m.id_mantencion, m.tipo, m.estado, m.fecha_programada, m.fecha_ejecucion,
@@ -84,6 +85,7 @@ export async function cambiarEstado(id, idTrabajador, { estado, actividades, obs
   }
   const imagenes = termina ? decodificarFotos(fotos) : [];
 
+  let estadoAnterior = null;
   const conexion = await pool.connect();
   try {
     await conexion.query('BEGIN');
@@ -94,6 +96,7 @@ export async function cambiarEstado(id, idTrabajador, { estado, actividades, obs
     if (!rows.length) throw new HttpError(404, 'Orden no encontrada o no asignada a ti');
 
     const actual = rows[0].estado;
+    estadoAnterior = actual;
     if (actual === 'por_confirmar') {
       throw new HttpError(409, 'La orden espera la confirmación del cliente');
     }
@@ -129,5 +132,25 @@ export async function cambiarEstado(id, idTrabajador, { estado, actividades, obs
     conexion.release();
   }
 
+  // Seguimiento: el administrador sabe cuándo empieza y termina cada visita; el cliente,
+  // cuando el trabajo espera su confirmación (CU-37)
+  const orden = await datosOrden(id);
+  if (orden) {
+    if (termina) {
+      await avisar('administradores', {
+        tipo: 'orden_terminada', titulo: `${orden.trabajador} terminó la visita`,
+        detalle: `${orden.direccion} (${orden.cliente}): espera la confirmación del cliente`, ruta: '/admin/calendario',
+      });
+      await avisar(orden.id_usuario_cliente, {
+        tipo: 'orden_por_confirmar', titulo: 'El técnico terminó el trabajo en tu planta',
+        detalle: `${orden.direccion}: revisa las fotos y confirma si quedó resuelto`, ruta: '/cliente/mantenciones',
+      });
+    } else if (estadoAnterior === 'pendiente') {
+      await avisar('administradores', {
+        tipo: 'orden_en_curso', titulo: `${orden.trabajador} inició una visita`,
+        detalle: `${orden.direccion} (${orden.cliente})`, ruta: '/admin/calendario',
+      });
+    }
+  }
   return obtenerOrden(id, idTrabajador);
 }

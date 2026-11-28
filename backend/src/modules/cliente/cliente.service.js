@@ -10,6 +10,7 @@ import { enTransaccion } from '../../shared/utils/transaccion.js';
 import { fotosDeOrden } from '../../shared/utils/fotos.js';
 import { telefonoValido } from '../../shared/utils/rut.js';
 import { mismaDireccion, validarSolicitudPlanta } from '../../shared/utils/solicitudPlanta.js';
+import { avisar, datosOrden } from '../notificaciones/notificaciones.service.js';
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const texto = (v) => (typeof v === 'string' ? v.trim() : '');
@@ -180,6 +181,11 @@ export async function crearSolicitud(idUsuario, { id_planta, motivo }) {
     `INSERT INTO solicitud_mantencion (id_planta, motivo) VALUES ($1, $2) RETURNING *`,
     [id_planta, texto],
   );
+  const planta = await obtenerPlanta(idUsuario, id_planta);
+  await avisar('administradores', {
+    tipo: 'solicitud_mantencion', titulo: 'Nueva solicitud de mantención',
+    detalle: `${planta.direccion}, ${planta.comuna}: ${texto}`, ruta: '/admin/solicitudes',
+  });
   return rows[0];
 }
 
@@ -203,7 +209,7 @@ export async function misSolicitudes(idUsuario) {
 export async function cancelarSuscripcion(idUsuario, idSuscripcion) {
   const cliente = await fichaCliente(idUsuario);
   // Cancelación, anulación de cuotas futuras y de preventivas pendientes en una sola transacción
-  return enTransaccion(async (conexion) => {
+  const cancelada = await enTransaccion(async (conexion) => {
     const { rows } = await conexion.query(
       `UPDATE suscripcion s
        SET estado = 'cancelada', fecha_cancelacion = CURRENT_DATE, motivo_cancelacion = 'cliente'
@@ -217,6 +223,11 @@ export async function cancelarSuscripcion(idUsuario, idSuscripcion) {
     await cerrarSuscripciones(conexion, [idSuscripcion], idUsuario);
     return rows[0];
   });
+  await avisar('administradores', {
+    tipo: 'suscripcion_cancelada', titulo: `${cliente.nombre} canceló su suscripción`,
+    detalle: 'Se anularon sus cuotas futuras y las preventivas pendientes', ruta: `/admin/plantas/${cancelada.id_planta}`,
+  });
+  return cancelada;
 }
 
 // [CU-09] Sin acepta_condiciones === true responde 400 («include» Aceptar condiciones, RF-19).
@@ -332,6 +343,16 @@ export async function confirmarOrden(idUsuario, idMantencion, { satisfecho, prob
       [idMantencion, idUsuario, destino, (nota ? `${resumen}: ${nota}` : resumen).slice(0, 255)],
     );
     await conexion.query('COMMIT');
+    const orden = await datosOrden(idMantencion);
+    if (orden) {
+      const aviso = problema_resuelto
+        ? { tipo: 'orden_finalizada', titulo: `${orden.cliente} confirmó la visita`, detalle: `${orden.direccion}: ${resumen}` }
+        : { tipo: 'orden_reabierta', titulo: `${orden.cliente} reabrió la orden`, detalle: `${orden.direccion}: ${nota}` };
+      await avisar('administradores', { ...aviso, ruta: '/admin/calendario' });
+      if (!problema_resuelto && orden.id_trabajador) {
+        await avisar(orden.id_trabajador, { ...aviso, titulo: `El cliente reabrió una orden: ${orden.direccion}`, ruta: `/trabajador/ordenes/${idMantencion}` });
+      }
+    }
     return { id_mantencion: idMantencion, estado: destino };
   } catch (err) {
     await conexion.query('ROLLBACK');
@@ -365,6 +386,10 @@ export async function solicitarSuscripcion(idUsuario, { id_planta, mensaje }) {
       `INSERT INTO solicitud_suscripcion (id_planta, mensaje) VALUES ($1, $2) RETURNING *`,
       [id_planta, nota || null],
     );
+    await avisar('administradores', {
+      tipo: 'solicitud_suscripcion', titulo: `${cliente.nombre} solicita una suscripción`,
+      detalle: nota || null, ruta: '/admin/solicitudes-suscripcion',
+    });
     return rows[0];
   } catch (err) {
     if (err.code === '23505') throw new HttpError(409, 'Ya enviaste una solicitud para esta planta. El administrador te responderá');
@@ -401,6 +426,10 @@ export async function solicitarPlanta(idUsuario, datos) {
        VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
       [cliente.id_cliente, solicitud.id_comuna, solicitud.direccion, solicitud.potencia_kw, solicitud.tiene_baterias, solicitud.mensaje],
     );
+    await avisar('administradores', {
+      tipo: 'solicitud_planta', titulo: `${cliente.nombre} pide registrar una nueva planta`,
+      detalle: solicitud.direccion, ruta: '/admin/solicitudes-planta',
+    });
     return rows[0];
   } catch (err) {
     if (err.code === '23505') throw new HttpError(409, 'Ya enviaste una solicitud para esa dirección. El administrador te responderá');
@@ -476,6 +505,10 @@ export async function solicitarCambioDatos(idUsuario, { email, telefono, motivo 
        VALUES ($1, $2, $3, $4) RETURNING *`,
       [cliente.id_cliente, cambiaCorreo ? correo : null, cambiaFono ? fono : null, razon],
     );
+    await avisar('administradores', {
+      tipo: 'solicitud_datos', titulo: `${cliente.nombre} pide cambiar ${[cambiaCorreo && 'su correo', cambiaFono && 'su teléfono'].filter(Boolean).join(' y ')}`,
+      detalle: razon, ruta: '/admin/cambios-datos',
+    });
     return rows[0];
   } catch (err) {
     if (err.code === '23505') throw new HttpError(409, 'Ya tienes una solicitud de cambio pendiente');
