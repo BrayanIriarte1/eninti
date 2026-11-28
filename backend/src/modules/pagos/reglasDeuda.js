@@ -5,8 +5,12 @@ import { pool } from '../../config/db.js';
 //   · Una cuota pendiente cuyo plazo pasó queda 'vencida'.
 //   · Con alguna cuota vencida la suscripción sigue activa, pero 'con_deuda'.
 //   · Al pagar todas las vencidas vuelve de inmediato a 'al_dia'.
-//   · Si la deuda más antigua supera un mes, la suscripción se cancela por morosidad,
-//     se anulan las cuotas futuras y la deuda vencida se mantiene por cobrar.
+//   · Si la deuda más antigua supera un mes Y no se pudo cobrar, la suscripción se cancela
+//     por morosidad, se anulan las cuotas futuras y la deuda vencida se mantiene por cobrar.
+//     «No se pudo cobrar» = el cliente no tiene tarjeta activa, o ya se intentó cargar esa
+//     cuota y falló (rechazo, error o un cobro en espera descartado). Si tiene tarjeta y aún
+//     no se intentó (p. ej. el servidor estuvo apagado), primero se cobra: no se cancela a
+//     quien sí puede pagar. La suscripción sigue «con_deuda» hasta el próximo cobro.
 // Para volver a tener suscripción, el cliente envía una solicitud que el administrador acepta.
 // Es idempotente: se ejecuta al iniciar la API, cada hora y después de cada pago o cobro.
 
@@ -24,7 +28,17 @@ export async function aplicarReglasDeuda(conexion = pool) {
      WHERE s.estado <> 'cancelada'
        AND EXISTS (SELECT 1 FROM cuota c
                    WHERE c.id_suscripcion = s.id_suscripcion AND c.estado = 'vencida'
-                     AND c.fecha_vencimiento + interval '1 month' < CURRENT_DATE)
+                     AND c.fecha_vencimiento + interval '1 month' < CURRENT_DATE
+                     AND (
+                       -- sin tarjeta activa: no hay cómo cobrarla
+                       NOT EXISTS (SELECT 1 FROM planta p
+                                   JOIN medio_pago mp ON mp.id_cliente = p.id_cliente AND mp.estado = 'activo'
+                                   WHERE p.id_planta = s.id_planta)
+                       -- con tarjeta: solo si ya se intentó cobrar esa cuota y falló
+                       OR EXISTS (SELECT 1 FROM intento_cargo ic
+                                  WHERE ic.id_cuota = c.id_cuota
+                                    AND ic.resultado IN ('rechazado', 'error', 'descartado'))
+                     ))
      RETURNING s.id_suscripcion`,
   );
   if (canceladas.length) await cerrarSuscripciones(conexion, canceladas.map((c) => c.id_suscripcion), null);

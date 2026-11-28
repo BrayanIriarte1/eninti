@@ -10,7 +10,7 @@ import { Link } from 'react-router-dom';
 import { listarSolicitudesSuscripcion, aprobarSolicitudSuscripcion, rechazarSolicitudSuscripcion } from '../services/adminService.js';
 import Mensaje from '../../../shared/components/Mensaje.jsx';
 import Icono from '../../../shared/components/Icono.jsx';
-import { formatoFecha, formatoPesos, hoy } from '../../../shared/utils/formato.js';
+import { formatoPesos, hoy, fechaDeMarca } from '../../../shared/utils/formato.js';
 
 const MOTIVO = { cliente: 'la canceló el cliente', morosidad: 'cancelada por morosidad', administrador: 'la canceló la administración' };
 const ESTADO = {
@@ -125,7 +125,7 @@ export default function SolicitudesSuscripcionPage() {
               <div><dt>Planta</dt><dd><Link to={`/admin/plantas/${s.id_planta}`}>{s.direccion}</Link>, {s.comuna}</dd></div>
               <div><dt>RUT</dt><dd>{s.rut}</dd></div>
               {s.telefono && <div><dt>Teléfono</dt><dd><a href={`tel:${s.telefono}`}>{s.telefono}</a></dd></div>}
-              <div><dt>Solicitada</dt><dd>{formatoFecha(s.fecha_solicitud.slice(0, 10))}</dd></div>
+              <div><dt>Solicitada</dt><dd>{fechaDeMarca(s.fecha_solicitud)}</dd></div>
               <div>
                 <dt>Deuda del cliente</dt>
                 <dd className={s.deuda_cliente > 0 ? 'texto-alerta' : ''}>{s.deuda_cliente > 0 ? formatoPesos(s.deuda_cliente) : 'Sin deuda'}</dd>

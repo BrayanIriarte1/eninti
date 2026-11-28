@@ -9,6 +9,8 @@ import { puedeTransitar } from '../../shared/utils/estadosOrden.js';
 import { enTransaccion } from '../../shared/utils/transaccion.js';
 import { fotosDeOrden } from '../../shared/utils/fotos.js';
 import { telefonoValido } from '../../shared/utils/rut.js';
+import { mismaDireccion, validarSolicitudPlanta } from '../../shared/utils/solicitudPlanta.js';
+import { avisar, datosOrden } from '../notificaciones/notificaciones.service.js';
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const texto = (v) => (typeof v === 'string' ? v.trim() : '');
@@ -32,7 +34,15 @@ export async function misPlantas(idUsuario) {
               'id_suscripcion', s.id_suscripcion, 'estado', s.estado,
               'monto_mensual', s.monto_mensual, 'fecha_inicio', s.fecha_inicio,
               'dia_cobro', s.dia_cobro, 'mantenciones_anuales', s.mantenciones_anuales
-            ) END AS suscripcion
+            ) END AS suscripcion,
+            -- Sin suscripción vigente: la última cancelada (para explicar por qué) y si ya pidió una nueva (CU-24)
+            CASE WHEN s.id_suscripcion IS NULL THEN (
+              SELECT json_build_object('fecha_cancelacion', sc.fecha_cancelacion, 'motivo_cancelacion', sc.motivo_cancelacion)
+              FROM suscripcion sc WHERE sc.id_planta = p.id_planta AND sc.estado = 'cancelada'
+              ORDER BY sc.fecha_cancelacion DESC, sc.id_suscripcion DESC LIMIT 1
+            ) END AS ultima_cancelada,
+            EXISTS (SELECT 1 FROM solicitud_suscripcion ss
+                    WHERE ss.id_planta = p.id_planta AND ss.estado = 'pendiente') AS suscripcion_solicitada
      FROM planta p
      JOIN comuna co ON co.id_comuna = p.id_comuna
      LEFT JOIN suscripcion s ON s.id_planta = p.id_planta AND s.estado <> 'cancelada'
@@ -171,6 +181,11 @@ export async function crearSolicitud(idUsuario, { id_planta, motivo }) {
     `INSERT INTO solicitud_mantencion (id_planta, motivo) VALUES ($1, $2) RETURNING *`,
     [id_planta, texto],
   );
+  const planta = await obtenerPlanta(idUsuario, id_planta);
+  await avisar('administradores', {
+    tipo: 'solicitud_mantencion', titulo: 'Nueva solicitud de mantención',
+    detalle: `${planta.direccion}, ${planta.comuna}: ${texto}`, ruta: '/admin/solicitudes',
+  });
   return rows[0];
 }
 
@@ -194,7 +209,7 @@ export async function misSolicitudes(idUsuario) {
 export async function cancelarSuscripcion(idUsuario, idSuscripcion) {
   const cliente = await fichaCliente(idUsuario);
   // Cancelación, anulación de cuotas futuras y de preventivas pendientes en una sola transacción
-  return enTransaccion(async (conexion) => {
+  const cancelada = await enTransaccion(async (conexion) => {
     const { rows } = await conexion.query(
       `UPDATE suscripcion s
        SET estado = 'cancelada', fecha_cancelacion = CURRENT_DATE, motivo_cancelacion = 'cliente'
@@ -208,6 +223,11 @@ export async function cancelarSuscripcion(idUsuario, idSuscripcion) {
     await cerrarSuscripciones(conexion, [idSuscripcion], idUsuario);
     return rows[0];
   });
+  await avisar('administradores', {
+    tipo: 'suscripcion_cancelada', titulo: `${cliente.nombre} canceló su suscripción`,
+    detalle: 'Se anularon sus cuotas futuras y las preventivas pendientes', ruta: `/admin/plantas/${cancelada.id_planta}`,
+  });
+  return cancelada;
 }
 
 // [CU-09] Sin acepta_condiciones === true responde 400 («include» Aceptar condiciones, RF-19).
@@ -323,6 +343,16 @@ export async function confirmarOrden(idUsuario, idMantencion, { satisfecho, prob
       [idMantencion, idUsuario, destino, (nota ? `${resumen}: ${nota}` : resumen).slice(0, 255)],
     );
     await conexion.query('COMMIT');
+    const orden = await datosOrden(idMantencion);
+    if (orden) {
+      const aviso = problema_resuelto
+        ? { tipo: 'orden_finalizada', titulo: `${orden.cliente} confirmó la visita`, detalle: `${orden.direccion}: ${resumen}` }
+        : { tipo: 'orden_reabierta', titulo: `${orden.cliente} reabrió la orden`, detalle: `${orden.direccion}: ${nota}` };
+      await avisar('administradores', { ...aviso, ruta: '/admin/calendario' });
+      if (!problema_resuelto && orden.id_trabajador) {
+        await avisar(orden.id_trabajador, { ...aviso, titulo: `El cliente reabrió una orden: ${orden.direccion}`, ruta: `/trabajador/ordenes/${idMantencion}` });
+      }
+    }
     return { id_mantencion: idMantencion, estado: destino };
   } catch (err) {
     await conexion.query('ROLLBACK');
@@ -356,11 +386,71 @@ export async function solicitarSuscripcion(idUsuario, { id_planta, mensaje }) {
       `INSERT INTO solicitud_suscripcion (id_planta, mensaje) VALUES ($1, $2) RETURNING *`,
       [id_planta, nota || null],
     );
+    await avisar('administradores', {
+      tipo: 'solicitud_suscripcion', titulo: `${cliente.nombre} solicita una suscripción`,
+      detalle: nota || null, ruta: '/admin/solicitudes-suscripcion',
+    });
     return rows[0];
   } catch (err) {
     if (err.code === '23505') throw new HttpError(409, 'Ya enviaste una solicitud para esta planta. El administrador te responderá');
     throw err;
   }
+}
+
+// ------------------------------------------------------------ Solicitud de nueva planta
+
+export const MAX_SOLICITUDES_PLANTA_PENDIENTES = 3;
+
+// [CU-36]
+// El cliente con cuenta pide registrar otra instalación; el administrador la revisa,
+// completa la ficha técnica y crea la planta (o la rechaza con un motivo).
+export async function solicitarPlanta(idUsuario, datos) {
+  const solicitud = validarSolicitudPlanta(datos);
+  const cliente = await fichaCliente(idUsuario);
+
+  const { rows: plantas } = await query('SELECT direccion FROM planta WHERE id_cliente = $1', [cliente.id_cliente]);
+  if (plantas.some((p) => mismaDireccion(p.direccion, solicitud.direccion))) {
+    throw new HttpError(409, 'Ya tienes una planta registrada en esa dirección');
+  }
+  const { rows: [{ pendientes }] } = await query(
+    `SELECT count(*)::int AS pendientes FROM solicitud_planta WHERE id_cliente = $1 AND estado = 'pendiente'`,
+    [cliente.id_cliente],
+  );
+  if (pendientes >= MAX_SOLICITUDES_PLANTA_PENDIENTES) {
+    throw new HttpError(409, `Tienes ${pendientes} solicitudes de planta pendientes. Espera la respuesta del administrador antes de enviar otra`);
+  }
+
+  try {
+    const { rows } = await query(
+      `INSERT INTO solicitud_planta (id_cliente, id_comuna, direccion, potencia_kw, tiene_baterias, mensaje)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+      [cliente.id_cliente, solicitud.id_comuna, solicitud.direccion, solicitud.potencia_kw, solicitud.tiene_baterias, solicitud.mensaje],
+    );
+    await avisar('administradores', {
+      tipo: 'solicitud_planta', titulo: `${cliente.nombre} pide registrar una nueva planta`,
+      detalle: solicitud.direccion, ruta: '/admin/solicitudes-planta',
+    });
+    return rows[0];
+  } catch (err) {
+    if (err.code === '23505') throw new HttpError(409, 'Ya enviaste una solicitud para esa dirección. El administrador te responderá');
+    if (err.code === '23503') throw new HttpError(400, 'La comuna elegida no existe');
+    throw err;
+  }
+}
+
+// [CU-36] Historial de solicitudes de planta del cliente, con la respuesta del administrador
+export async function misSolicitudesPlanta(idUsuario) {
+  const cliente = await fichaCliente(idUsuario);
+  const { rows } = await query(
+    `SELECT sp.id_solicitud_planta, sp.direccion, co.nombre AS comuna, sp.potencia_kw, sp.tiene_baterias,
+            sp.mensaje, sp.estado, sp.respuesta, sp.fecha_solicitud, sp.fecha_resolucion, sp.id_planta
+     FROM solicitud_planta sp
+     JOIN comuna co ON co.id_comuna = sp.id_comuna
+     WHERE sp.id_cliente = $1
+     ORDER BY (sp.estado <> 'pendiente'), sp.fecha_solicitud DESC`,
+    [cliente.id_cliente],
+  );
+  return rows;
 }
 
 // ------------------------------------------------------------ Cambio de datos
@@ -415,6 +505,10 @@ export async function solicitarCambioDatos(idUsuario, { email, telefono, motivo 
        VALUES ($1, $2, $3, $4) RETURNING *`,
       [cliente.id_cliente, cambiaCorreo ? correo : null, cambiaFono ? fono : null, razon],
     );
+    await avisar('administradores', {
+      tipo: 'solicitud_datos', titulo: `${cliente.nombre} pide cambiar ${[cambiaCorreo && 'su correo', cambiaFono && 'su teléfono'].filter(Boolean).join(' y ')}`,
+      detalle: razon, ruta: '/admin/cambios-datos',
+    });
     return rows[0];
   } catch (err) {
     if (err.code === '23505') throw new HttpError(409, 'Ya tienes una solicitud de cambio pendiente');

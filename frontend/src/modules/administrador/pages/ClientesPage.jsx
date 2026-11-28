@@ -10,6 +10,7 @@ import { listarClientes, crearCliente, actualizarCliente, listarComunas, crearCu
 import RutInput from '../../../shared/components/RutInput.jsx';
 import TelefonoInput from '../../../shared/components/TelefonoInput.jsx';
 import Mensaje from '../../../shared/components/Mensaje.jsx';
+import { fechaDeMarca } from '../../../shared/utils/formato.js';
 
 const VACIO = { rut: '', nombre: '', telefono: '', direccion: '', id_comuna: '' };
 
@@ -97,11 +98,17 @@ export default function ClientesPage() {
       {cuentaPara && (
         <article className="tarjeta" style={{ marginBottom: '1.5rem' }}>
           <h2>Crear cuenta web · {cuentaPara.nombre}</h2>
+          <p className="texto-suave">
+            {cuentaPara.email_solicitud
+              ? <>El correo viene de la solicitud de cuenta del cliente; confírmalo antes de crearla.</>
+              : <>Este cliente no envió una solicitud con correo.{cuentaPara.telefono ? <> Pídeselo al <a href={`tel:${cuentaPara.telefono}`}>{cuentaPara.telefono}</a>.</> : ' Pídeselo antes de crear la cuenta.'}</>}
+            {' '}La cuenta queda activa de inmediato: el cliente entra en «Iniciar sesión» con este correo y la contraseña inicial, y puede cambiarla después.
+          </p>
           <form className="formulario" onSubmit={crearCuenta}>
             <Mensaje error={error} />
             <fieldset>
               <legend>Datos de acceso</legend>
-              <label>Correo<input type="email" value={cuenta.email} onChange={(e) => setCuenta({ ...cuenta, email: e.target.value })} required /></label>
+              <label>Correo<input type="email" value={cuenta.email} onChange={(e) => setCuenta({ ...cuenta, email: e.target.value })} required autoComplete="off" /></label>
               <label>Contraseña inicial <span className="opcional">(8 o más, con letras y números)</span>
                 <input type="text" value={cuenta.password} onChange={(e) => setCuenta({ ...cuenta, password: e.target.value })} required minLength={8} maxLength={128} pattern="(?=.*[A-Za-zÁÉÍÓÚÜÑáéíóúüñ])(?=.*[0-9]).{8,128}" title="Al menos 8 caracteres, con letras y números" autoComplete="off" />
               </label>
@@ -116,6 +123,17 @@ export default function ClientesPage() {
 
       <article className="tarjeta" style={{ marginBottom: '1.5rem' }}>
         <h2>{editando ? 'Editar cliente' : 'Nuevo cliente'}</h2>
+        {editando && (() => {
+          const c = clientes.find((x) => x.id_cliente === editando);
+          if (!c) return null;
+          return (
+            <p className="texto-suave">
+              {c.tiene_cuenta
+                ? <>Cuenta web: <strong>{c.email_cuenta}</strong> ({c.cuenta_activa ? 'activa' : 'desactivada'}). El cliente pide cambiar su correo desde «Mis datos» y tú lo apruebas en «Cambios de datos».</>
+                : <>Este cliente aún no tiene cuenta web{c.email_solicitud ? <> (solicitó con <strong>{c.email_solicitud}</strong>)</> : ''}. Créala con el botón «Crear cuenta» del listado.</>}
+            </p>
+          );
+        })()}
         <form className="formulario" onSubmit={guardar}>
           <Mensaje error={error} />
           <fieldset>
@@ -150,12 +168,23 @@ export default function ClientesPage() {
               <td data-label="Comuna">{c.comuna ?? '—'}</td>
               <td data-label="Plantas">{c.plantas}</td>
               <td data-label="Cuenta web">
-                <span className={`etiqueta ${c.tiene_cuenta ? 'ok' : 'neutro'}`}>{c.tiene_cuenta ? 'Sí' : 'No'}</span>
+                {c.tiene_cuenta ? (
+                  <>
+                    <span className={`etiqueta ${c.cuenta_activa ? 'ok' : 'alerta'}`}>{c.cuenta_activa ? 'Activa' : 'Desactivada'}</span>
+                    <div className="texto-suave" style={{ fontSize: '.85rem', wordBreak: 'break-all' }}>{c.email_cuenta}</div>
+                    <div className="texto-suave" style={{ fontSize: '.8rem' }}>{c.ultimo_acceso ? `Último acceso: ${fechaDeMarca(c.ultimo_acceso)}` : 'Aún no ha ingresado'}</div>
+                  </>
+                ) : (
+                  <>
+                    <span className="etiqueta neutro">Sin cuenta</span>
+                    {c.email_solicitud && <div className="texto-suave" style={{ fontSize: '.85rem', wordBreak: 'break-all' }}>Solicitó con {c.email_solicitud}</div>}
+                  </>
+                )}
               </td>
               <td data-label="">
                 <div className="acciones">
                   {!c.tiene_cuenta && (
-                    <button className="boton" onClick={() => { setCuentaPara(c); setCuenta({ email: '', password: '' }); setAviso(null); setError(null); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
+                    <button className="boton" onClick={() => { setCuentaPara(c); setCuenta({ email: c.email_solicitud ?? '', password: '' }); setAviso(null); setError(null); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
                       Crear cuenta
                     </button>
                   )}

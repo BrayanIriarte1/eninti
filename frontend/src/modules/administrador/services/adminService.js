@@ -57,6 +57,12 @@ export const aprobarSolicitudSuscripcion = (id, datos) => api(`/admin/solicitude
 export const rechazarSolicitudSuscripcion = (id, respuesta) =>
   api(`/admin/solicitudes-suscripcion/${id}/rechazar`, { method: 'POST', body: { respuesta } });
 
+// Solicitudes de nueva planta de clientes con cuenta (CU-36)
+export const listarSolicitudesPlanta = (estado) => api(`/admin/solicitudes-planta${estado ? `?estado=${estado}` : ''}`);
+export const aprobarSolicitudPlanta = (id, datos) => api(`/admin/solicitudes-planta/${id}/aprobar`, { method: 'POST', body: datos });
+export const rechazarSolicitudPlanta = (id, respuesta) =>
+  api(`/admin/solicitudes-planta/${id}/rechazar`, { method: 'POST', body: { respuesta } });
+
 // Solicitudes de cambio de datos del cliente
 export const listarCambiosDatos = (estado) => api(`/admin/solicitudes-datos${estado ? `?estado=${estado}` : ''}`);
 export const aprobarCambioDatos = (id, respuesta) => api(`/admin/solicitudes-datos/${id}/aprobar`, { method: 'POST', body: { respuesta } });

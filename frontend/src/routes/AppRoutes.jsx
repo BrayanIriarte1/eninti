@@ -32,6 +32,7 @@ const CatalogoPage = lazy(() => import('../modules/administrador/pages/CatalogoP
 const SolicitudesCuentaPage = lazy(() => import('../modules/administrador/pages/SolicitudesCuentaPage.jsx'));
 const SolicitudesSuscripcionPage = lazy(() => import('../modules/administrador/pages/SolicitudesSuscripcionPage.jsx'));
 const CorreosPage = lazy(() => import('../modules/administrador/pages/CorreosPage.jsx'));
+const SolicitudesPlantaPage = lazy(() => import('../modules/administrador/pages/SolicitudesPlantaPage.jsx'));
 const CambiosDatosPage = lazy(() => import('../modules/administrador/pages/CambiosDatosPage.jsx'));
 
 // Trabajador
@@ -80,6 +81,7 @@ export default function AppRoutes() {
           <Route path="solicitudes" element={<SolicitudesAdminPage />} />
           <Route path="solicitudes-cuenta" element={<SolicitudesCuentaPage />} />
           <Route path="solicitudes-suscripcion" element={<SolicitudesSuscripcionPage />} />
+          <Route path="solicitudes-planta" element={<SolicitudesPlantaPage />} />
           <Route path="cambios-datos" element={<CambiosDatosPage />} />
           <Route path="impagos" element={<ImpagosPage />} />
           <Route path="pagos" element={<PagosMesPage />} />

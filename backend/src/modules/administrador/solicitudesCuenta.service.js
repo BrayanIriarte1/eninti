@@ -1,6 +1,7 @@
 // CAPA SERVICIO · Solicitudes de cuenta: el visitante pide (CU-02), el administrador aprueba o rechaza (CU-13).
 import { pool, query } from '../../config/db.js';
 import { HttpError } from '../../shared/utils/httpError.js';
+import { avisar } from '../notificaciones/notificaciones.service.js';
 import { crearCuentaCliente } from './clientes.service.js';
 import { normalizarRut, rutValido, telefonoValido } from '../../shared/utils/rut.js';
 
@@ -60,6 +61,10 @@ export async function crear(datos) {
       [nombre, rut, email, telefono, direccion, id_comuna, potencia_kw ?? null, tiene_baterias ?? null, mensaje || null],
     );
     await conexion.query('COMMIT');
+    await avisar('administradores', {
+      tipo: 'solicitud_cuenta', titulo: `${nombre} solicita una cuenta`,
+      detalle: direccion, ruta: '/admin/solicitudes-cuenta',
+    });
     return rows[0];
   } catch (err) {
     await conexion.query('ROLLBACK');

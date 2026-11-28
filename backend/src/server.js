@@ -1,6 +1,7 @@
 import app from './app.js';
 import { programarReglasDeuda } from './modules/pagos/reglasDeuda.js';
 import { programarCobroAutomatico } from './modules/pagos/cobroAutomatico.js';
+import { programarLimpieza as programarLimpiezaNotificaciones } from './modules/notificaciones/notificaciones.service.js';
 import { modo as modoCorreo, revisarConfiguracion } from './modules/notificaciones/correo.service.js';
 import { cuentasConClaveDemo } from './shared/utils/cuentasDemo.js';
 
@@ -18,6 +19,7 @@ app.listen(port, () => {
   console.log(`API ENINTI escuchando en http://localhost:${port}/api`);
   programarReglasDeuda();
   programarCobroAutomatico();
+  programarLimpiezaNotificaciones();
   // Correo: advierte al iniciar si la configuración impide que los avisos lleguen
   const avisosCorreo = revisarConfiguracion();
   if (avisosCorreo.length) avisosCorreo.forEach((a) => console.warn(`⚠ Correo: ${a}`));

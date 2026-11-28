@@ -9,7 +9,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { listarCambiosDatos, aprobarCambioDatos, rechazarCambioDatos } from '../services/adminService.js';
 import Mensaje from '../../../shared/components/Mensaje.jsx';
 import Icono from '../../../shared/components/Icono.jsx';
-import { formatoFecha } from '../../../shared/utils/formato.js';
+import { fechaDeMarca } from '../../../shared/utils/formato.js';
 
 const ESTADO = {
   pendiente: { texto: 'Pendiente', clase: 'aviso' },
@@ -86,7 +86,7 @@ export default function CambiosDatosPage() {
               {s.email_nuevo && <div><dt>Correo</dt><Cambio antes={s.estado === 'pendiente' ? s.email_actual : null} despues={s.email_nuevo} /></div>}
               {s.telefono_nuevo && <div><dt>Teléfono</dt><Cambio antes={s.estado === 'pendiente' ? s.telefono_actual : null} despues={s.telefono_nuevo} /></div>}
               <div><dt>Motivo</dt><dd>{s.motivo}</dd></div>
-              <div><dt>Solicitada</dt><dd>{formatoFecha(s.fecha_solicitud.slice(0, 10))}</dd></div>
+              <div><dt>Solicitada</dt><dd>{fechaDeMarca(s.fecha_solicitud)}</dd></div>
               {s.respuesta && <div><dt>Respuesta</dt><dd>{s.respuesta}</dd></div>}
               {s.resuelta_por_nombre && <div><dt>Resuelta por</dt><dd>{s.resuelta_por_nombre}</dd></div>}
             </dl>

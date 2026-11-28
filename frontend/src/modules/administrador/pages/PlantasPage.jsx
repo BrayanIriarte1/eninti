@@ -87,7 +87,7 @@ export default function PlantasPage() {
                 <td data-label="Cuota mensual">
                   {p.suscripcion ? formatoPesos(p.suscripcion.monto_mensual) : '—'}
                 </td>
-                <td data-label="Estado"><EstadoSuscripcion estado={p.suscripcion?.estado} /></td>
+                <td data-label="Estado"><EstadoSuscripcion estado={p.suscripcion?.estado ?? (p.ultima_cancelada ? 'cancelada' : null)} /></td>
               </tr>
             ))}
           </tbody>

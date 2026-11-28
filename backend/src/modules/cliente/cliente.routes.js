@@ -33,6 +33,10 @@ router.post('/ordenes/:id/confirmar', cliente.confirmarOrden); // CU-23
 // Solicitud para (volver a) tener suscripción: la otorga el administrador
 router.post('/solicitudes-suscripcion', cliente.solicitarSuscripcion); // CU-24
 
+// Solicitud de nueva planta: el administrador completa la ficha y la crea
+router.get('/solicitudes-planta', cliente.misSolicitudesPlanta); // CU-36
+router.post('/solicitudes-planta', cliente.solicitarPlanta); // CU-36
+
 // Mis datos y solicitud de cambio de correo o teléfono
 router.get('/datos', cliente.misDatos); // CU-25
 router.post('/datos/solicitudes', cliente.solicitarCambioDatos); // CU-25
